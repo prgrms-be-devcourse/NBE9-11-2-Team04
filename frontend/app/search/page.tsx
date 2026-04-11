@@ -27,52 +27,48 @@ import { Checkbox } from "@/components/ui/checkbox"
 const mockResults: Post[] = [
   {
     id: "1",
-    title: "Next.js 16에서 달라진 점들: 실무에서 바로 적용하기",
-    excerpt: "Next.js 16이 출시되면서 많은 변화가 있었습니다. 이 글에서는 실무에서 바로 적용할 수 있는 주요 변경사항들을 살펴봅니다.",
+    title: "2026년 프론트엔드 개발자 로드맵: 꼭 알아야 할 기술 스택",
+    excerpt: "React, Next.js, TypeScript를 중심으로 2026년 프론트엔드 개발자가 반드시 알아야 할 기술들을 정리했습니다.",
     author: { name: "김개발" },
-    category: "Next.js",
+    category: "IT 기술 정보",
     createdAt: "2시간 전",
     likes: 128,
     comments: 24,
     views: 1520,
-    tags: ["nextjs", "react", "frontend"],
+    tags: ["frontend", "react", "개발로드맵"],
   },
   {
     id: "2",
-    title: "TypeScript 5.0 새로운 기능 총정리",
-    excerpt: "TypeScript 5.0에서 추가된 새로운 기능들을 예제와 함께 상세히 살펴봅니다.",
-    author: { name: "박타입" },
-    category: "TypeScript",
+    title: "네카라쿠배당토 신입 개발자 채용 트렌드 분석",
+    excerpt: "2026년 상반기 대기업 IT 기업들의 신입 개발자 채용 동향과 필요한 역량을 분석합니다.",
+    author: { name: "박취준" },
+    category: "취업 시장 정보",
     createdAt: "5시간 전",
     likes: 89,
     comments: 15,
     views: 892,
-    tags: ["typescript", "javascript", "programming"],
+    tags: ["취업", "신입채용", "대기업"],
   },
   {
     id: "3",
-    title: "React Server Components 완벽 가이드",
-    excerpt: "React Server Components의 동작 원리부터 실제 프로젝트 적용까지.",
-    author: { name: "이리액트" },
-    category: "React",
+    title: "AI 코딩 어시스턴트 비교: Copilot vs Cursor vs Claude",
+    excerpt: "개발 생산성을 높여주는 AI 코딩 도구들을 실제 사용 경험을 바탕으로 비교 분석합니다.",
+    author: { name: "이트렌드" },
+    category: "개발자 트렌드",
     createdAt: "1일 전",
     likes: 256,
     comments: 42,
     views: 3240,
-    tags: ["react", "rsc", "server-components"],
+    tags: ["ai", "copilot", "개발도구"],
   },
 ]
 
 const categories = [
   "전체",
-  "JavaScript",
-  "TypeScript",
-  "React",
-  "Next.js",
-  "Node.js",
-  "Python",
-  "DevOps",
-  "AI/ML",
+  "IT 기술 정보",
+  "취업 시장 정보",
+  "개발자 트렌드",
+  "자유 주제",
 ]
 
 const sortOptions = [
@@ -89,9 +85,9 @@ export default function SearchPage() {
   const [sortBy, setSortBy] = useState("relevance")
   const [selectedCategory, setSelectedCategory] = useState("전체")
   const [recentSearches, setRecentSearches] = useState<string[]>([
-    "React hooks",
-    "Next.js 튜토리얼",
-    "TypeScript",
+    "신입 채용",
+    "프론트엔드 면접",
+    "연봉 협상",
   ])
 
   const handleSearch = async (searchQuery: string) => {
@@ -336,16 +332,16 @@ export default function SearchPage() {
           </h2>
           <div className="flex flex-wrap gap-2">
             {[
-              "react",
-              "nextjs",
-              "typescript",
-              "javascript",
-              "python",
-              "docker",
-              "kubernetes",
-              "aws",
+              "취업",
+              "신입채용",
+              "이직",
+              "연봉협상",
+              "코딩테스트",
+              "포트폴리오",
               "ai",
               "frontend",
+              "backend",
+              "개발자생활",
             ].map((tag) => (
               <button
                 key={tag}

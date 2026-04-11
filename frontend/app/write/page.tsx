@@ -17,18 +17,10 @@ import {
 import Link from "next/link"
 
 const categories = [
-  "JavaScript",
-  "TypeScript",
-  "React",
-  "Next.js",
-  "Node.js",
-  "Python",
-  "DevOps",
-  "AI/ML",
-  "CSS",
-  "커리어",
-  "팀문화",
-  "기타",
+  "IT 기술 정보",
+  "취업 시장 정보",
+  "개발자 트렌드",
+  "자유 주제",
 ]
 
 export default function WritePage() {

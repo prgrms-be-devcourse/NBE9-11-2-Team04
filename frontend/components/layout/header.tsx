@@ -13,14 +13,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 const categories = [
-  { name: "JavaScript", href: "/category/javascript" },
-  { name: "TypeScript", href: "/category/typescript" },
-  { name: "React", href: "/category/react" },
-  { name: "Next.js", href: "/category/nextjs" },
-  { name: "Node.js", href: "/category/nodejs" },
-  { name: "Python", href: "/category/python" },
-  { name: "DevOps", href: "/category/devops" },
-  { name: "AI/ML", href: "/category/ai-ml" },
+  { name: "IT 기술 정보", href: "/category/tech" },
+  { name: "취업 시장 정보", href: "/category/job-market" },
+  { name: "개발자 트렌드", href: "/category/trend" },
+  { name: "자유 주제", href: "/category/free" },
 ]
 
 export function Header() {

@@ -165,6 +165,19 @@ export default function LoginPage() {
               </svg>
               Google로 로그인
             </Button>
+            <Button
+              variant="outline"
+              className="w-full gap-2 bg-[#FEE500] text-[#000000] hover:bg-[#FEE500]/90 border-[#FEE500]"
+              type="button"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24">
+                <path
+                  fill="currentColor"
+                  d="M12 3C6.477 3 2 6.463 2 10.691c0 2.651 1.719 4.984 4.32 6.355-.144.521-.925 3.356-.959 3.578 0 0-.019.161.084.223.104.062.228.009.228.009.299-.043 3.467-2.265 4.009-2.648.759.106 1.542.162 2.318.162 5.523 0 10-3.463 10-7.691S17.523 3 12 3z"
+                />
+              </svg>
+              카카오로 로그인
+            </Button>
           </div>
         </div>
 
