@@ -1,13 +1,14 @@
-package com.back.devc.domain.auth.dto;
+package com.back.devc.domain.auth.dto.login;
 
 import com.back.devc.domain.member.member.entity.MemberRole;
 import com.back.devc.domain.member.member.entity.MemberStatus;
 
-public record SignUpResponse(
+public record LoginResponse(
         Long userId,
         String email,
         String nickname,
         MemberRole role,
-        MemberStatus status
+        MemberStatus status,
+        String accessToken
 ) {
 }

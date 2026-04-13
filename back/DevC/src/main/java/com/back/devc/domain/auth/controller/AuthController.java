@@ -1,7 +1,7 @@
 package com.back.devc.domain.auth.controller;
 
-import com.back.devc.domain.auth.dto.SignUpRequest;
-import com.back.devc.domain.auth.dto.SignUpResponse;
+import com.back.devc.domain.auth.dto.signup.SignUpRequest;
+import com.back.devc.domain.auth.dto.signup.SignUpResponse;
 import com.back.devc.domain.auth.service.AuthService;
 import com.back.devc.global.response.SuccessCode;
 import com.back.devc.global.response.SuccessResponse;

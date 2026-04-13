@@ -1,7 +1,7 @@
 package com.back.devc.domain.auth.service;
 
-import com.back.devc.domain.auth.dto.SignUpRequest;
-import com.back.devc.domain.auth.dto.SignUpResponse;
+import com.back.devc.domain.auth.dto.signup.SignUpRequest;
+import com.back.devc.domain.auth.dto.signup.SignUpResponse;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.global.exception.ApiException;
