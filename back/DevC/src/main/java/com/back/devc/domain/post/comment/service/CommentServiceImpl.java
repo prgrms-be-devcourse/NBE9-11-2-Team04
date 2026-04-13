@@ -1,6 +1,11 @@
 package com.back.devc.domain.post.comment.service;
 
-import com.back.devc.domain.post.comment.dto.*;
+import com.back.devc.domain.interaction.notification.service.NotificationService;
+import com.back.devc.domain.post.comment.dto.CommentCreateRequest;
+import com.back.devc.domain.post.comment.dto.CommentDeleteResponse;
+import com.back.devc.domain.post.comment.dto.CommentListResponse;
+import com.back.devc.domain.post.comment.dto.CommentResponse;
+import com.back.devc.domain.post.comment.dto.CommentUpdateRequest;
 import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -16,13 +21,16 @@ import java.util.List;
 public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
     public CommentResponse createComment(Long postId, Long loginUserId, CommentCreateRequest request) {
         Comment comment = Comment.create(postId, loginUserId, null, request.getContent());
-
         Comment savedComment = commentRepository.save(comment);
+
+        notificationService.createCommentNotification(postId, loginUserId, savedComment.getId());
+
         return toResponse(savedComment);
     }
 
@@ -33,8 +41,10 @@ public class CommentServiceImpl implements CommentService {
                 .orElseThrow(() -> new EntityNotFoundException("부모 댓글을 찾을 수 없습니다. id=" + parentCommentId));
 
         Comment reply = Comment.create(parentComment.getPostId(), loginUserId, parentCommentId, request.getContent());
-
         Comment savedReply = commentRepository.save(reply);
+
+        notificationService.createReplyNotification(parentCommentId, loginUserId, savedReply.getId());
+
         return toResponse(savedReply);
     }
 

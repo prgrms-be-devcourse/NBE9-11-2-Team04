@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Bell, Search, User, Menu, X, PenSquare, Code2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,8 +19,78 @@ const categories = [
   { name: "자유 주제", href: "/category/free" },
 ]
 
+const API_BASE_URL = "http://localhost:8080"
+
+type HeaderNotificationItem = {
+  notificationId: number
+  isRead?: boolean
+  read?: boolean
+}
+
+type HeaderNotificationListResponse = {
+  notifications: HeaderNotificationItem[]
+}
+
+function isNotificationUnread(notification: HeaderNotificationItem) {
+  return !(notification.isRead ?? notification.read ?? false)
+}
+
+function dispatchNotificationsUpdated() {
+  if (typeof window === "undefined") {
+    return
+  }
+
+  window.dispatchEvent(new CustomEvent("notifications-updated"))
+}
+
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadNotifications = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/notifications`, {
+          cache: "no-store",
+        })
+
+        if (!response.ok) {
+          if (isMounted) {
+            setHasUnreadNotifications(false)
+          }
+          return
+        }
+
+        const data: HeaderNotificationListResponse = await response.json()
+
+        if (!isMounted) {
+          return
+        }
+
+        setHasUnreadNotifications(data.notifications.some(isNotificationUnread))
+      } catch {
+        if (!isMounted) {
+          return
+        }
+
+        setHasUnreadNotifications(false)
+      }
+    }
+
+    const handleNotificationsUpdated = () => {
+      void loadNotifications()
+    }
+
+    void loadNotifications()
+    window.addEventListener("notifications-updated", handleNotificationsUpdated)
+
+    return () => {
+      isMounted = false
+      window.removeEventListener("notifications-updated", handleNotificationsUpdated)
+    }
+  }, [])
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -83,7 +153,9 @@ export function Header() {
           <Link href="/notifications">
             <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
               <Bell className="h-5 w-5" />
-              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
+              {hasUnreadNotifications ? (
+                <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
+              ) : null}
               <span className="sr-only">알림</span>
             </Button>
           </Link>

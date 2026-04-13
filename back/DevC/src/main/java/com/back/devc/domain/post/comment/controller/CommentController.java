@@ -19,7 +19,7 @@ public class CommentController {
             @PathVariable Long postId,
             @RequestBody @Valid CommentCreateRequest request
     ) {
-        Long loginUserId = 1L;
+        Long loginUserId = 2L;
         return ResponseEntity.ok(commentService.createComment(postId, loginUserId, request));
     }
 
@@ -28,7 +28,7 @@ public class CommentController {
             @PathVariable Long commentId,
             @RequestBody @Valid CommentCreateRequest request
     ) {
-        Long loginUserId = 1L;
+        Long loginUserId = 2L;
         return ResponseEntity.ok(commentService.createReply(commentId, loginUserId, request));
     }
 

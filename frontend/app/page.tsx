@@ -9,6 +9,22 @@ import { TrendingUp, Clock, Users } from "lucide-react"
 const API_BASE_URL = "http://localhost:8080"
 const TEST_POST_ID = 1
 
+function dispatchNotificationsUpdated() {
+  if (typeof window === "undefined") {
+    return
+  }
+
+  window.dispatchEvent(new CustomEvent("notifications-updated"))
+}
+
+function triggerNotificationRefresh() {
+  dispatchNotificationsUpdated()
+
+  window.setTimeout(() => {
+    dispatchNotificationsUpdated()
+  }, 150)
+}
+
 type CommentItem = {
   commentId: number
   postId: number
@@ -23,6 +39,30 @@ type CommentItem = {
 
 type CommentListResponse = {
   comments: CommentItem[]
+}
+
+type NotificationItem = {
+  notificationId: number
+  userId: number
+  actorUserId: number
+  postId: number | null
+  commentId: number | null
+  type: string
+  message: string
+  isRead?: boolean
+  read?: boolean
+  createdAt: string
+}
+
+type NotificationListResponse = {
+  notifications: NotificationItem[]
+}
+
+function normalizeNotification(notification: NotificationItem): NotificationItem {
+  return {
+    ...notification,
+    isRead: notification.isRead ?? notification.read ?? false,
+  }
 }
 
 // Mock data for demonstration
@@ -153,6 +193,7 @@ export default function HomePage() {
   const [editInputs, setEditInputs] = useState<Record<number, string>>({})
   const [loadingComments, setLoadingComments] = useState(false)
   const [commentError, setCommentError] = useState<string | null>(null)
+  const [notifications, setNotifications] = useState<NotificationItem[]>([])
 
   const loadComments = async () => {
     try {
@@ -177,8 +218,27 @@ export default function HomePage() {
     }
   }
 
+  const loadNotifications = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/notifications`, {
+        cache: "no-store",
+      })
+
+      if (!response.ok) {
+        return
+      }
+
+      const data: NotificationListResponse = await response.json()
+      setNotifications(data.notifications.map(normalizeNotification))
+      dispatchNotificationsUpdated()
+    } catch {
+      // 임시 테스트 화면에서는 알림 로드 실패를 별도 노출하지 않음
+    }
+  }
+
   useEffect(() => {
     void loadComments()
+    void loadNotifications()
   }, [])
 
   const handleCreateComment = async () => {
@@ -201,6 +261,8 @@ export default function HomePage() {
 
       setNewComment("")
       await loadComments()
+      await loadNotifications()
+      triggerNotificationRefresh()
     } catch (error) {
       const message = error instanceof Error ? error.message : "댓글 작성 중 오류가 발생했습니다."
       setCommentError(message)
@@ -228,6 +290,8 @@ export default function HomePage() {
 
       setReplyInputs((prev) => ({ ...prev, [commentId]: "" }))
       await loadComments()
+      await loadNotifications()
+      triggerNotificationRefresh()
     } catch (error) {
       const message = error instanceof Error ? error.message : "대댓글 작성 중 오류가 발생했습니다."
       setCommentError(message)
@@ -273,6 +337,8 @@ export default function HomePage() {
       }
 
       await loadComments()
+      await loadNotifications()
+      triggerNotificationRefresh()
     } catch (error) {
       const message = error instanceof Error ? error.message : "댓글 삭제 중 오류가 발생했습니다."
       setCommentError(message)
@@ -381,7 +447,10 @@ export default function HomePage() {
           </div>
           <button
             type="button"
-            onClick={() => void loadComments()}
+            onClick={() => {
+              void loadComments()
+              void loadNotifications()
+            }}
             className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-secondary"
           >
             새로고침
