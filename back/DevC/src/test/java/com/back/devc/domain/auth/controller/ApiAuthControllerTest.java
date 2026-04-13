@@ -57,11 +57,14 @@ public class ApiAuthControllerTest {
                 .andExpect(handler().handlerType(AuthController.class))
                 .andExpect(handler().methodName("signUp"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.userId").isNumber())
-                .andExpect(jsonPath("$.email").value(email))
-                .andExpect(jsonPath("$.nickname").value(nickname))
-                .andExpect(jsonPath("$.role").value("USER"))
-                .andExpect(jsonPath("$.status").value("ACTIVE"));
+                .andExpect(jsonPath("$.code").value("AUTH_201_SIGNUP_SUCCESS"))
+                .andExpect(jsonPath("$.message").value("회원가입이 되었습니다."))
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.data.userId").isNumber())
+                .andExpect(jsonPath("$.data.email").value(email))
+                .andExpect(jsonPath("$.data.nickname").value(nickname))
+                .andExpect(jsonPath("$.data.role").value("USER"))
+                .andExpect(jsonPath("$.data.status").value("ACTIVE"));
 
         Member savedMember = memberRepository.findByEmail(email).orElseThrow();
         assertThat(savedMember.getNickname()).isEqualTo(nickname);
