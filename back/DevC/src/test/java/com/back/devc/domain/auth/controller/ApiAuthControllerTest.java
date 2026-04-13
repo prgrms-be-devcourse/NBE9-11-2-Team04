@@ -104,6 +104,6 @@ public class ApiAuthControllerTest {
                 .andExpect(jsonPath("$.data.nickname").value(nickname))
                 .andExpect(jsonPath("$.data.role").value("USER"))
                 .andExpect(jsonPath("$.data.status").value("ACTIVE"))
-                .andExpect(jsonPath("$.data.accessToken").value("TEMP_ACCESS_TOKEN"));
+                .andExpect(jsonPath("$.data.accessToken").isNotEmpty());
     }
 }

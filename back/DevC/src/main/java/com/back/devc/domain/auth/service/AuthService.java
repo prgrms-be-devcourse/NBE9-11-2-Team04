@@ -8,6 +8,7 @@ import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
+import com.back.devc.global.security.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ public class AuthService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtProvider jwtProvider;
 
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
@@ -29,8 +31,7 @@ public class AuthService {
             throw new ApiException(ErrorCode.INVALID_CREDENTIALS);
         }
 
-        // TODO: JWT 유틸 연동 후 실제 Access Token 발급값으로 교체
-        String accessToken = "TEMP_ACCESS_TOKEN";
+        String accessToken = jwtProvider.createAccessToken(member);
 
         return new LoginResponse(
                 member.getUserId(),

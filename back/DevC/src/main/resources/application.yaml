@@ -36,3 +36,8 @@ logging:
     org.hibernate.orm.jdbc.extract: TRACE
     org.springframework.transaction.interceptor: TRACE
     com.back: INFO
+
+custom:
+  jwt:
+    secret-key: "QkFzZv1faT1CmjVCThXvSf+/m+5jVqwaqPB5MqLpFPvpYwDj6kIQhnjrFn47eM4PLiL9bkRYwc2ILoy/9b2zhg==" # 임시 시크릿키
+    access-token-expiration-seconds: 3600
