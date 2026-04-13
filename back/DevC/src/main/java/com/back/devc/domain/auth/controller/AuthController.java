@@ -2,6 +2,8 @@ package com.back.devc.domain.auth.controller;
 
 import com.back.devc.domain.auth.dto.login.LoginRequest;
 import com.back.devc.domain.auth.dto.login.LoginResponse;
+import com.back.devc.domain.auth.dto.logout.LogoutRequest;
+import com.back.devc.domain.auth.dto.logout.LogoutResponse;
 import com.back.devc.domain.auth.dto.signup.SignUpRequest;
 import com.back.devc.domain.auth.dto.signup.SignUpResponse;
 import com.back.devc.domain.auth.service.AuthService;
@@ -21,6 +23,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+
+    @PostMapping("/logout")
+    public ResponseEntity<SuccessResponse<LogoutResponse>> logout(@RequestBody(required = false) LogoutRequest request) {
+        LogoutResponse response = authService.logout(request);
+        SuccessCode successCode = SuccessCode.LOGOUT_SUCCESS;
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
+    }
 
     @PostMapping("/login")
     public ResponseEntity<SuccessResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
