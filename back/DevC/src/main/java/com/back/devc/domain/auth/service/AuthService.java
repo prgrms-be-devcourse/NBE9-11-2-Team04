@@ -1,5 +1,7 @@
 package com.back.devc.domain.auth.service;
 
+import com.back.devc.domain.auth.dto.login.LoginRequest;
+import com.back.devc.domain.auth.dto.login.LoginResponse;
 import com.back.devc.domain.auth.dto.signup.SignUpRequest;
 import com.back.devc.domain.auth.dto.signup.SignUpResponse;
 import com.back.devc.domain.member.member.entity.Member;
@@ -17,6 +19,28 @@ public class AuthService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Transactional(readOnly = true)
+    public LoginResponse login(LoginRequest request) {
+        Member member = memberRepository.findByEmail(request.email())
+                .orElseThrow(() -> new ApiException(ErrorCode.INVALID_CREDENTIALS));
+
+        if (!passwordEncoder.matches(request.password(), member.getPasswordHash())) {
+            throw new ApiException(ErrorCode.INVALID_CREDENTIALS);
+        }
+
+        // TODO: JWT 유틸 연동 후 실제 Access Token 발급값으로 교체
+        String accessToken = "TEMP_ACCESS_TOKEN";
+
+        return new LoginResponse(
+                member.getUserId(),
+                member.getEmail(),
+                member.getNickname(),
+                member.getRole(),
+                member.getStatus(),
+                accessToken
+        );
+    }
 
     @Transactional
     public SignUpResponse signUp(SignUpRequest request) {
