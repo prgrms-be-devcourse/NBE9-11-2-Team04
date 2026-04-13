@@ -1,6 +1,8 @@
 package com.back.devc.global.security.jwt;
 
 import com.back.devc.domain.member.member.entity.Member;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,5 +39,39 @@ public class JwtProvider {
                 .expiration(Date.from(expiry))
                 .signWith(secretKey)
                 .compact();
+    }
+
+    // 토큰 서명/만료/형식을 검증한다.
+    public boolean validateToken(String token) {
+        try {
+            parseClaims(token);
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    // subject(userId) 클레임을 Long으로 변환해 반환한다.
+    public Long getUserId(String token) {
+        return Long.parseLong(parseClaims(token).getSubject());
+    }
+
+    // 이메일 클레임을 반환한다.
+    public String getEmail(String token) {
+        return parseClaims(token).get("email", String.class);
+    }
+
+    // 권한(role) 클레임을 반환한다.
+    public String getRole(String token) {
+        return parseClaims(token).get("role", String.class);
+    }
+
+    // 서명 검증까지 포함해 JWT payload(claims)를 파싱한다.
+    private Claims parseClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }
