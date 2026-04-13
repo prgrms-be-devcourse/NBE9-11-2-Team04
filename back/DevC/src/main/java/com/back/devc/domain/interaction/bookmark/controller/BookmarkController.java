@@ -16,22 +16,22 @@ public class BookmarkController {
 
     @PostMapping("/posts/{postId}/bookmarks")
     public BookmarkResponse createBookmark(
-            @RequestParam int userId,
-            @PathVariable int postId
+            @RequestParam Long userId,
+            @PathVariable Long postId
     ) {
         return bookmarkService.createBookmark(userId, postId);
     }
 
     @DeleteMapping("/posts/{postId}/bookmarks")
     public BookmarkResponse cancelBookmark(
-            @RequestParam int userId,
-            @PathVariable int postId
+            @RequestParam Long userId,
+            @PathVariable Long postId
     ) {
         return bookmarkService.cancelBookmark(userId, postId);
     }
 
     @GetMapping("/users/me/bookmarks")
-    public List<BookmarkedPostResponse> getBookmarkedPosts(@RequestParam int userId) {
+    public List<BookmarkedPostResponse> getBookmarkedPosts(@RequestParam Long userId) {
         return bookmarkService.getBookmarkedPosts(userId);
     }
 }

@@ -25,7 +25,7 @@ public class BookmarkService {
     private final PostRepository postRepository;
 
     @Transactional
-    public BookmarkResponse createBookmark(int userId, int postId) {
+    public BookmarkResponse createBookmark(Long userId, Long postId) {
         Member member = memberRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
 
@@ -43,7 +43,7 @@ public class BookmarkService {
     }
 
     @Transactional
-    public BookmarkResponse cancelBookmark(int userId, int postId) {
+    public BookmarkResponse cancelBookmark(Long userId, Long postId) {
         Member member = memberRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
 
@@ -58,7 +58,7 @@ public class BookmarkService {
         return new BookmarkResponse(post.getPostId(), false);
     }
 
-    public List<BookmarkedPostResponse> getBookmarkedPosts(int userId) {
+    public List<BookmarkedPostResponse> getBookmarkedPosts(Long userId) {
         Member member = memberRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
 

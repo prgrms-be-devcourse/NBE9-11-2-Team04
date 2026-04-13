@@ -11,13 +11,13 @@ import java.time.LocalDateTime;
 public class Post {
 
     @Id
-    private Integer postId;
+    private Long postId;
 
     private String title;
 
-    private int likeCount;
+    private long likeCount;
 
-    private int commentCount;
+    private long commentCount;
 
     private LocalDateTime createdAt;
 
@@ -27,7 +27,7 @@ public class Post {
 
     protected Post() {}
 
-    public Post(Integer postId, String title, Member member) {
+    public Post(Long postId, String title, Member member) {
         this.postId = postId;
         this.title = title;
         this.member = member;

@@ -3,11 +3,11 @@ package com.back.devc.domain.interaction.bookmark.dto;
 import java.time.LocalDateTime;
 
 public record BookmarkedPostResponse(
-        int postId,
+        long postId,
         String title,
         String authorNickname,
-        int likeCount,
-        int commentCount,
+        long likeCount,
+        long commentCount,
         LocalDateTime createdAt
 ) {
 }

@@ -1,8 +1,8 @@
 package com.back.devc.domain.interaction.postLike.dto;
 
 public record PostLikeResponse(
-        int postId,
+        long postId,
         boolean liked,
-        int likeCount
+        long likeCount
 ) {
 }

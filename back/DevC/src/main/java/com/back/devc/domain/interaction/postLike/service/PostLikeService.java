@@ -25,7 +25,7 @@ public class PostLikeService {
     private final PostRepository postRepository;
 
     @Transactional
-    public PostLikeResponse createLike(int userId, int postId) {
+    public PostLikeResponse createLike(Long userId, Long postId) {
         Member member = memberRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
 
@@ -45,7 +45,7 @@ public class PostLikeService {
     }
 
     @Transactional
-    public PostLikeResponse cancelLike(int userId, int postId) {
+    public PostLikeResponse cancelLike(Long userId, Long postId) {
         Member member = memberRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
 
@@ -61,7 +61,7 @@ public class PostLikeService {
         return new PostLikeResponse(post.getPostId(), false, post.getLikeCount());
     }
 
-    public List<LikedPostResponse> getLikedPosts(int userId) {
+    public List<LikedPostResponse> getLikedPosts(Long userId) {
         Member member = memberRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
 

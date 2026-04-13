@@ -16,22 +16,22 @@ public class PostLikeController {
 
     @PostMapping("/posts/{postId}/likes")
     public PostLikeResponse createLike(
-            @RequestParam int userId,
-            @PathVariable int postId
+            @RequestParam Long userId,
+            @PathVariable Long postId
     ) {
         return postLikeService.createLike(userId, postId);
     }
 
     @DeleteMapping("/posts/{postId}/likes")
     public PostLikeResponse cancelLike(
-            @RequestParam int userId,
-            @PathVariable int postId
+            @RequestParam Long userId,
+            @PathVariable Long postId
     ) {
         return postLikeService.cancelLike(userId, postId);
     }
 
     @GetMapping("/users/me/likes")
-    public List<LikedPostResponse> getLikedPosts(@RequestParam int userId) {
+    public List<LikedPostResponse> getLikedPosts(@RequestParam Long userId) {
         return postLikeService.getLikedPosts(userId);
     }
 }

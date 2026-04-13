@@ -1,7 +1,7 @@
 package com.back.devc.domain.interaction.bookmark.dto;
 
 public record BookmarkResponse(
-        int postId,
+        long postId,
         boolean bookmarked
 ) {
 }
