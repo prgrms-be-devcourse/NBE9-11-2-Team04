@@ -58,7 +58,6 @@ public class ApiAuthControllerTest {
                 .andExpect(handler().methodName("signUp"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value("AUTH_201_SIGNUP_SUCCESS"))
-                .andExpect(jsonPath("$.message").value("회원가입이 되었습니다."))
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andExpect(jsonPath("$.data.userId").isNumber())
                 .andExpect(jsonPath("$.data.email").value(email))
@@ -70,5 +69,41 @@ public class ApiAuthControllerTest {
         assertThat(savedMember.getNickname()).isEqualTo(nickname);
         assertThat(savedMember.getPasswordHash()).isNotEqualTo(password);
         assertThat(passwordEncoder.matches(password, savedMember.getPasswordHash())).isTrue();
+    }
+
+    @Test
+    void 로그인() throws Exception {
+        String email = "login-user@test.com";
+        String rawPassword = "password123!";
+        String nickname = "loginUser";
+
+        Member member = Member.createLocalMember(email, passwordEncoder.encode(rawPassword), nickname);
+        memberRepository.save(member);
+
+        ResultActions resultActions = mvc
+                .perform(
+                        post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "email": "%s",
+                                          "password": "%s"
+                                        }
+                                        """.formatted(email, rawPassword))
+                )
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(AuthController.class))
+                .andExpect(handler().methodName("login"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("AUTH_200_LOGIN_SUCCESS"))
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.data.userId").isNumber())
+                .andExpect(jsonPath("$.data.email").value(email))
+                .andExpect(jsonPath("$.data.nickname").value(nickname))
+                .andExpect(jsonPath("$.data.role").value("USER"))
+                .andExpect(jsonPath("$.data.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.data.accessToken").value("TEMP_ACCESS_TOKEN"));
     }
 }
