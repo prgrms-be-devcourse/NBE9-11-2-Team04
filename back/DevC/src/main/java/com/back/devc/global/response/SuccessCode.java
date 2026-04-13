@@ -3,6 +3,7 @@ package com.back.devc.global.response;
 import org.springframework.http.HttpStatus;
 
 public enum SuccessCode {
+    LOGIN_SUCCESS(HttpStatus.OK, "AUTH_200_LOGIN_SUCCESS", "로그인에 성공했습니다."),
     SIGN_UP_SUCCESS(HttpStatus.CREATED, "AUTH_201_SIGNUP_SUCCESS", "회원가입이 되었습니다.");
 
     private final HttpStatus status;
