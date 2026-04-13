@@ -1,4 +1,6 @@
-package com.back.devc.global.exception;
+package com.back.devc.global.response;
+
+import com.back.devc.global.exception.ErrorCode;
 
 import java.time.LocalDateTime;
 import java.util.Map;

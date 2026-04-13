@@ -1,5 +1,6 @@
 package com.back.devc.global.exception;
 
+import com.back.devc.global.response.ErrorResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
