@@ -1,4 +1,12 @@
 package com.back.devc.domain.member.mypage.dto;
 
-public class MyPostResponse {
+import java.time.LocalDateTime;
+
+public record MyPostResponse(
+        Long postId,
+        String title,
+        long likeCount,
+        long commentCount,
+        LocalDateTime createdAt
+) {
 }

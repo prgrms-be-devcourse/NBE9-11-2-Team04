@@ -1,4 +1,7 @@
 package com.back.devc.domain.member.searchLog.dto;
 
-public class PopularKeywordResponse {
+public record PopularKeywordResponse(
+        String keyword,
+        long count
+) {
 }

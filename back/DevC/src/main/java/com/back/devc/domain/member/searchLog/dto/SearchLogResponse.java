@@ -1,4 +1,10 @@
 package com.back.devc.domain.member.searchLog.dto;
 
-public class SearchLogResponse {
+import java.time.LocalDateTime;
+
+public record SearchLogResponse(
+        Long searchLogId,
+        String keyword,
+        LocalDateTime searchedAt
+) {
 }
