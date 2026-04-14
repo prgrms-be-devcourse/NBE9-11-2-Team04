@@ -84,4 +84,7 @@ public class Report {
         this.status = finalStatus;
         this.processedAt = LocalDateTime.now();
     }
+
+    public void rejectReport(Member admin, String reasonReject) {
+    }
 }
