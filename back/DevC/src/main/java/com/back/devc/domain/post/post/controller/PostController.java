@@ -4,9 +4,12 @@ import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.post.post.dto.*;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.service.PostService;
+import com.back.devc.domain.post.post.type.PostSortType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -55,6 +58,21 @@ public class PostController {
 
         return PostDetailResponse.from(post);
     }
+
+    @GetMapping
+    public ResponseEntity<Page<PostListResponse>> list(
+            @RequestParam(defaultValue = "latest") PostSortType sort,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+
+        Page<Post> result = postService.getPosts(sort, page, size);
+
+        return ResponseEntity.ok(
+                result.map(PostListResponse::new)
+        );
+    }
+
     //수정 하는 경우
     @PutMapping("/{postId}")
     public PostUpdateResponse update(@PathVariable Long postId, @RequestBody @Valid PostUpdateRequest postUpdateRequest) {

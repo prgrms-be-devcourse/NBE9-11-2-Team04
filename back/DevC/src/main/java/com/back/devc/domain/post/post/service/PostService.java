@@ -5,9 +5,15 @@ import com.back.devc.domain.post.category.entity.Category;
 import com.back.devc.domain.post.category.repository.CategoryRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
+import com.back.devc.domain.post.post.type.PostSortType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -83,6 +89,22 @@ public class PostService {
 
         post.increaseViewCount();
     }
+
+    //sort 종류에 따라서 (조회수순, 좋아요순, 최신순)
+
+        public Page<Post> getPosts(PostSortType sort, int page, int size) {
+
+            Sort jpaSort = switch (sort) {
+                case views -> Sort.by("viewCount").descending();
+                case likes -> Sort.by("likeCount").descending();
+                default -> Sort.by("createdAt").descending();
+            };
+
+            Pageable pageable = PageRequest.of(page, size, jpaSort);
+
+            return postRepository.findByIsDeletedFalse(pageable);
+        }
+
 
     // 댓글 수 증가
     @Transactional
