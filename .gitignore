@@ -1,0 +1,7 @@
+/db_dev.mv.db
+/db_dev.trace.db
+.idea/
+out/
+.DS_Store
+frontend/node_modules/
+/uploads/

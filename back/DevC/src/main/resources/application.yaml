@@ -39,5 +39,6 @@ logging:
 
 custom:
   jwt:
-    secret-key: "QkFzZv1faT1CmjVCThXvSf+/m+5jVqwaqPB5MqLpFPvpYwDj6kIQhnjrFn47eM4PLiL9bkRYwc2ILoy/9b2zhg==" # 임시 시크릿키
+    secret-key: "QkFzZv1faT1CmjVCThXvSf+/m+5jVqwaqPB5MqLpFPvpYwDj6kIQhnjrFn47eM4PLiL9bkRYwc2ILoy/9b2zhg=="
     access-token-expiration-seconds: 3600
+    refresh-token-expiration-seconds: 1209600

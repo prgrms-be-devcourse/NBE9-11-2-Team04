@@ -1,8 +1,6 @@
 package com.back.devc.global.security;
 
-import com.back.devc.global.exception.ErrorCode;
 import com.back.devc.global.security.jwt.JwtAuthenticationFilter;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,7 +12,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter;
-import java.time.LocalDateTime;
 
 @Configuration
 @EnableWebSecurity
@@ -24,7 +21,8 @@ public class SecurityConfig {
     SecurityFilterChain filterChain(
             HttpSecurity http,
             ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider,
-            JwtAuthenticationFilter jwtAuthenticationFilter
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            CustomAuthenticationEntryPoint customAuthenticationEntryPoint
     ) throws Exception {
         http
                 .authorizeHttpRequests((authorizeHttpRequests) -> authorizeHttpRequests
@@ -39,23 +37,7 @@ public class SecurityConfig {
                 .sessionManagement((sessionManagement) ->
                         sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling((exceptionHandling) -> exceptionHandling
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.setContentType("application/json");
-                            response.setCharacterEncoding("UTF-8");
-                            response.getWriter().write("""
-                                    {
-                                      "code":"%s",
-                                      "message":"%s",
-                                      "timestamp":"%s",
-                                      "validation":{}
-                                    }
-                                    """.formatted(
-                                    ErrorCode.UNAUTHORIZED.getCode(),
-                                    ErrorCode.UNAUTHORIZED.getMessage(),
-                                    LocalDateTime.now()
-                            ));
-                        }))
+                        .authenticationEntryPoint(customAuthenticationEntryPoint))
                 .headers((headers) -> headers
                         .addHeaderWriter(new XFrameOptionsHeaderWriter(
                                 XFrameOptionsHeaderWriter.XFrameOptionsMode.SAMEORIGIN)))
