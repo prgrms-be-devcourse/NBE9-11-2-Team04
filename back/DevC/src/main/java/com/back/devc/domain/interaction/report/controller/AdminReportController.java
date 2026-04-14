@@ -6,8 +6,10 @@ import com.back.devc.domain.interaction.report.service.AdminReportService;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
 import com.back.devc.global.response.SuccessResponse;
+import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,9 +26,10 @@ public class AdminReportController {
      */
     @GetMapping("/pending")
     public ResponseEntity<SuccessResponse<List<ReportResponseDTO>>> getPendingReports(
-            @SessionAttribute(name = "memberRole") String role
+            @AuthenticationPrincipal JwtPrincipal principal
     ) {
-        validateAdminRole(role);
+        validateAdminRole(principal.role());
+
         List<ReportResponseDTO> reports = adminReportService.getPendingReports();
         return ResponseEntity.ok(SuccessResponse.of("ADMIN_200", "신고 대기 목록 조회 성공", reports));
     }
@@ -37,11 +40,12 @@ public class AdminReportController {
     @PostMapping("/approve")
     public ResponseEntity<SuccessResponse<Void>> approveReport(
             @RequestBody AdminReportRequestDTO requestDto,
-            @SessionAttribute(name = "memberId") Long adminId,
-            @SessionAttribute(name = "memberRole") String role
+            @AuthenticationPrincipal JwtPrincipal principal
     ) {
-        validateAdminRole(role);
-        adminReportService.approveReport(adminId, requestDto);
+        validateAdminRole(principal.role());
+
+        adminReportService.approveReport(principal.userId(), requestDto);
+
         return ResponseEntity.ok(SuccessResponse.of("REPORT_APPROVE_200", "신고 승인 및 제재 완료", null));
     }
 
@@ -51,14 +55,18 @@ public class AdminReportController {
     @PostMapping("/reject")
     public ResponseEntity<SuccessResponse<Void>> rejectReport(
             @RequestBody AdminReportRequestDTO requestDto,
-            @SessionAttribute(name = "memberId") Long adminId,
-            @SessionAttribute(name = "memberRole") String role
+            @AuthenticationPrincipal JwtPrincipal principal
     ) {
-        validateAdminRole(role);
-        adminReportService.rejectReport(adminId, requestDto);
+        validateAdminRole(principal.role());
+
+        adminReportService.rejectReport(principal.userId(), requestDto);
+
         return ResponseEntity.ok(SuccessResponse.of("REPORT_REJECT_200", "신고 반려 완료", null));
     }
 
+    /**
+     * 관리자 권한 체크 (JWT 내부의 Role 기반)
+     */
     private void validateAdminRole(String role) {
         if (!"ADMIN".equals(role)) {
             throw new ApiException(ErrorCode.UNAUTHORIZED);

@@ -21,17 +21,20 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat; // 1. 중요: AssertionsForClassTypes 대신 이거 사용
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT) // 2. 불필요한 스터빙 에러 방지
 @DisplayName("AdminReportService 테스트")
 class AdminReportServiceTest {
 
@@ -43,49 +46,59 @@ class AdminReportServiceTest {
     @Mock private PostRepository postRepository;
     @Mock private CommentRepository commentRepository;
 
-    // ── 공통 픽스처 ──────────────────────────────────────────────
     private Member admin;
     private Member postAuthor;
     private AdminReportRequestDTO dto;
 
     @BeforeEach
     void setUp() {
-        admin      = mock(Member.class);
+        admin = mock(Member.class);
         postAuthor = mock(Member.class);
 
-        given(admin.getUserId()).willReturn(99L);
-        given(postAuthor.getUserId()).willReturn(2L);
+        lenient().when(admin.getUserId()).thenReturn(99L);
+        lenient().when(postAuthor.getUserId()).thenReturn(2L);
 
         dto = new AdminReportRequestDTO();
         dto.setReportId(1L);
     }
 
-    // ── 신고 Report 목 생성 헬퍼 ─────────────────────────────────
+
+    // ── 신고 Report 생성용 헬퍼 메서드들 ───────────────────────────
+
+    /**
+     * PENDING 상태인 게시글(POST) 신고 객체 생성
+     */
     private Report pendingPostReport() {
-        Report r = mock(Report.class);
-        given(r.getStatus()).willReturn("PENDING");
-        given(r.getTargetType()).willReturn("POST");
-        given(r.getTargetId()).willReturn(10L);
-        return r;
+        return createMockReport("PENDING", "POST", 10L);
     }
 
+    /**
+     * PENDING 상태인 댓글(COMMENT) 신고 객체 생성
+     */
     private Report pendingCommentReport() {
-        Report r = mock(Report.class);
-        given(r.getStatus()).willReturn("PENDING");
-        given(r.getTargetType()).willReturn("COMMENT");
-        given(r.getTargetId()).willReturn(20L);
-        return r;
+        return createMockReport("PENDING", "COMMENT", 20L);
     }
 
+    /**
+     * 이미 처리 완료(RESOLVED)된 신고 객체 생성
+     */
     private Report resolvedReport() {
-        Report r = mock(Report.class);
-        given(r.getStatus()).willReturn("RESOLVED");
-        return r;
+        return createMockReport("RESOLVED", "POST", 10L);
     }
 
+    /**
+     * 이미 반려(REJECTED)된 신고 객체 생성
+     */
     private Report rejectedReport() {
+        return createMockReport("REJECTED", "POST", 10L);
+    }
+
+    // ── 신고 Report 목 생성 헬퍼 ─────────────────────────────────
+    private Report createMockReport(String status, String type, Long targetId) {
         Report r = mock(Report.class);
-        given(r.getStatus()).willReturn("REJECTED");
+        lenient().when(r.getStatus()).thenReturn(status);
+        lenient().when(r.getTargetType()).thenReturn(type);
+        lenient().when(r.getTargetId()).thenReturn(targetId);
         return r;
     }
 
