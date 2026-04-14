@@ -10,6 +10,12 @@ public enum ErrorCode {
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "AUTH_409_EMAIL", "이미 사용 중인 이메일입니다."),
     NICKNAME_ALREADY_EXISTS(HttpStatus.CONFLICT, "AUTH_409_NICKNAME", "이미 사용 중인 닉네임입니다."),
 
+    // 신고 관련 에러 코드
+    REPORT_ALREADY_EXISTS(HttpStatus.CONFLICT, "REPORT_409", "이미 신고 처리가 접수되었습니다."),
+    CANNOT_REPORT_SELF(HttpStatus.BAD_REQUEST, "REPORT_400_SELF", "본인의 게시글이나 댓글은 신고할 수 없습니다."),
+    POST_NOT_FOUND(HttpStatus.NOT_FOUND, "POST_404", "존재하지 않는 게시글입니다."),
+    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMENT_404", "존재하지 않는 댓글입니다."),
+    ALREADY_DELETED(HttpStatus.GONE, "COMMON_410", "이미 삭제된 대상입니다.");
 
 
     private final HttpStatus status;
