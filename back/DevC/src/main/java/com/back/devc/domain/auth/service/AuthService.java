@@ -9,6 +9,7 @@ import com.back.devc.domain.auth.dto.reissue.ReissueResponse;
 import com.back.devc.domain.auth.dto.signup.SignUpRequest;
 import com.back.devc.domain.auth.dto.signup.SignUpResponse;
 import com.back.devc.domain.member.member.entity.Member;
+import com.back.devc.domain.member.member.entity.MemberStatus;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
@@ -36,6 +37,10 @@ public class AuthService {
     public LoginResponse login(LoginRequest request) {
         Member member = memberRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ApiException(ErrorCode.EMAIL_NOT_FOUND));
+
+        if (member.getStatus() == MemberStatus.BLACKLISTED) {
+            throw new ApiException(ErrorCode.MEMBER_BLACKLISTED);
+        }
 
         if (!passwordEncoder.matches(request.password(), member.getPasswordHash())) {
             throw new ApiException(ErrorCode.PASSWORD_MISMATCH);
@@ -65,6 +70,10 @@ public class AuthService {
         Long userId = jwtProvider.getUserId(request.refreshToken());
         Member member = memberRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
+
+        if (member.getStatus() == MemberStatus.BLACKLISTED) {
+            throw new ApiException(ErrorCode.MEMBER_BLACKLISTED);
+        }
 
         String newAccessToken = jwtProvider.createAccessToken(member);
         return new ReissueResponse(newAccessToken);
