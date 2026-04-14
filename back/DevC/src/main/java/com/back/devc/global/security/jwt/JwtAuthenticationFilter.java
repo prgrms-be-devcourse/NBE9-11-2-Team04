@@ -1,5 +1,8 @@
 package com.back.devc.global.security.jwt;
 
+import com.back.devc.domain.member.member.entity.Member;
+import com.back.devc.domain.member.member.entity.MemberStatus;
+import com.back.devc.domain.member.member.repository.MemberRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +25,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtProvider jwtProvider;
+    private final MemberRepository memberRepository;
 
     // 모든 요청마다 1회 실행되며, JWT가 유효하면 인증 정보를 SecurityContext에 저장한다.
     @Override
@@ -36,8 +40,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 && SecurityContextHolder.getContext().getAuthentication() == null
                 && jwtProvider.validateAccessTokenStatus(token) == TokenValidationStatus.VALID) {
             Long userId = jwtProvider.getUserId(token);
-            String email = jwtProvider.getEmail(token);
-            String role = jwtProvider.getRole(token);
+
+            Member member = memberRepository.findById(userId).orElse(null);
+            if (member == null || member.getStatus() == MemberStatus.BLACKLISTED) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            String email = member.getEmail();
+            String role = member.getRole().name();
 
             JwtPrincipal principal = new JwtPrincipal(userId, email, role);
             UsernamePasswordAuthenticationToken authentication =
