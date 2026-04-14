@@ -17,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
@@ -203,4 +204,79 @@ class PostControllerTest {
                 .andExpect(jsonPath("$.content[0].title").value("두번째"))
                 .andExpect(jsonPath("$.content[1].title").value("첫번째"));
     }
+
+
+    @Test
+    @DisplayName("게시글 좋아요순 조회, 만약 좋아요 개수가 같은경우 최신순으로 보여줌")
+    void t7() throws Exception {
+
+        // given
+        Post post1 = postRepository.save(new Post(member, category, "제목1", "내용1"));
+        Thread.sleep(10); // createdAt 차이
+        Post post2 = postRepository.save(new Post(member, category, "제목2", "내용2"));
+        Thread.sleep(10);
+        Post post3 = postRepository.save(new Post(member, category, "제목3", "내용3"));
+
+        // 좋아요 증가
+        for (int i = 0; i < 5; i++) post1.increaseLikeCount(); //제목1
+        for (int i = 0; i < 10; i++) post2.increaseLikeCount(); // 제목2
+        for (int i = 0; i < 5; i++) post3.increaseLikeCount(); //제목3
+
+        postRepository.flush();
+
+        // when
+        ResultActions result = mvc.perform(get("/api/v1/posts")
+                .param("sort", "likes")
+                .param("page", "0")
+                .param("size", "10")
+        );
+
+        // then
+        result.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].title").value("제목2")) // 좋아요 10
+                .andExpect(jsonPath("$.content[1].title").value("제목3")) // 좋아요 5 + 최신
+                .andExpect(jsonPath("$.content[2].title").value("제목1")); // 좋아요 5 + 오래됨
+    }
+
+
+    @Test
+    @DisplayName("게시글 조회수 순서 조회, 만약 조회수 개수가 같은경우 최신순으로 보여준다")
+    void t8() throws Exception {
+
+        // given
+        Post post1 = postRepository.save(new Post(member, category, "제목1", "내용1"));
+        Thread.sleep(10);
+        Post post2 = postRepository.save(new Post(member, category, "제목2", "내용2"));
+        Thread.sleep(10);
+        Post post3 = postRepository.save(new Post(member, category, "제목3", "내용3"));
+
+        // 조회수 증가
+        for (int i = 0; i < 5; i++) post1.increaseViewCount();
+        for (int i = 0; i < 10; i++) post2.increaseViewCount();
+        for (int i = 0; i < 5; i++) post3.increaseViewCount();
+
+        postRepository.flush();
+
+        // when
+        ResultActions result = mvc.perform(get("/api/v1/posts")
+                .param("sort", "views")
+                .param("page", "0")
+                .param("size", "10")
+        );
+
+        // then
+        result.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].title").value("제목2")) // 조회수 10
+                .andExpect(jsonPath("$.content[1].title").value("제목3")) // 조회수 5 + 최신
+                .andExpect(jsonPath("$.content[2].title").value("제목1")); // 조회수 5 + 오래됨
+    }
+
+
+    @Test
+    @DisplayName("게시글 카테고리별 조회")
+    void t9() throws Exception {
+    }
+
 }

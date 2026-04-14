@@ -39,7 +39,7 @@ public class PostController {
         return PostCreateResponse.from(post);
     }
 
-    // 전체 목록 조회 -> 리스트로 담아서 전달 (관리자쪽에서 사용하기 위해 isDeleted=true인것도 같이조회)
+    // 전체 목록 조회 -> 리스트로 담아서 전달 (관리자쪽에서 사용하기 위해 isDeleted=true인것도 같이 조회)
     @GetMapping("/all")
     public List<PostListResponse> list() {
         List<Post> result = postService.findAll();
@@ -60,6 +60,7 @@ public class PostController {
     }
 
     //게시글 조회 (좋아요,최신순,조회수)
+    //카테고리 파라미터를 넣으면 -> 카테고리 + (좋아요,최신순,조회수) 정렬가능하다
     @GetMapping
     public ResponseEntity<Page<PostListResponse>> list(
             @RequestParam(required = false) Long categoryId,

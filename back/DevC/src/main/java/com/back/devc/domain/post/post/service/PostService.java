@@ -107,6 +107,9 @@ public class PostService {
 
         Pageable pageable = PageRequest.of(page, size, jpaSort);
         if (categoryId != null) {
+            if (!categoryRepository.existsById(categoryId)) {
+                throw new IllegalArgumentException("존재하지 않는 카테고리입니다.");
+            }
             return postRepository.findByCategoryCategoryIdAndIsDeletedFalse(categoryId, pageable);
         }
         return postRepository.findByIsDeletedFalse(pageable);
