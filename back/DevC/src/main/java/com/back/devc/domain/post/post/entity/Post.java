@@ -12,8 +12,10 @@ import java.time.LocalDateTime;
 
 @Entity
 @Getter
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
+@Builder
 public class Post {
 
     @Id
@@ -65,8 +67,6 @@ public class Post {
         this.commentCount = 0;
         this.isDeleted = false;
     }
-
-
 
     // 조회수 증가
     public void increaseViewCount() {
