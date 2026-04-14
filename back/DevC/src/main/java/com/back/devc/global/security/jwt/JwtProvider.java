@@ -40,6 +40,7 @@ public class JwtProvider {
 
         return Jwts.builder()
                 .subject(String.valueOf(member.getUserId()))
+                .claim("tokenType", "ACCESS")
                 .claim("email", member.getEmail())
                 .claim("role", member.getRole().name())
                 .issuedAt(Date.from(now))
@@ -68,6 +69,20 @@ public class JwtProvider {
 
     public boolean validateRefreshToken(String token) {
         return validateRefreshTokenStatus(token).isValid();
+    }
+
+    public TokenValidationStatus validateAccessTokenStatus(String token) {
+        TokenValidationStatus tokenStatus = validateTokenStatus(token);
+        if (!tokenStatus.isValid()) {
+            return tokenStatus;
+        }
+
+        String tokenType = parseClaims(token).get("tokenType", String.class);
+        if (!"ACCESS".equals(tokenType)) {
+            return TokenValidationStatus.INVALID_TOKEN_TYPE;
+        }
+
+        return TokenValidationStatus.VALID;
     }
 
     public TokenValidationStatus validateTokenStatus(String token) {
