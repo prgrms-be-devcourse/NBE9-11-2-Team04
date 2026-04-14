@@ -1,7 +1,7 @@
 package com.back.devc.domain.interaction.report.controller;
 
 import com.back.devc.domain.interaction.report.dto.ReportRequestDTO;
-import com.back.devc.domain.interaction.report.service.ReportService;
+import com.back.devc.domain.interaction.report.service.UserReportService;
 import com.back.devc.global.response.SuccessCode;
 import com.back.devc.global.response.SuccessResponse;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class UserReportController {
 
-    private final ReportService reportService;
+    private final UserReportService reportService;
 
     @PostMapping("/post")
     public ResponseEntity<SuccessResponse<Void>> reportPost(
