@@ -2,6 +2,7 @@ package com.back.devc.global.exception;
 
 import com.back.devc.global.response.ErrorResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -37,5 +38,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ErrorCode.BAD_REQUEST.getStatus())
                 .body(ErrorResponse.of(ErrorCode.BAD_REQUEST, validation));
+    }
+
+    @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationCredentialsNotFoundException(
+            AuthenticationCredentialsNotFoundException e
+    ) {
+        return ResponseEntity
+                .status(ErrorCode.UNAUTHORIZED.getStatus())
+                .body(ErrorResponse.of(ErrorCode.UNAUTHORIZED));
     }
 }

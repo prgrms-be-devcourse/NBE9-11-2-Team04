@@ -1,4 +1,4 @@
-package com.back.devc.domain.auth.dto;
+package com.back.devc.domain.auth.dto.signup;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
