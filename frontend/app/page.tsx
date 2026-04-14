@@ -1,9 +1,91 @@
+/* eslint-disable */
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { PostCard, type Post } from "@/components/post-card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TrendingUp, Clock, Users } from "lucide-react"
+
+const API_BASE_URL = "http://localhost:8080"
+const TEST_POST_ID = 1
+
+function dispatchNotificationsUpdated() {
+  if (typeof window === "undefined") {
+    return
+  }
+
+  window.dispatchEvent(new CustomEvent("notifications-updated"))
+}
+
+function triggerNotificationRefresh() {
+  dispatchNotificationsUpdated()
+
+  window.setTimeout(() => {
+    dispatchNotificationsUpdated()
+  }, 150)
+}
+
+type CommentItem = {
+  commentId: number
+  postId: number
+  userId: number
+  nickname: string | null
+  parentCommentId: number | null
+  content: string
+  createdAt: string
+  updatedAt: string
+  deleted: boolean
+}
+
+type CommentListResponse = {
+  comments: CommentItem[]
+}
+
+type CommentAttachmentItem = {
+  attachmentId: number
+  commentId: number
+  fileName: string
+  storedName: string
+  fileUrl: string
+  fileType: string
+  mimeType: string
+  fileSize: number
+  fileOrder: number
+  createdAt: string
+}
+
+type CommentAttachmentListResponse = {
+  attachments: CommentAttachmentItem[]
+}
+
+type CommentAttachmentDeleteResponse = {
+  attachmentId: number
+  message: string
+}
+
+type NotificationItem = {
+  notificationId: number
+  userId: number
+  actorUserId: number
+  postId: number | null
+  commentId: number | null
+  type: string
+  message: string
+  isRead?: boolean
+  read?: boolean
+  createdAt: string
+}
+
+type NotificationListResponse = {
+  notifications: NotificationItem[]
+}
+
+function normalizeNotification(notification: NotificationItem): NotificationItem {
+  return {
+    ...notification,
+    isRead: notification.isRead ?? notification.read ?? false,
+  }
+}
 
 // Mock data for demonstration
 const mockPosts: Post[] = [
@@ -127,6 +209,323 @@ const feedPosts: Post[] = [
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState("popular")
 
+  const [comments, setComments] = useState<CommentItem[]>([])
+  const [newComment, setNewComment] = useState("")
+  const [newCommentFiles, setNewCommentFiles] = useState<FileList | null>(null)
+  const [replyInputs, setReplyInputs] = useState<Record<number, string>>({})
+  const [replyAttachmentFiles, setReplyAttachmentFiles] = useState<Record<number, FileList | null>>({})
+  const [editInputs, setEditInputs] = useState<Record<number, string>>({})
+  const [loadingComments, setLoadingComments] = useState(false)
+  const [commentError, setCommentError] = useState<string | null>(null)
+  const [notifications, setNotifications] = useState<NotificationItem[]>([])
+  const [attachmentFiles, setAttachmentFiles] = useState<Record<number, FileList | null>>({})
+  const [commentAttachments, setCommentAttachments] = useState<Record<number, CommentAttachmentItem[]>>({})
+  const [attachmentLoading, setAttachmentLoading] = useState<Record<number, boolean>>({})
+  const [attachmentError, setAttachmentError] = useState<string | null>(null)
+
+  const loadComments = async () => {
+    try {
+      setLoadingComments(true)
+      setCommentError(null)
+
+      const response = await fetch(`${API_BASE_URL}/api/posts/${TEST_POST_ID}/comments`, {
+        cache: "no-store",
+      })
+
+      if (!response.ok) {
+        throw new Error("댓글 목록을 불러오지 못했습니다.")
+      }
+
+      const data: CommentListResponse = await response.json()
+      setComments(data.comments)
+
+      const attachmentResults = await Promise.all(
+        data.comments.map(async (comment) => {
+          try {
+            const attachmentResponse = await fetch(`${API_BASE_URL}/api/comments/${comment.commentId}/attachments`, {
+              cache: "no-store",
+            })
+
+            if (!attachmentResponse.ok) {
+              return [comment.commentId, []] as const
+            }
+
+            const attachmentData: CommentAttachmentListResponse = await attachmentResponse.json()
+            return [comment.commentId, attachmentData.attachments] as const
+          } catch {
+            return [comment.commentId, []] as const
+          }
+        })
+      )
+
+      setCommentAttachments(
+        Object.fromEntries(attachmentResults) as Record<number, CommentAttachmentItem[]>
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "댓글 요청 중 오류가 발생했습니다."
+      setCommentError(message)
+    } finally {
+      setLoadingComments(false)
+    }
+  }
+
+  const loadNotifications = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/notifications`, {
+        cache: "no-store",
+      })
+
+      if (!response.ok) {
+        return
+      }
+
+      const data: NotificationListResponse = await response.json()
+      setNotifications(data.notifications.map(normalizeNotification))
+      dispatchNotificationsUpdated()
+    } catch {
+      // 임시 테스트 화면에서는 알림 로드 실패를 별도 노출하지 않음
+    }
+  }
+
+  const loadCommentAttachments = async (commentId: number) => {
+    try {
+      setAttachmentLoading((prev) => ({ ...prev, [commentId]: true }))
+      setAttachmentError(null)
+
+      const response = await fetch(`${API_BASE_URL}/api/comments/${commentId}/attachments`, {
+        cache: "no-store",
+      })
+
+      if (!response.ok) {
+        throw new Error("댓글 첨부 목록을 불러오지 못했습니다.")
+      }
+
+      const data: CommentAttachmentListResponse = await response.json()
+      setCommentAttachments((prev) => ({
+        ...prev,
+        [commentId]: data.attachments,
+      }))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "댓글 첨부 요청 중 오류가 발생했습니다."
+      setAttachmentError(message)
+    } finally {
+      setAttachmentLoading((prev) => ({ ...prev, [commentId]: false }))
+    }
+  }
+
+  const handleAttachmentFileChange = (commentId: number, files: FileList | null) => {
+    setAttachmentFiles((prev) => ({
+      ...prev,
+      [commentId]: files,
+    }))
+  }
+
+  const uploadFilesToComment = async (commentId: number, files: FileList) => {
+    const formData = new FormData()
+
+    Array.from(files).forEach((file, index) => {
+      formData.append("files", file)
+      formData.append("fileOrder", String(index + 1))
+    })
+
+    const response = await fetch(`${API_BASE_URL}/api/comments/${commentId}/attachments`, {
+      method: "POST",
+      body: formData,
+    })
+
+    if (!response.ok) {
+      throw new Error("댓글 첨부 업로드에 실패했습니다.")
+    }
+
+    const data: CommentAttachmentListResponse = await response.json()
+    setCommentAttachments((prev) => ({
+      ...prev,
+      [commentId]: data.attachments,
+    }))
+  }
+
+  const handleUploadCommentAttachments = async (commentId: number) => {
+    const files = attachmentFiles[commentId]
+
+    if (!files || files.length === 0) {
+      setAttachmentError("업로드할 파일을 선택해주세요.")
+      return
+    }
+
+    try {
+      setAttachmentError(null)
+      setAttachmentLoading((prev) => ({ ...prev, [commentId]: true }))
+
+      await uploadFilesToComment(commentId, files)
+      setAttachmentFiles((prev) => ({
+        ...prev,
+        [commentId]: null,
+      }))
+      await loadCommentAttachments(commentId)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "댓글 첨부 업로드 중 오류가 발생했습니다."
+      setAttachmentError(message)
+    } finally {
+      setAttachmentLoading((prev) => ({ ...prev, [commentId]: false }))
+    }
+  }
+
+  const handleDeleteCommentAttachment = async (commentId: number, attachmentId: number) => {
+    try {
+      setAttachmentError(null)
+      setAttachmentLoading((prev) => ({ ...prev, [commentId]: true }))
+
+      const response = await fetch(`${API_BASE_URL}/api/comments/${commentId}/attachments/${attachmentId}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error("댓글 첨부 삭제에 실패했습니다.")
+      }
+
+      const _data: CommentAttachmentDeleteResponse = await response.json()
+
+      setCommentAttachments((prev) => ({
+        ...prev,
+        [commentId]: (prev[commentId] ?? []).filter((attachment) => attachment.attachmentId !== attachmentId),
+      }))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "댓글 첨부 삭제 중 오류가 발생했습니다."
+      setAttachmentError(message)
+    } finally {
+      setAttachmentLoading((prev) => ({ ...prev, [commentId]: false }))
+    }
+  }
+
+  useEffect(() => {
+    void loadComments()
+    void loadNotifications()
+  }, [])
+
+  const handleCreateComment = async () => {
+    if (!newComment.trim()) return
+
+    try {
+      setCommentError(null)
+
+      const response = await fetch(`${API_BASE_URL}/api/posts/${TEST_POST_ID}/comments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: newComment.trim() }),
+      })
+
+      if (!response.ok) {
+        throw new Error("댓글 작성에 실패했습니다.")
+      }
+
+      const createdComment: CommentItem = await response.json()
+
+      if (newCommentFiles && newCommentFiles.length > 0) {
+        await uploadFilesToComment(createdComment.commentId, newCommentFiles)
+      }
+
+      setNewComment("")
+      setNewCommentFiles(null)
+      await loadComments()
+      await loadNotifications()
+      triggerNotificationRefresh()
+      await loadCommentAttachments(createdComment.commentId)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "댓글 작성 중 오류가 발생했습니다."
+      setCommentError(message)
+    }
+  }
+
+  const handleCreateReply = async (commentId: number) => {
+    const value = replyInputs[commentId]?.trim()
+    if (!value) return
+
+    try {
+      setCommentError(null)
+
+      const response = await fetch(`${API_BASE_URL}/api/comments/${commentId}/replies`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: value }),
+      })
+
+      if (!response.ok) {
+        throw new Error("대댓글 작성에 실패했습니다.")
+      }
+
+      const createdReply: CommentItem = await response.json()
+      const replyFiles = replyAttachmentFiles[commentId]
+
+      if (replyFiles && replyFiles.length > 0) {
+        await uploadFilesToComment(createdReply.commentId, replyFiles)
+      }
+
+      setReplyInputs((prev) => ({ ...prev, [commentId]: "" }))
+      setReplyAttachmentFiles((prev) => ({ ...prev, [commentId]: null }))
+      await loadComments()
+      await loadNotifications()
+      triggerNotificationRefresh()
+      await loadCommentAttachments(createdReply.commentId)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "대댓글 작성 중 오류가 발생했습니다."
+      setCommentError(message)
+    }
+  }
+
+  const handleUpdateComment = async (commentId: number, currentContent: string) => {
+    const value = (editInputs[commentId] ?? currentContent).trim()
+    if (!value) return
+
+    try {
+      setCommentError(null)
+
+      const response = await fetch(`${API_BASE_URL}/api/comments/${commentId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: value }),
+      })
+
+      if (!response.ok) {
+        throw new Error("댓글 수정에 실패했습니다.")
+      }
+
+      await loadComments()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "댓글 수정 중 오류가 발생했습니다."
+      setCommentError(message)
+    }
+  }
+
+  const handleDeleteComment = async (commentId: number) => {
+    try {
+      setCommentError(null)
+
+      const response = await fetch(`${API_BASE_URL}/api/comments/${commentId}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error("댓글 삭제에 실패했습니다.")
+      }
+
+      await loadComments()
+      await loadNotifications()
+      triggerNotificationRefresh()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "댓글 삭제 중 오류가 발생했습니다."
+      setCommentError(message)
+    }
+  }
+
+  const topLevelComments = comments.filter((comment) => comment.parentCommentId === null)
+  const getReplies = (commentId: number) => comments.filter((comment) => comment.parentCommentId === commentId)
+
   const getPostsForTab = () => {
     switch (activeTab) {
       case "popular":
@@ -216,6 +615,373 @@ export default function HomePage() {
           )}
         </TabsContent>
       </Tabs>
+      <section className="mt-12 rounded-xl border border-border bg-card p-6 shadow-sm">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">댓글 기능 임시 테스트</h2>
+            <p className="text-sm text-muted-foreground">
+              현재 백엔드 댓글 API를 프론트 화면에서 바로 확인하는 임시 영역입니다. 게시글 ID는 {TEST_POST_ID}로 고정되어 있습니다.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              void loadComments()
+              void loadNotifications()
+            }}
+            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-secondary"
+          >
+            새로고침
+          </button>
+        </div>
+
+        <div className="mb-6 rounded-lg border border-border bg-background p-4">
+          <label className="mb-2 block text-sm font-medium text-foreground">댓글 작성</label>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <input
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="댓글 내용을 입력하세요"
+                className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground"
+              />
+              <button
+                type="button"
+                onClick={() => void handleCreateComment()}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+              >
+                댓글 등록
+              </button>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input
+                type="file"
+                onChange={(e) => setNewCommentFiles(e.target.files)}
+                className="text-sm text-foreground"
+              />
+              <p className="text-xs text-muted-foreground">댓글 작성 시 첨부파일도 함께 업로드됩니다.</p>
+            </div>
+          </div>
+        </div>
+
+        {commentError ? (
+          <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {commentError}
+          </div>
+        ) : null}
+
+        {attachmentError ? (
+          <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {attachmentError}
+          </div>
+        ) : null}
+
+        {loadingComments ? (
+          <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+            댓글을 불러오는 중입니다...
+          </div>
+        ) : topLevelComments.length > 0 ? (
+          <div className="space-y-4">
+            {topLevelComments.map((comment) => {
+              const replies = getReplies(comment.commentId)
+              const editValue = editInputs[comment.commentId] ?? comment.content
+              const replyValue = replyInputs[comment.commentId] ?? ""
+
+              return (
+                <div key={comment.commentId} className="rounded-lg border border-border bg-background p-4">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">
+                        댓글 #{comment.commentId}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        userId: {comment.userId} · {comment.createdAt}
+                      </p>
+                    </div>
+                    {comment.deleted ? (
+                      <span className="rounded-full bg-secondary px-2 py-1 text-xs text-muted-foreground">
+                        삭제됨
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <p className="mb-3 text-sm leading-relaxed text-foreground">{comment.content}</p>
+
+                  <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+                    <input
+                      value={editValue}
+                      onChange={(e) =>
+                        setEditInputs((prev) => ({
+                          ...prev,
+                          [comment.commentId]: e.target.value,
+                        }))
+                      }
+                      className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void handleUpdateComment(comment.commentId, comment.content)}
+                      className="rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-secondary"
+                    >
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteComment(comment.commentId)}
+                      className="rounded-md border border-destructive/40 px-3 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/10"
+                    >
+                      삭제
+                    </button>
+                  </div>
+
+                  <div className="mb-4 rounded-md border border-border bg-card p-3">
+                    <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-xs font-semibold text-muted-foreground">댓글 첨부파일</p>
+                      <button
+                        type="button"
+                        onClick={() => void loadCommentAttachments(comment.commentId)}
+                        className="rounded-md border border-border px-3 py-1 text-xs font-medium text-foreground transition hover:bg-secondary"
+                      >
+                        첨부 새로고침
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <input
+                        type="file"
+                        onChange={(e) => handleAttachmentFileChange(comment.commentId, e.target.files)}
+                        className="text-sm text-foreground"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void handleUploadCommentAttachments(comment.commentId)}
+                        disabled={attachmentLoading[comment.commentId] === true}
+                        className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        첨부 업로드
+                      </button>
+                    </div>
+
+                    {(commentAttachments[comment.commentId] ?? []).length > 0 ? (
+                      <div className="mt-3 space-y-2">
+                        {(commentAttachments[comment.commentId] ?? []).map((attachment) => (
+                          <div
+                            key={attachment.attachmentId}
+                            className="flex flex-col gap-2 rounded-md border border-border bg-background p-3 sm:flex-row sm:items-center sm:justify-between"
+                          >
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{attachment.fileName}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {attachment.fileType} · {attachment.mimeType} · {attachment.fileSize} bytes
+                              </p>
+                              {attachment.fileType === "IMAGE" ? (
+                                <img
+                                  src={`${API_BASE_URL}${attachment.fileUrl}`}
+                                  alt={attachment.fileName}
+                                  className="mt-3 max-h-48 rounded-md border border-border object-contain"
+                                />
+                              ) : (
+                                <a
+                                  href={`${API_BASE_URL}${attachment.fileUrl}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="mt-3 inline-block text-xs font-medium text-primary underline-offset-4 hover:underline"
+                                >
+                                  파일 열기
+                                </a>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => void handleDeleteCommentAttachment(comment.commentId, attachment.attachmentId)}
+                              className="rounded-md border border-destructive/40 px-3 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/10"
+                            >
+                              첨부 삭제
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-xs text-muted-foreground">등록된 첨부파일이 없습니다.</p>
+                    )}
+                  </div>
+
+                  <div className="rounded-md bg-secondary/40 p-3">
+                    <p className="mb-2 text-xs font-semibold text-muted-foreground">대댓글 작성</p>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <input
+                          value={replyValue}
+                          onChange={(e) =>
+                            setReplyInputs((prev) => ({
+                              ...prev,
+                              [comment.commentId]: e.target.value,
+                            }))
+                          }
+                          placeholder="대댓글 내용을 입력하세요"
+                          className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void handleCreateReply(comment.commentId)}
+                          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+                        >
+                          대댓글 등록
+                        </button>
+                      </div>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <input
+                          type="file"
+                          onChange={(e) =>
+                            setReplyAttachmentFiles((prev) => ({
+                              ...prev,
+                              [comment.commentId]: e.target.files,
+                            }))
+                          }
+                          className="text-sm text-foreground"
+                        />
+                        <p className="text-xs text-muted-foreground">대댓글 작성 시 첨부파일도 함께 업로드됩니다.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {replies.length > 0 ? (
+                    <div className="mt-4 space-y-3 border-l-2 border-border pl-4">
+                      {replies.map((reply) => {
+                        const replyEditValue = editInputs[reply.commentId] ?? reply.content
+
+                        return (
+                          <div key={reply.commentId} className="rounded-md border border-border bg-card p-3">
+                            <div className="mb-2 flex items-center justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold text-foreground">
+                                  대댓글 #{reply.commentId}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  userId: {reply.userId} · {reply.createdAt}
+                                </p>
+                              </div>
+                              {reply.deleted ? (
+                                <span className="rounded-full bg-secondary px-2 py-1 text-xs text-muted-foreground">
+                                  삭제됨
+                                </span>
+                              ) : null}
+                            </div>
+
+                            <p className="mb-3 text-sm text-foreground">{reply.content}</p>
+
+                            <div className="flex flex-col gap-2 sm:flex-row">
+                              <input
+                                value={replyEditValue}
+                                onChange={(e) =>
+                                  setEditInputs((prev) => ({
+                                    ...prev,
+                                    [reply.commentId]: e.target.value,
+                                  }))
+                                }
+                                className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => void handleUpdateComment(reply.commentId, reply.content)}
+                                className="rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-secondary"
+                              >
+                                수정
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void handleDeleteComment(reply.commentId)}
+                                className="rounded-md border border-destructive/40 px-3 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/10"
+                              >
+                                삭제
+                              </button>
+                            </div>
+                            <div className="mt-3 rounded-md border border-border bg-secondary/20 p-3">
+                              <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <p className="text-xs font-semibold text-muted-foreground">대댓글 첨부파일</p>
+                                <button
+                                  type="button"
+                                  onClick={() => void loadCommentAttachments(reply.commentId)}
+                                  className="rounded-md border border-border px-3 py-1 text-xs font-medium text-foreground transition hover:bg-secondary"
+                                >
+                                  첨부 새로고침
+                                </button>
+                              </div>
+
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                <input
+                                  type="file"
+                                  onChange={(e) => handleAttachmentFileChange(reply.commentId, e.target.files)}
+                                  className="text-sm text-foreground"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => void handleUploadCommentAttachments(reply.commentId)}
+                                  disabled={attachmentLoading[reply.commentId] === true}
+                                  className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  첨부 업로드
+                                </button>
+                              </div>
+
+                              {(commentAttachments[reply.commentId] ?? []).length > 0 ? (
+                                <div className="mt-3 space-y-2">
+                                  {(commentAttachments[reply.commentId] ?? []).map((attachment) => (
+                                    <div
+                                      key={attachment.attachmentId}
+                                      className="flex flex-col gap-2 rounded-md border border-border bg-background p-3 sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                      <div>
+                                        <p className="text-sm font-medium text-foreground">{attachment.fileName}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {attachment.fileType} · {attachment.mimeType} · {attachment.fileSize} bytes
+                                        </p>
+                                        {attachment.fileType === "IMAGE" ? (
+                                          <img
+                                            src={`${API_BASE_URL}${attachment.fileUrl}`}
+                                            alt={attachment.fileName}
+                                            className="mt-3 max-h-48 rounded-md border border-border object-contain"
+                                          />
+                                        ) : (
+                                          <a
+                                            href={`${API_BASE_URL}${attachment.fileUrl}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="mt-3 inline-block text-xs font-medium text-primary underline-offset-4 hover:underline"
+                                          >
+                                            파일 열기
+                                          </a>
+                                        )}
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => void handleDeleteCommentAttachment(reply.commentId, attachment.attachmentId)}
+                                        className="rounded-md border border-destructive/40 px-3 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/10"
+                                      >
+                                        첨부 삭제
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="mt-3 text-xs text-muted-foreground">등록된 첨부파일이 없습니다.</p>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+            아직 댓글이 없습니다. 위 입력창에서 첫 댓글을 만들어보세요.
+          </div>
+        )}
+      </section>
     </div>
   )
 }

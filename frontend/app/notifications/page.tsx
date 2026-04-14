@@ -1,89 +1,56 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { Bell, MessageCircle, Heart, UserPlus, Check, Trash2 } from "lucide-react"
+import { Bell, MessageCircle, Heart, UserPlus, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-interface Notification {
-  id: string
-  type: "comment" | "reply" | "like" | "follow"
-  user: {
-    name: string
-    avatar?: string
-  }
-  content: string
-  postTitle?: string
-  postId?: string
+const API_BASE_URL = "http://localhost:8080"
+
+type NotificationType = "comment" | "reply" | "like" | "follow"
+
+type NotificationItem = {
+  notificationId: number
+  userId: number
+  actorUserId: number
+  postId: number | null
+  commentId: number | null
+  type: string
+  message: string
+  isRead?: boolean
+  read?: boolean
   createdAt: string
-  isRead: boolean
 }
 
-// Mock notifications
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    type: "comment",
-    user: { name: "이트렌드" },
-    content: "좋은 글 감사합니다! 질문이 있는데요...",
-    postTitle: "2026년 프론트엔드 개발자 로드맵: 꼭 알아야 할 기술 스택",
-    postId: "1",
-    createdAt: "10분 전",
-    isRead: false,
-  },
-  {
-    id: "2",
-    type: "reply",
-    user: { name: "박취준" },
-    content: "네, 말씀하신 부분이 맞습니다. 추가로...",
-    postTitle: "네카라쿠배당토 신입 개발자 채용 트렌드 분석",
-    postId: "2",
-    createdAt: "30분 전",
-    isRead: false,
-  },
-  {
-    id: "3",
-    type: "like",
-    user: { name: "정수익" },
-    content: "님이 회원님의 글을 좋아합니다",
-    postTitle: "개발자의 번아웃 예방: 나만의 루틴 만들기",
-    postId: "3",
-    createdAt: "1시간 전",
-    isRead: false,
-  },
-  {
-    id: "4",
-    type: "follow",
-    user: { name: "최데브옵스" },
-    content: "님이 회원님을 팔로우하기 시작했습니다",
-    createdAt: "2시간 전",
-    isRead: true,
-  },
-  {
-    id: "5",
-    type: "comment",
-    user: { name: "강경험" },
-    content: "이 부분 정말 도움이 됐어요!",
-    postTitle: "AI 코딩 어시스턴트 비교: Copilot vs Cursor vs Claude",
-    postId: "4",
-    createdAt: "3시간 전",
-    isRead: true,
-  },
-  {
-    id: "6",
-    type: "like",
-    user: { name: "윤연봉" },
-    content: "님이 회원님의 글을 좋아합니다",
-    postTitle: "2026년 개발자 연봉 협상 가이드",
-    postId: "5",
-    createdAt: "5시간 전",
-    isRead: true,
-  },
-]
+type NotificationListResponse = {
+  notifications: NotificationItem[]
+}
 
-function getNotificationIcon(type: string) {
+function normalizeNotification(notification: NotificationItem): NotificationItem {
+  return {
+    ...notification,
+    isRead: notification.isRead ?? notification.read ?? false,
+  }
+}
+
+function mapBackendType(type: string): NotificationType {
+  switch (type.toUpperCase()) {
+    case "COMMENT":
+      return "comment"
+    case "REPLY":
+      return "reply"
+    case "LIKE":
+      return "like"
+    case "FOLLOW":
+      return "follow"
+    default:
+      return "comment"
+  }
+}
+
+function getNotificationIcon(type: NotificationType) {
   switch (type) {
     case "comment":
     case "reply":
@@ -97,7 +64,7 @@ function getNotificationIcon(type: string) {
   }
 }
 
-function getNotificationColor(type: string) {
+function getNotificationColor(type: NotificationType) {
   switch (type) {
     case "comment":
     case "reply":
@@ -111,25 +78,138 @@ function getNotificationColor(type: string) {
   }
 }
 
+function dispatchNotificationsUpdated() {
+  if (typeof window === "undefined") {
+    return
+  }
+
+  window.dispatchEvent(new CustomEvent("notifications-updated"))
+}
+
+function formatRelativeDate(createdAt: string) {
+  const date = new Date(createdAt)
+
+  if (Number.isNaN(date.getTime())) {
+    return createdAt
+  }
+
+  const diffMs = Date.now() - date.getTime()
+  const diffMinutes = Math.max(0, Math.floor(diffMs / 1000 / 60))
+
+  if (diffMinutes < 1) return "방금 전"
+  if (diffMinutes < 60) return `${diffMinutes}분 전`
+
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) return `${diffHours}시간 전`
+
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 7) return `${diffDays}일 전`
+
+  return date.toLocaleString("ko-KR")
+}
+
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState(mockNotifications)
+  const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [activeTab, setActiveTab] = useState("all")
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length
-  const commentNotifications = notifications.filter(
-    (n) => n.type === "comment" || n.type === "reply"
+  const loadNotifications = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const response = await fetch(`${API_BASE_URL}/api/notifications`, {
+        cache: "no-store",
+      })
+
+      if (!response.ok) {
+        throw new Error("알림 목록을 불러오지 못했습니다.")
+      }
+
+      const data: NotificationListResponse = await response.json()
+      setNotifications(data.notifications.map(normalizeNotification))
+    } catch (fetchError) {
+      const message =
+        fetchError instanceof Error ? fetchError.message : "알림 요청 중 오류가 발생했습니다."
+      setError(message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadNotifications()
+  }, [])
+
+  const markAllAsRead = async () => {
+    const unreadNotifications = notifications.filter((notification) => !notification.isRead)
+
+    if (unreadNotifications.length === 0) return
+
+    try {
+      setError(null)
+
+      await Promise.all(
+        unreadNotifications.map(async (notification) => {
+          const response = await fetch(
+            `${API_BASE_URL}/api/notifications/${notification.notificationId}/read`,
+            {
+              method: "PATCH",
+            }
+          )
+
+          if (!response.ok) {
+            throw new Error("일부 알림 읽음 처리에 실패했습니다.")
+          }
+        })
+      )
+
+      await loadNotifications()
+      dispatchNotificationsUpdated()
+    } catch (readError) {
+      const message =
+        readError instanceof Error ? readError.message : "알림 읽음 처리 중 오류가 발생했습니다."
+      setError(message)
+    }
+  }
+
+  const markAsRead = async (notificationId: number) => {
+    try {
+      setError(null)
+
+      const response = await fetch(`${API_BASE_URL}/api/notifications/${notificationId}/read`, {
+        method: "PATCH",
+      })
+
+      if (!response.ok) {
+        throw new Error("알림 읽음 처리에 실패했습니다.")
+      }
+
+      await loadNotifications()
+      dispatchNotificationsUpdated()
+    } catch (readError) {
+      const message =
+        readError instanceof Error ? readError.message : "알림 읽음 처리 중 오류가 발생했습니다."
+      setError(message)
+    }
+  }
+
+  const unreadCount = notifications.filter((notification) => !notification.isRead).length
+
+  const commentNotifications = useMemo(
+    () =>
+      notifications.filter((notification) => {
+        const mappedType = mapBackendType(notification.type)
+        return mappedType === "comment" || mappedType === "reply"
+      }),
+    [notifications]
   )
-  const likeNotifications = notifications.filter((n) => n.type === "like")
 
-  const markAllAsRead = () => {
-    setNotifications((prev) =>
-      prev.map((n) => ({ ...n, isRead: true }))
-    )
-  }
-
-  const deleteNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id))
-  }
+  const likeNotifications = useMemo(
+    () => notifications.filter((notification) => mapBackendType(notification.type) === "like"),
+    [notifications]
+  )
 
   const getFilteredNotifications = () => {
     switch (activeTab) {
@@ -144,7 +224,6 @@ export default function NotificationsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
@@ -152,22 +231,32 @@ export default function NotificationsPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">알림</h1>
-            {unreadCount > 0 && (
-              <p className="text-sm text-muted-foreground">
-                읽지 않은 알림 {unreadCount}개
-              </p>
+            {unreadCount > 0 ? (
+              <p className="text-sm text-muted-foreground">읽지 않은 알림 {unreadCount}개</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">모든 알림을 확인했어요</p>
             )}
           </div>
         </div>
-        {unreadCount > 0 && (
-          <Button variant="outline" onClick={markAllAsRead} className="gap-2">
-            <Check className="h-4 w-4" />
-            모두 읽음
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => void loadNotifications()}>
+            새로고침
           </Button>
-        )}
+          {unreadCount > 0 && (
+            <Button variant="outline" onClick={() => void markAllAsRead()} className="gap-2">
+              <Check className="h-4 w-4" />
+              모두 읽음
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Tabs */}
+      {error ? (
+        <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6 w-full justify-start bg-secondary">
           <TabsTrigger
@@ -193,80 +282,76 @@ export default function NotificationsPage() {
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-0">
-          {getFilteredNotifications().length > 0 ? (
+          {loading ? (
+            <div className="rounded-lg border border-border bg-card p-12 text-center text-sm text-muted-foreground">
+              알림을 불러오는 중입니다...
+            </div>
+          ) : getFilteredNotifications().length > 0 ? (
             <div className="space-y-2">
-              {getFilteredNotifications().map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`group flex items-start gap-4 rounded-lg border border-border p-4 transition-colors hover:bg-card ${
-                    !notification.isRead ? "bg-primary/5" : "bg-card"
-                  }`}
-                >
-                  {/* Icon */}
-                  <div
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${getNotificationColor(
-                      notification.type
-                    )}`}
-                  >
-                    {getNotificationIcon(notification.type)}
-                  </div>
+              {getFilteredNotifications().map((notification) => {
+                const mappedType = mapBackendType(notification.type)
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start gap-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage
-                          src={notification.user.avatar}
-                          alt={notification.user.name}
-                        />
-                        <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
-                          {notification.user.name.slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <p className="text-sm text-foreground">
-                          <span className="font-semibold">{notification.user.name}</span>{" "}
-                          {notification.content}
-                        </p>
-                        {notification.postTitle && (
-                          <Link
-                            href={`/post/${notification.postId}`}
-                            className="mt-1 line-clamp-1 text-sm text-primary hover:underline"
-                          >
-                            {notification.postTitle}
-                          </Link>
-                        )}
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {notification.createdAt}
-                        </p>
+                return (
+                  <div
+                    key={notification.notificationId}
+                    className={`group flex items-start gap-4 rounded-lg border border-border p-4 transition-colors hover:bg-card ${
+                      !notification.isRead ? "bg-primary/5" : "bg-card"
+                    }`}
+                  >
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${getNotificationColor(
+                        mappedType
+                      )}`}
+                    >
+                      {getNotificationIcon(mappedType)}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={undefined} alt={`${notification.actorUserId}번 사용자`} />
+                          <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
+                            U{notification.actorUserId}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <p className="text-sm text-foreground">{notification.message}</p>
+                          {notification.postId ? (
+                            <Link
+                              href={`/post/${notification.postId}`}
+                              className="mt-1 line-clamp-1 text-sm text-primary hover:underline"
+                            >
+                              게시글 {notification.postId}번으로 이동
+                            </Link>
+                          ) : null}
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {formatRelativeDate(notification.createdAt)}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                    {!notification.isRead && (
-                      <div className="h-2 w-2 rounded-full bg-primary" />
-                    )}
-                    <button
-                      onClick={() => deleteNotification(notification.id)}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                      {!notification.isRead && <div className="h-2 w-2 rounded-full bg-primary" />}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={notification.isRead}
+                        onClick={() => void markAsRead(notification.notificationId)}
+                      >
+                        읽음 처리
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           ) : (
             <div className="rounded-lg border border-border bg-card p-12 text-center">
               <Bell className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-              <h3 className="mb-2 text-lg font-semibold text-foreground">
-                알림이 없습니다
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                새로운 알림이 오면 여기에 표시됩니다
-              </p>
+              <h3 className="mb-2 text-lg font-semibold text-foreground">알림이 없습니다</h3>
+              <p className="text-sm text-muted-foreground">새로운 알림이 오면 여기에 표시됩니다</p>
             </div>
           )}
         </TabsContent>
