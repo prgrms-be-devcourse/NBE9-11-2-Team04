@@ -4,6 +4,8 @@ import com.back.devc.domain.auth.dto.login.LoginRequest;
 import com.back.devc.domain.auth.dto.login.LoginResponse;
 import com.back.devc.domain.auth.dto.logout.LogoutRequest;
 import com.back.devc.domain.auth.dto.logout.LogoutResponse;
+import com.back.devc.domain.auth.dto.reissue.ReissueRequest;
+import com.back.devc.domain.auth.dto.reissue.ReissueResponse;
 import com.back.devc.domain.auth.dto.signup.SignUpRequest;
 import com.back.devc.domain.auth.dto.signup.SignUpResponse;
 import com.back.devc.domain.member.member.entity.Member;
@@ -11,6 +13,7 @@ import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
 import com.back.devc.global.security.jwt.JwtProvider;
+import com.back.devc.global.security.jwt.TokenValidationStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -32,13 +35,14 @@ public class AuthService {
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
         Member member = memberRepository.findByEmail(request.email())
-                .orElseThrow(() -> new ApiException(ErrorCode.INVALID_CREDENTIALS));
+                .orElseThrow(() -> new ApiException(ErrorCode.EMAIL_NOT_FOUND));
 
         if (!passwordEncoder.matches(request.password(), member.getPasswordHash())) {
-            throw new ApiException(ErrorCode.INVALID_CREDENTIALS);
+            throw new ApiException(ErrorCode.PASSWORD_MISMATCH);
         }
 
         String accessToken = jwtProvider.createAccessToken(member);
+        String refreshToken = jwtProvider.createRefreshToken(member);
 
         return new LoginResponse(
                 member.getUserId(),
@@ -46,8 +50,24 @@ public class AuthService {
                 member.getNickname(),
                 member.getRole(),
                 member.getStatus(),
-                accessToken
+                accessToken,
+                refreshToken
         );
+    }
+
+    @Transactional(readOnly = true)
+    public ReissueResponse reissue(ReissueRequest request) {
+        TokenValidationStatus tokenStatus = jwtProvider.validateRefreshTokenStatus(request.refreshToken());
+        if (!tokenStatus.isValid()) {
+            throw new ApiException(toTokenErrorCode(tokenStatus));
+        }
+
+        Long userId = jwtProvider.getUserId(request.refreshToken());
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
+
+        String newAccessToken = jwtProvider.createAccessToken(member);
+        return new ReissueResponse(newAccessToken);
     }
 
     @Transactional
@@ -71,5 +91,14 @@ public class AuthService {
                 savedMember.getRole(),
                 savedMember.getStatus()
         );
+    }
+
+    private ErrorCode toTokenErrorCode(TokenValidationStatus tokenStatus) {
+        return switch (tokenStatus) {
+            case EXPIRED -> ErrorCode.EXPIRED_TOKEN;
+            case INVALID_TOKEN_TYPE -> ErrorCode.INVALID_TOKEN_TYPE;
+            case MISSING, MALFORMED, UNSUPPORTED, INVALID_SIGNATURE -> ErrorCode.INVALID_TOKEN;
+            case VALID -> ErrorCode.INVALID_TOKEN;
+        };
     }
 }
