@@ -1,12 +1,12 @@
 package com.back.devc.domain.interaction.report.service;
 
-import com.back.devc.domain.comment.comment.entity.Comment;
-import com.back.devc.domain.comment.comment.repository.CommentRepository;
 import com.back.devc.domain.interaction.report.dto.ReportRequestDTO;
 import com.back.devc.domain.interaction.report.entity.Report;
 import com.back.devc.domain.interaction.report.repository.ReportRepository;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
+import com.back.devc.domain.post.comment.entity.Comment;
+import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.ApiException;
@@ -30,7 +30,7 @@ public class UserReportService {
                 .orElseThrow(() -> new ApiException(ErrorCode.POST_NOT_FOUND));
 
         // 1. 본인 신고 방지
-        if (post.getUser().getUserId().equals(reporterId)) {
+        if (post.getMember().getUserId().equals(reporterId)) {
             throw new ApiException(ErrorCode.CANNOT_REPORT_SELF);
         }
 
@@ -59,7 +59,7 @@ public class UserReportService {
                 .orElseThrow(() -> new ApiException(ErrorCode.COMMENT_NOT_FOUND));
 
         // 1. 본인 신고 방지
-        if (comment.getUser().getUserId().equals(reporterId)) {
+        if (comment.getUserId().equals(reporterId)) {
             throw new ApiException(ErrorCode.CANNOT_REPORT_SELF);
         }
 

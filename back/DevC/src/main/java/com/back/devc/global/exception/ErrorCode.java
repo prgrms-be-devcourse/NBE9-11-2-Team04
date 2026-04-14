@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "COMMON_400", "잘못된 요청입니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "COMMON_401", "인증이 필요합니다."),
+    ALREADY_DELETED(HttpStatus.GONE, "COMMON_410", "이미 삭제된 대상입니다."),
 
     EMAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH_404_EMAIL_NOT_FOUND", "존재하지 않는 이메일입니다."),
     PASSWORD_MISMATCH(HttpStatus.UNAUTHORIZED, "AUTH_401_PASSWORD_MISMATCH", "비밀번호가 일치하지 않습니다."),
@@ -23,9 +24,9 @@ public enum ErrorCode {
     CANNOT_REPORT_SELF(HttpStatus.BAD_REQUEST, "REPORT_400_SELF", "본인의 게시글이나 댓글은 신고할 수 없습니다."),
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "POST_404", "존재하지 않는 게시글입니다."),
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMENT_404", "존재하지 않는 댓글입니다."),
-    ALREADY_DELETED(HttpStatus.GONE, "COMMON_410", "이미 삭제된 대상입니다."),
     // 신고 Admin
-    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "REPORT_404_NOT_FOUND", "해당 신고 내역을 찾을 수 없습니다.");
+    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "REPORT_404_NOT_FOUND", "해당 신고 내역을 찾을 수 없습니다."),
+    REPORT_ALREADY_PROCESSED(HttpStatus.CONFLICT, "REPORT_409_ALREADY_PROCESSED", "이미 처리된 신고입니다.");
 
     private final HttpStatus status;
     private final String code;

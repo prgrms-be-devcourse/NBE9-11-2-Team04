@@ -52,7 +52,7 @@ public class Report {
     private String reasonDetail;
 
     @Column(name = "status", nullable = false, length = 20)
-    private String status = "PENDING"; // PENDING, REVIEWING, RESOLVED, REJECTED
+    private String status = "PENDING"; // PENDING, RESOLVED, REJECTED
 
     // 2. 처리 관리자 (FK: members 테이블의 user_id 참조)
     @ManyToOne(fetch = FetchType.LAZY)
