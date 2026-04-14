@@ -18,13 +18,16 @@ public class JwtProvider {
 
     private final SecretKey secretKey;
     private final long accessTokenExpirationSeconds;
+    private final long refreshTokenExpirationSeconds;
 
     public JwtProvider(
             @Value("${custom.jwt.secret-key}") String secretKey,
-            @Value("${custom.jwt.access-token-expiration-seconds}") long accessTokenExpirationSeconds
+            @Value("${custom.jwt.access-token-expiration-seconds}") long accessTokenExpirationSeconds,
+            @Value("${custom.jwt.refresh-token-expiration-seconds}") long refreshTokenExpirationSeconds
     ) {
         this.secretKey = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
         this.accessTokenExpirationSeconds = accessTokenExpirationSeconds;
+        this.refreshTokenExpirationSeconds = refreshTokenExpirationSeconds;
     }
 
     public String createAccessToken(Member member) {
@@ -35,6 +38,19 @@ public class JwtProvider {
                 .subject(String.valueOf(member.getUserId()))
                 .claim("email", member.getEmail())
                 .claim("role", member.getRole().name())
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(expiry))
+                .signWith(secretKey)
+                .compact();
+    }
+
+    public String createRefreshToken(Member member) {
+        Instant now = Instant.now();
+        Instant expiry = now.plusSeconds(refreshTokenExpirationSeconds);
+
+        return Jwts.builder()
+                .subject(String.valueOf(member.getUserId()))
+                .claim("tokenType", "REFRESH")
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiry))
                 .signWith(secretKey)
