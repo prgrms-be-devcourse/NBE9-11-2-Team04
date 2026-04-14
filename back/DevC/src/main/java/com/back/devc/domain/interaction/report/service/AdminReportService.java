@@ -62,18 +62,16 @@ public class AdminReportService {
 
             // soft delete
             post.delete();
-
-            // 작성자 제재
             sanctionMember(post.getMember());
 
         } else if ("COMMENT".equals(report.getTargetType())) {
             Comment comment = commentRepository.findById(report.getTargetId())
                     .orElseThrow(() -> new ApiException(ErrorCode.COMMENT_NOT_FOUND));
 
-            // soft delete
             comment.softDelete();
 
-            // 작성자 제재 (Comment에서 작성자 Member를 가져오는 메서드명은 프로젝트에 맞게 조정)
+            // 작성자 제재
+            // 댓글 작성자는 userId로 관리되므로 UserId로 조회
             Member commentAuthor = memberRepository.findById(comment.getUserId())
                     .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
             sanctionMember(commentAuthor);

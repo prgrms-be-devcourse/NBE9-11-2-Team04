@@ -13,25 +13,26 @@ public class ReportResponseDTO {
     private final Long reportId;
     private final Long reporterId;
     private final String reporterNickname;
-    private final String targetType; // POST, COMMENT
+    private final String targetType;        // POST, COMMENT
     private final Long targetId;
     private final String reasonType;
     private final String reasonDetail;
-    private final String status;
+    private final String status;            // PENDING, RESOLVED, REJECTED
     private final LocalDateTime createdAt;
+    private final LocalDateTime processedAt;
 
-    // 엔티티를 DTO로 변환하는 정적 메서드
     public static ReportResponseDTO from(Report report) {
         return new ReportResponseDTO(
                 report.getReportId(),
                 report.getReporter().getUserId(),
                 report.getReporter().getNickname(),
                 report.getTargetType(),
-                report.getTargetId().longValue(), // Integer를 Long으로 변환 (필요시)
+                report.getTargetId(),
                 report.getReasonType(),
                 report.getReasonDetail(),
                 report.getStatus(),
-                report.getCreatedAt()
+                report.getCreatedAt(),
+                report.getProcessedAt()
         );
     }
 }
