@@ -89,17 +89,26 @@ public class PostService {
         post.increaseViewCount();
     }
 
-    //sort 종류에 따라서 (조회수순, 좋아요순, 최신순)
+    //sort 종류에 따라서 (조회수순, 좋아요순, 최신순 // default : 최신순)
     @Transactional(readOnly = true)
-    public Page<Post> getPosts(PostSortType sort, int page, int size) {
+    public Page<Post> getPosts(Long categoryId,PostSortType sort, int page, int size) {
 
         Sort jpaSort = switch (sort) {
-            case views -> Sort.by("viewCount").descending();
-            case likes -> Sort.by("likeCount").descending();
-            default -> Sort.by("createdAt").descending();
+            case views -> Sort.by(
+                    Sort.Order.desc("viewCount"),
+                    Sort.Order.desc("createdAt")
+            );
+            case likes -> Sort.by(
+                    Sort.Order.desc("likeCount"),
+                    Sort.Order.desc("createdAt")
+            );
+            default -> Sort.by(Sort.Order.desc("createdAt"));
         };
 
         Pageable pageable = PageRequest.of(page, size, jpaSort);
+        if (categoryId != null) {
+            return postRepository.findByCategoryCategoryIdAndIsDeletedFalse(categoryId, pageable);
+        }
         return postRepository.findByIsDeletedFalse(pageable);
     }
 

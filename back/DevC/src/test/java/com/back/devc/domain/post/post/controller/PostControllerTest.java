@@ -176,4 +176,31 @@ class PostControllerTest {
         assertThat(deleted.isDeleted()).isTrue();
         //삭제 후 isDeleted의 값이 true로 변경됨을 보여줌
     }
+
+    @Test
+    @DisplayName("게시글 최신순 조회")
+    void t6() throws Exception {
+
+        // given (게시글 2개 생성)
+        Post post1 = postRepository.save(
+                new Post(member, category, "첫번째", "내용1")
+        );
+
+        Thread.sleep(10); // 시간 차이 주기 (createdAt 다르게)
+
+        Post post2 = postRepository.save(
+                new Post(member, category, "두번째", "내용2")
+        );
+
+        // when & then (최신순 조회)
+        mvc.perform(get("/api/v1/posts")
+                        .param("sort", "latest")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                // 최신 글이 먼저 와야 함
+                .andExpect(jsonPath("$.content[0].title").value("두번째"))
+                .andExpect(jsonPath("$.content[1].title").value("첫번째"));
+    }
 }
