@@ -34,15 +34,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+        // Authorization 헤더에서 Bearer 토큰 추출
         String token = resolveToken(request);
 
+        // 이미 인증된 요청이 아니고, Access Token이 유효한 경우에만 인증 시도
         if (token != null
                 && SecurityContextHolder.getContext().getAuthentication() == null
                 && jwtProvider.validateAccessTokenStatus(token) == TokenValidationStatus.VALID) {
             Long userId = jwtProvider.getUserId(token);
 
+            // 토큰 클레임만 신뢰하지 않고 DB에서 사용자 현재 상태를 다시 확인
             Member member = memberRepository.findById(userId).orElse(null);
-            if (member == null || member.getStatus() == MemberStatus.BLACKLISTED) {
+            if (!isAuthenticatableMember(member)) {
+                // 미인증 상태로 남겨두면, 보호된 API 접근 시 Security가 401로 처리한다.
+                SecurityContextHolder.clearContext();
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -62,6 +67,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    // 현재 정책: 사용자 존재 + BLACKLISTED 아님 => 인증 허용
+    private boolean isAuthenticatableMember(Member member) {
+        return member != null && member.getStatus() != MemberStatus.BLACKLISTED;
     }
 
     private String resolveToken(HttpServletRequest request) {
