@@ -67,6 +67,15 @@ public class JwtProvider {
         }
     }
 
+    public boolean validateRefreshToken(String token) {
+        if (!validateToken(token)) {
+            return false;
+        }
+
+        String tokenType = parseClaims(token).get("tokenType", String.class);
+        return "REFRESH".equals(tokenType);
+    }
+
     // subject(userId) 클레임을 Long으로 변환해 반환한다.
     public Long getUserId(String token) {
         return Long.parseLong(parseClaims(token).getSubject());
