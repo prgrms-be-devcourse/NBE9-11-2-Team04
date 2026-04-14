@@ -11,8 +11,8 @@ public record PostDetailResponse(
         Long userId,
         Long categoryId,
         int viewCount,
-        int likeCount,
-        int commentCount,
+        long likeCount,
+        long commentCount,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
