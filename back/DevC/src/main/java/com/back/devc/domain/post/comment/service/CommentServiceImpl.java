@@ -8,6 +8,7 @@ import com.back.devc.domain.post.comment.dto.CommentResponse;
 import com.back.devc.domain.post.comment.dto.CommentUpdateRequest;
 import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
+import com.back.devc.domain.post.post.repository.PostRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,11 +22,15 @@ import java.util.List;
 public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
+    private final PostRepository postRepository;
     private final NotificationService notificationService;
 
     @Override
     @Transactional
     public CommentResponse createComment(Long postId, Long loginUserId, CommentCreateRequest request) {
+        postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
+
         Comment comment = Comment.create(postId, loginUserId, null, request.getContent());
         Comment savedComment = commentRepository.save(comment);
 
@@ -85,6 +90,9 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public CommentListResponse getComments(Long postId) {
+        postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
+
         List<CommentResponse> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId)
                 .stream()
                 .map(this::toResponse)
