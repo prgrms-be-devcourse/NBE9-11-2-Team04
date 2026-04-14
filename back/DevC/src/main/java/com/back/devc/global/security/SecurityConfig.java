@@ -31,7 +31,11 @@ public class SecurityConfig {
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
-                        .requestMatchers("/api/users/me").authenticated()
+                        .requestMatchers("/search-logs/popular").permitAll()
+                        .requestMatchers("/posts/*/likes").authenticated()
+                        .requestMatchers("/posts/*/bookmarks").authenticated()
+                        .requestMatchers("/search-logs").authenticated()
+                        .requestMatchers("/users/me/**").authenticated()
                         .anyRequest().permitAll())
                 .csrf((csrf) -> csrf.disable())
                 .sessionManagement((sessionManagement) ->
