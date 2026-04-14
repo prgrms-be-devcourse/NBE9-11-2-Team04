@@ -4,7 +4,9 @@ import com.back.devc.domain.member.searchLog.dto.CreateSearchLogRequest;
 import com.back.devc.domain.member.searchLog.dto.PopularKeywordResponse;
 import com.back.devc.domain.member.searchLog.dto.SearchLogResponse;
 import com.back.devc.domain.member.searchLog.service.SearchLogService;
+import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,28 +19,32 @@ public class SearchLogController {
 
     @PostMapping("/search-logs")
     public SearchLogResponse createSearchLog(
-            @RequestParam Long userId,
+            @AuthenticationPrincipal JwtPrincipal principal,
             @RequestBody CreateSearchLogRequest request
     ) {
-        return searchLogService.createSearchLog(userId, request);
+        return searchLogService.createSearchLog(principal.userId(), request);
     }
 
     @GetMapping("/users/me/search-logs")
-    public List<SearchLogResponse> getMySearchLogs(@RequestParam Long userId) {
-        return searchLogService.getMySearchLogs(userId);
+    public List<SearchLogResponse> getMySearchLogs(
+            @AuthenticationPrincipal JwtPrincipal principal
+    ) {
+        return searchLogService.getMySearchLogs(principal.userId());
     }
 
     @DeleteMapping("/users/me/search-logs/{searchLogId}")
     public void deleteSearchLog(
-            @RequestParam Long userId,
+            @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long searchLogId
     ) {
-        searchLogService.deleteSearchLog(userId, searchLogId);
+        searchLogService.deleteSearchLog(principal.userId(), searchLogId);
     }
 
     @DeleteMapping("/users/me/search-logs")
-    public void deleteAllSearchLogs(@RequestParam Long userId) {
-        searchLogService.deleteAllSearchLogs(userId);
+    public void deleteAllSearchLogs(
+            @AuthenticationPrincipal JwtPrincipal principal
+    ) {
+        searchLogService.deleteAllSearchLogs(principal.userId());
     }
 
     @GetMapping("/search-logs/popular")
