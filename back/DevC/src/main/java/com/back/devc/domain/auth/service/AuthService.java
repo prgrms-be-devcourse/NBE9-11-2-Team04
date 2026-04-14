@@ -35,10 +35,10 @@ public class AuthService {
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
         Member member = memberRepository.findByEmail(request.email())
-                .orElseThrow(() -> new ApiException(ErrorCode.INVALID_CREDENTIALS));
+                .orElseThrow(() -> new ApiException(ErrorCode.EMAIL_NOT_FOUND));
 
         if (!passwordEncoder.matches(request.password(), member.getPasswordHash())) {
-            throw new ApiException(ErrorCode.INVALID_CREDENTIALS);
+            throw new ApiException(ErrorCode.PASSWORD_MISMATCH);
         }
 
         String accessToken = jwtProvider.createAccessToken(member);
