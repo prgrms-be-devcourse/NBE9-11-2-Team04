@@ -105,7 +105,7 @@ class PostControllerTest {
                 new Post(member, category, "테스트2", "테스트2내용")
         );
 
-        mvc.perform(get("/api/v1/posts"))
+        mvc.perform(get("/api/v1/posts/all"))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))

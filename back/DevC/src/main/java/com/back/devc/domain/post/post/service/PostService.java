@@ -13,7 +13,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -91,19 +90,18 @@ public class PostService {
     }
 
     //sort 종류에 따라서 (조회수순, 좋아요순, 최신순)
+    @Transactional(readOnly = true)
+    public Page<Post> getPosts(PostSortType sort, int page, int size) {
 
-        public Page<Post> getPosts(PostSortType sort, int page, int size) {
+        Sort jpaSort = switch (sort) {
+            case views -> Sort.by("viewCount").descending();
+            case likes -> Sort.by("likeCount").descending();
+            default -> Sort.by("createdAt").descending();
+        };
 
-            Sort jpaSort = switch (sort) {
-                case views -> Sort.by("viewCount").descending();
-                case likes -> Sort.by("likeCount").descending();
-                default -> Sort.by("createdAt").descending();
-            };
-
-            Pageable pageable = PageRequest.of(page, size, jpaSort);
-
-            return postRepository.findByIsDeletedFalse(pageable);
-        }
+        Pageable pageable = PageRequest.of(page, size, jpaSort);
+        return postRepository.findByIsDeletedFalse(pageable);
+    }
 
 
     // 댓글 수 증가
