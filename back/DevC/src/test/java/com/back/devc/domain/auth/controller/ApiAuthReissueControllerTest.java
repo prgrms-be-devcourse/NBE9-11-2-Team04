@@ -23,9 +23,7 @@ import java.util.Date;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.handler;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -165,5 +163,72 @@ public class ApiAuthReissueControllerTest {
                 .andExpect(handler().methodName("reissue"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("AUTH_401_EXPIRED_TOKEN"));
+    }
+
+    @Test
+    void 서명_위조된_리프레시_토큰_재발급_요청_실패() throws Exception {
+        String email = "reissue-tampered@test.com";
+        String rawPassword = "password123!";
+        String nickname = "reissueTamperedUser";
+
+        Member member = Member.createLocalMember(email, passwordEncoder.encode(rawPassword), nickname);
+        memberRepository.save(member);
+
+        String loginResponse = mvc.perform(
+                        post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "email": "%s",
+                                          "password": "%s"
+                                        }
+                                        """.formatted(email, rawPassword))
+                )
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String refreshToken = JsonPath.read(loginResponse, "$.data.refreshToken");
+        String tamperedRefreshToken = refreshToken.substring(0, refreshToken.length() - 1)
+                + (refreshToken.endsWith("a") ? "b" : "a");
+
+        ResultActions resultActions = mvc.perform(
+                        post("/api/auth/reissue")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "refreshToken": "%s"
+                                        }
+                                        """.formatted(tamperedRefreshToken))
+                )
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(AuthController.class))
+                .andExpect(handler().methodName("reissue"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_401_INVALID_TOKEN"));
+    }
+
+    @Test
+    void 형식_깨진_리프레시_토큰_재발급_실패() throws Exception {
+        String malformedRefreshToken = "not-a-jwt-token";
+
+        ResultActions resultActions = mvc.perform(
+                        post("/api/auth/reissue")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "refreshToken": "%s"
+                                        }
+                                        """.formatted(malformedRefreshToken))
+                )
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(AuthController.class))
+                .andExpect(handler().methodName("reissue"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_401_INVALID_TOKEN"));
     }
 }
