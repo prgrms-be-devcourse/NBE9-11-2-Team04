@@ -1,6 +1,10 @@
 package com.back.devc.domain.post.comment.controller;
 
-import com.back.devc.domain.post.comment.dto.*;
+import com.back.devc.domain.post.comment.dto.CommentCreateRequest;
+import com.back.devc.domain.post.comment.dto.CommentDeleteResponse;
+import com.back.devc.domain.post.comment.dto.CommentListResponse;
+import com.back.devc.domain.post.comment.dto.CommentResponse;
+import com.back.devc.domain.post.comment.dto.CommentUpdateRequest;
 import com.back.devc.domain.post.comment.service.CommentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +23,7 @@ public class CommentController {
             @PathVariable Long postId,
             @RequestBody @Valid CommentCreateRequest request
     ) {
-        Long loginUserId = 2L;
+        Long loginUserId = 1L;
         return ResponseEntity.ok(commentService.createComment(postId, loginUserId, request));
     }
 
