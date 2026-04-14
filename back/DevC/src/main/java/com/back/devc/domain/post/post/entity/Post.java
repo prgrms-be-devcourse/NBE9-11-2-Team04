@@ -4,6 +4,8 @@ import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.post.category.entity.Category;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
@@ -14,8 +16,10 @@ import java.time.LocalDateTime;
 
 @Entity
 @Getter
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
+@Builder
 public class Post {
 
     @Id
