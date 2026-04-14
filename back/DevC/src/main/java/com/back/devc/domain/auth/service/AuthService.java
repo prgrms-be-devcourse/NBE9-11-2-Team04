@@ -71,6 +71,10 @@ public class AuthService {
         Member member = memberRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
 
+        if (member.getStatus() == MemberStatus.BLACKLISTED) {
+            throw new ApiException(ErrorCode.MEMBER_BLACKLISTED);
+        }
+
         String newAccessToken = jwtProvider.createAccessToken(member);
         return new ReissueResponse(newAccessToken);
     }
