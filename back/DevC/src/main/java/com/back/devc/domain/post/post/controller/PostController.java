@@ -40,12 +40,12 @@ public class PostController {
     }
 
     // 전체 목록 조회 -> 리스트로 담아서 전달 (관리자쪽에서 사용하기 위해 isDeleted=true인것도 같이 조회)
-    @GetMapping("/all")
-    public List<PostListResponse> list() {
+    @GetMapping("/admin")
+    public List<AdminPostListResponse> list() {
         List<Post> result = postService.findAll();
 
-        List<PostListResponse> postDtoList = result.reversed().stream()
-                .map(PostListResponse::new)
+        List<AdminPostListResponse> postDtoList = result.reversed().stream()
+                .map(AdminPostListResponse::new)
                 .toList();
         return postDtoList;
     }
