@@ -26,16 +26,13 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void createCommentNotification(Long postId, Long actorUserId, Long commentId) {
-        Long postOwnerId = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId))
-                .getMember()
-                .getUserId();
+        Long postOwnerId = findPostOwnerId(postId);
 
         if (postOwnerId.equals(actorUserId)) {
             return;
         }
 
-        Notification notification = Notification.create(
+        saveNotification(
                 postOwnerId,
                 actorUserId,
                 postId,
@@ -43,15 +40,12 @@ public class NotificationServiceImpl implements NotificationService {
                 "COMMENT",
                 actorUserId + "번 사용자가 게시글에 댓글을 남겼습니다."
         );
-
-        notificationRepository.save(notification);
     }
 
     @Override
     @Transactional
     public void createReplyNotification(Long parentCommentId, Long actorUserId, Long replyCommentId) {
-        Comment parentComment = commentRepository.findById(parentCommentId)
-                .orElseThrow(() -> new EntityNotFoundException("부모 댓글을 찾을 수 없습니다. id=" + parentCommentId));
+        Comment parentComment = findCommentOrThrow(parentCommentId, "부모 댓글을 찾을 수 없습니다. id=" + parentCommentId);
 
         if (parentComment.isDeleted()) {
             return;
@@ -63,7 +57,7 @@ public class NotificationServiceImpl implements NotificationService {
             return;
         }
 
-        Notification notification = Notification.create(
+        saveNotification(
                 receiverUserId,
                 actorUserId,
                 parentComment.getPostId(),
@@ -71,8 +65,6 @@ public class NotificationServiceImpl implements NotificationService {
                 "REPLY",
                 actorUserId + "번 사용자가 회원님의 댓글에 답글을 남겼습니다."
         );
-
-        notificationRepository.save(notification);
     }
 
     @Override
@@ -97,6 +89,38 @@ public class NotificationServiceImpl implements NotificationService {
 
         notification.markAsRead();
         return toResponse(notification);
+    }
+
+    private Long findPostOwnerId(Long postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId))
+                .getMember()
+                .getUserId();
+    }
+
+    private Comment findCommentOrThrow(Long commentId, String message) {
+        return commentRepository.findById(commentId)
+                .orElseThrow(() -> new EntityNotFoundException(message));
+    }
+
+    private void saveNotification(
+            Long receiverUserId,
+            Long actorUserId,
+            Long postId,
+            Long commentId,
+            String type,
+            String message
+    ) {
+        Notification notification = Notification.create(
+                receiverUserId,
+                actorUserId,
+                postId,
+                commentId,
+                type,
+                message
+        );
+
+        notificationRepository.save(notification);
     }
 
     private NotificationResponse toResponse(Notification notification) {
