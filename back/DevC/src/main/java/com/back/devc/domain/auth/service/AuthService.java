@@ -29,7 +29,7 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public LogoutResponse logout() {
-        return new LogoutResponse("로그아웃이 완료되었습니다.");
+        return LogoutResponse.success();
     }
 
     @Transactional(readOnly = true)
