@@ -63,11 +63,14 @@ class PostControllerTest {
                         "testUser"
                 )
         );
-        // 테스트를 위해, categoryInitData에서 생성된 카테고리 중 첫번째 카테고리 가져옴
-        category = categoryRepository.findAll()
-                .stream()
-                .findFirst()
-                .orElseThrow();
+//        // 테스트를 위해, categoryInitData에서 생성된 카테고리 중 첫번째 카테고리 가져옴
+//        category = categoryRepository.findAll()
+//                .stream()
+//                .findFirst()
+//                .orElseThrow();
+
+        category = new Category("테스트 자유");
+        category = categoryRepository.save(category);
     }
 
     // =========================
@@ -178,6 +181,11 @@ class PostControllerTest {
         //삭제 후 isDeleted의 값이 true로 변경됨을 보여줌
     }
 
+    // =========================
+    // 최신순, 좋아요순, 조회수순
+    // =========================
+
+
     @Test
     @DisplayName("게시글 최신순 조회")
     void t6() throws Exception {
@@ -277,6 +285,29 @@ class PostControllerTest {
     @Test
     @DisplayName("게시글 카테고리별 조회")
     void t9() throws Exception {
+
+        // given
+        Category category2 = categoryRepository.save(new Category("테스트 공지"));
+
+        // category1 게시글
+        postRepository.save(new Post(member, category, "자유1", "내용1"));
+        postRepository.save(new Post(member, category, "자유2", "내용2"));
+
+        // category2 게시글
+        postRepository.save(new Post(member, category2, "공지1", "내용3"));
+
+        // when & then
+        mvc.perform(get("/api/v1/posts")
+                        .param("categoryId", String.valueOf(category.getCategoryId()))
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                // category1 글만 2개 나와야 함
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].categoryId").value(category.getCategoryId()))
+                .andExpect(jsonPath("$.content[1].categoryId").value(category.getCategoryId()));
     }
+
 
 }

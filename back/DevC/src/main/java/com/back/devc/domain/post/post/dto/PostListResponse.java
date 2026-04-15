@@ -11,6 +11,7 @@ public record PostListResponse(
         String title,
         String content,
         Long userId,
+        Long categoryId,
         LocalDateTime createdAt
 ) {
     public PostListResponse(Post post) {
@@ -19,6 +20,7 @@ public record PostListResponse(
                 post.getTitle(),
                 post.getContent(),
                 post.getMember() != null ? post.getMember().getUserId() : null,
+                post.getCategory().getCategoryId(),
                 post.getCreatedAt()
         );
     }
