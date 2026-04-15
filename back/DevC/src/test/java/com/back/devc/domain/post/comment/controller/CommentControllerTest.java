@@ -5,6 +5,8 @@ import com.back.devc.domain.post.comment.dto.CommentListResponse;
 import com.back.devc.domain.post.comment.dto.CommentResponse;
 import com.back.devc.domain.post.comment.service.CommentService;
 import com.back.devc.global.security.jwt.JwtProvider;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
@@ -23,6 +25,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@ActiveProfiles("test")
 @WebMvcTest(CommentController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class CommentControllerTest {
@@ -35,6 +38,9 @@ class CommentControllerTest {
 
     @MockitoBean
     private JwtProvider jwtProvider;
+
+    @MockitoBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     @Test
     @DisplayName("댓글 작성 API 호출 성공")

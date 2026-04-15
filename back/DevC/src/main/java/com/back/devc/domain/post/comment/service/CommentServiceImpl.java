@@ -8,6 +8,7 @@ import com.back.devc.domain.post.comment.dto.CommentResponse;
 import com.back.devc.domain.post.comment.dto.CommentUpdateRequest;
 import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
+import com.back.devc.domain.post.post.repository.PostRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,11 +22,15 @@ import java.util.List;
 public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
+    private final PostRepository postRepository;
     private final NotificationService notificationService;
 
     @Override
     @Transactional
     public CommentResponse createComment(Long postId, Long loginUserId, CommentCreateRequest request) {
+        postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
+
         Comment comment = Comment.create(postId, loginUserId, null, request.getContent());
         Comment savedComment = commentRepository.save(comment);
 
@@ -39,6 +44,10 @@ public class CommentServiceImpl implements CommentService {
     public CommentResponse createReply(Long parentCommentId, Long loginUserId, CommentCreateRequest request) {
         Comment parentComment = commentRepository.findById(parentCommentId)
                 .orElseThrow(() -> new EntityNotFoundException("부모 댓글을 찾을 수 없습니다. id=" + parentCommentId));
+
+        if (parentComment.isDeleted()) {
+            throw new IllegalStateException("삭제된 댓글에는 대댓글을 작성할 수 없습니다. id=" + parentCommentId);
+        }
 
         Comment reply = Comment.create(parentComment.getPostId(), loginUserId, parentCommentId, request.getContent());
         Comment savedReply = commentRepository.save(reply);
@@ -85,16 +94,37 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public CommentListResponse getComments(Long postId) {
-        List<CommentResponse> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId)
+        postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
+
+        List<CommentResponse> allComments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId)
                 .stream()
                 .map(this::toResponse)
                 .toList();
 
-        return new CommentListResponse(comments);
+        List<CommentResponse> parentComments = new java.util.ArrayList<>();
+        java.util.Map<Long, CommentResponse> commentMap = new java.util.LinkedHashMap<>();
+
+        for (CommentResponse commentResponse : allComments) {
+            commentMap.put(commentResponse.getCommentId(), commentResponse);
+        }
+
+        for (CommentResponse commentResponse : allComments) {
+            if (commentResponse.getParentCommentId() == null) {
+                parentComments.add(commentResponse);
+            } else {
+                CommentResponse parent = commentMap.get(commentResponse.getParentCommentId());
+                if (parent != null) {
+                    parent.getReplies().add(commentResponse);
+                }
+            }
+        }
+
+        return new CommentListResponse(parentComments);
     }
 
     private CommentResponse toResponse(Comment comment) {
-        return new CommentResponse(
+        return CommentResponse.of(
                 comment.getId(),
                 comment.getPostId(),
                 comment.getUserId(),
