@@ -32,8 +32,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/api/users/me").authenticated()
-//                        관리자 API
+//                        신고 : 관리자 API
 //                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+//                        신고 : 유저 API
+//                        .requestMatchers("/api/report/**").authenticated()
                         .anyRequest().permitAll())
                 .csrf((csrf) -> csrf.disable())
                 .sessionManagement((sessionManagement) ->
