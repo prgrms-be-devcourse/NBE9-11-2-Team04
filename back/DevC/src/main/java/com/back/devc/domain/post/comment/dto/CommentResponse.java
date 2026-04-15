@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Builder
@@ -20,4 +22,30 @@ public class CommentResponse {
     private boolean isDeleted;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<CommentResponse> replies;
+
+    public static CommentResponse of(
+            Long commentId,
+            Long postId,
+            Long userId,
+            String nickname,
+            Long parentCommentId,
+            String content,
+            boolean isDeleted,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        return CommentResponse.builder()
+                .commentId(commentId)
+                .postId(postId)
+                .userId(userId)
+                .nickname(nickname)
+                .parentCommentId(parentCommentId)
+                .content(content)
+                .isDeleted(isDeleted)
+                .createdAt(createdAt)
+                .updatedAt(updatedAt)
+                .replies(new ArrayList<>())
+                .build();
+    }
 }

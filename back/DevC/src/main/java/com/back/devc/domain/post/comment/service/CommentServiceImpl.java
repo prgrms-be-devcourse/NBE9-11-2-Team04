@@ -93,16 +93,34 @@ public class CommentServiceImpl implements CommentService {
         postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
 
-        List<CommentResponse> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId)
+        List<CommentResponse> allComments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId)
                 .stream()
                 .map(this::toResponse)
                 .toList();
 
-        return new CommentListResponse(comments);
+        List<CommentResponse> parentComments = new java.util.ArrayList<>();
+        java.util.Map<Long, CommentResponse> commentMap = new java.util.LinkedHashMap<>();
+
+        for (CommentResponse commentResponse : allComments) {
+            commentMap.put(commentResponse.getCommentId(), commentResponse);
+        }
+
+        for (CommentResponse commentResponse : allComments) {
+            if (commentResponse.getParentCommentId() == null) {
+                parentComments.add(commentResponse);
+            } else {
+                CommentResponse parent = commentMap.get(commentResponse.getParentCommentId());
+                if (parent != null) {
+                    parent.getReplies().add(commentResponse);
+                }
+            }
+        }
+
+        return new CommentListResponse(parentComments);
     }
 
     private CommentResponse toResponse(Comment comment) {
-        return new CommentResponse(
+        return CommentResponse.of(
                 comment.getId(),
                 comment.getPostId(),
                 comment.getUserId(),
