@@ -159,7 +159,7 @@ export function Header() {
             </Button>
           </Link>
 
-          <Link href="/notifications">
+          <Link href={isLoggedIn ? "/notifications" : "/login"}>
             <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
               <Bell className="h-5 w-5" />
               {hasUnreadNotifications ? (
@@ -169,7 +169,7 @@ export function Header() {
             </Button>
           </Link>
 
-          <Link href="/write" className="hidden sm:block">
+          <Link href={isLoggedIn ? "/write" : "/login"} className="hidden sm:block">
             <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
               <PenSquare className="h-4 w-4" />
               글 쓰기
@@ -197,13 +197,13 @@ export function Header() {
               ) : null}
 
               <DropdownMenuItem asChild>
-                <Link href="/mypage">마이페이지</Link>
+                <Link href={isLoggedIn ? "/mypage" : "/login"}>마이페이지</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/mypage/posts">내 글 보기</Link>
+                <Link href={isLoggedIn ? "/mypage/posts" : "/login"}>내 글 보기</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/mypage/edit">프로필 수정</Link>
+                <Link href={isLoggedIn ? "/mypage/edit" : "/login"}>프로필 수정</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
 
@@ -276,7 +276,7 @@ export function Header() {
                 </div>
               </div>
 
-              <Link href="/write" onClick={() => setMobileMenuOpen(false)}>
+              <Link href={isLoggedIn ? "/write" : "/login"} onClick={() => setMobileMenuOpen(false)}>
                 <Button className="w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
                   <PenSquare className="h-4 w-4" />
                   글 쓰기

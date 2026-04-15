@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Camera, Save } from "lucide-react"
@@ -9,10 +9,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { getAuthSnapshot } from "@/lib/auth-storage"
 
 export default function EditProfilePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [isAuthReady, setIsAuthReady] = useState(false)
   const [formData, setFormData] = useState({
     name: "김개발",
     username: "kimdev",
@@ -24,6 +26,16 @@ export default function EditProfilePage() {
     twitter: "kimdev",
   })
 
+  useEffect(() => {
+    const auth = getAuthSnapshot()
+    if (!auth.isLoggedIn) {
+      router.replace("/login")
+      return
+    }
+
+    setIsAuthReady(true)
+  }, [router])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -33,6 +45,10 @@ export default function EditProfilePage() {
 
     setIsLoading(false)
     router.push("/mypage")
+  }
+
+  if (!isAuthReady) {
+    return null
   }
 
   return (
