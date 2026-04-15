@@ -69,6 +69,10 @@ public class Member {
         return new Member(email, passwordHash, nickname, MemberRole.USER, MemberStatus.ACTIVE);
     }
 
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
     @PrePersist
     void prePersist() {
         LocalDateTime now = LocalDateTime.now();

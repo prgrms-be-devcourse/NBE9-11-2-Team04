@@ -4,6 +4,7 @@ import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.member.mypage.dto.MyPostResponse;
 import com.back.devc.domain.member.mypage.dto.MyProfileResponse;
+import com.back.devc.domain.member.mypage.dto.UpdateMyProfileRequest;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -47,5 +48,20 @@ public class MypageService {
                         post.getCreatedAt()
                 ))
                 .toList();
+    }
+
+    @Transactional
+    public MyProfileResponse updateMyProfile(Long userId, UpdateMyProfileRequest request) {
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
+
+        member
+                .updateNickname(request.nickname());
+
+        return new MyProfileResponse(
+                member.getUserId(),
+                member.getEmail(),
+                member.getNickname()
+        );
     }
 }
