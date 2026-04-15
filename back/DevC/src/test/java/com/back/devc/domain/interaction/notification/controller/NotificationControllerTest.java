@@ -4,6 +4,8 @@ import com.back.devc.domain.interaction.notification.dto.NotificationListRespons
 import com.back.devc.domain.interaction.notification.dto.NotificationResponse;
 import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.global.security.jwt.JwtProvider;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@ActiveProfiles("test")
 @WebMvcTest(NotificationController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class NotificationControllerTest {
@@ -30,6 +33,9 @@ class NotificationControllerTest {
 
     @MockitoBean
     private JwtProvider jwtProvider;
+
+    @MockitoBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     @Test
     @DisplayName("내 알림 목록 조회 API 호출 성공")

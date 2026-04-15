@@ -32,17 +32,11 @@ public class SecurityConfig {
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
-                        .requestMatchers("/search-logs/popular").permitAll()
-
-                        .requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/*").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/posts").authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/posts/*").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/posts/*").authenticated()
-
-                        .requestMatchers("/posts/*/likes").authenticated()
-                        .requestMatchers("/posts/*/bookmarks").authenticated()
-                        .requestMatchers("/search-logs").authenticated()
-                        .requestMatchers("/users/me/**").authenticated()
+                        .requestMatchers("/api/users/me").authenticated()
+//                        신고 : 관리자 API
+//                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+//                        신고 : 유저 API
+//                        .requestMatchers("/api/report/**").authenticated()
                         .anyRequest().permitAll())
                 .csrf((csrf) -> csrf.disable())
                 .sessionManagement((sessionManagement) ->
