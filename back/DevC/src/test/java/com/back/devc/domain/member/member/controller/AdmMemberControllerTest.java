@@ -6,6 +6,8 @@ import com.back.devc.domain.member.member.dto.AdmMemberStatusUpdateRequest;
 import com.back.devc.domain.member.member.entity.MemberStatus;
 import com.back.devc.domain.member.member.service.AdmMemberService;
 import com.back.devc.global.response.SuccessCode;
+import com.back.devc.global.security.CustomAuthenticationEntryPoint;
+import com.back.devc.global.security.jwt.JwtProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,9 +16,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -29,6 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(AdmMemberController.class)
 @WithMockUser(roles = "ADMIN") // 관리자 권한 시뮬레이션
+@ActiveProfiles("test")
 @DisplayName("AdmMemberController 테스트")
 class AdmMemberControllerTest {
 
@@ -38,8 +45,15 @@ class AdmMemberControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Autowired
+    @MockitoBean
     private AdmMemberService admMemberService;
+
+    @MockitoBean
+    private JwtProvider jwtProvider;
+    @MockitoBean
+    private CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+    @MockitoBean
+    private HandlerExceptionResolver handlerExceptionResolver;
 
     @Test
     @DisplayName("[성공] 전체 회원 목록 조회")
@@ -63,7 +77,7 @@ class AdmMemberControllerTest {
     @DisplayName("[성공] 회원 상세 조회")
     void getMemberDetail_Success() throws Exception {
         // given
-        AdmMemberDetailResponse detailResponse = new AdmMemberDetailResponse(1L, "nickname", "test@test.com", MemberStatus.ACTIVE, 0);
+        AdmMemberDetailResponse detailResponse = new AdmMemberDetailResponse(1L, "test@test.com", "nickname", 5L, 10L, MemberStatus.ACTIVE, LocalDateTime.now());
         given(admMemberService.getMemberDetail(1L)).willReturn(detailResponse);
 
         // when & then
@@ -78,7 +92,7 @@ class AdmMemberControllerTest {
     void updateMemberStatus_Success() throws Exception {
         // given
         AdmMemberStatusUpdateRequest request = new AdmMemberStatusUpdateRequest(MemberStatus.BLACKLISTED);
-        AdmMemberDetailResponse detailResponse = new AdmMemberDetailResponse(1L, "nickname", "test@test.com", MemberStatus.BLACKLISTED, 0);
+        AdmMemberDetailResponse detailResponse = new AdmMemberDetailResponse(1L, "test@test.com", "nickname", 5L, 10L, MemberStatus.ACTIVE, LocalDateTime.now());
 
         given(admMemberService.updateMemberStatus(eq(1L), any(AdmMemberStatusUpdateRequest.class)))
                 .willReturn(detailResponse);
