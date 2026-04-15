@@ -4,6 +4,7 @@ import com.back.devc.domain.interaction.notification.dto.NotificationListRespons
 import com.back.devc.domain.interaction.notification.dto.NotificationResponse;
 import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.global.security.jwt.JwtProvider;
+import com.back.devc.domain.member.member.repository.MemberRepository;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +34,9 @@ class NotificationControllerTest {
 
     @MockitoBean
     private JwtProvider jwtProvider;
+
+    @MockitoBean
+    private MemberRepository memberRepository;
 
     @MockitoBean
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;

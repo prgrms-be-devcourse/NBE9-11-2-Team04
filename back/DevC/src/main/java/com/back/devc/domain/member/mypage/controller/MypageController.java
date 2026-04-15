@@ -1,5 +1,6 @@
 package com.back.devc.domain.member.mypage.controller;
 
+import com.back.devc.domain.member.mypage.dto.MyCommentResponse;
 import com.back.devc.domain.member.mypage.dto.MyPostResponse;
 import com.back.devc.domain.member.mypage.dto.MyProfileResponse;
 import com.back.devc.domain.member.mypage.dto.UpdateMyProfileRequest;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
 import java.util.List;
 
 @RestController
@@ -32,6 +34,13 @@ public class MypageController {
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
         return mypageService.getMyPosts(principal.userId());
+    }
+
+    @GetMapping("/users/me/comments")
+    public List<MyCommentResponse> getMyComments(
+            @AuthenticationPrincipal JwtPrincipal principal
+    ) {
+        return mypageService.getMyComments(principal.userId());
     }
 
     @PatchMapping("/users/me")

@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+
+
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -23,8 +25,7 @@ public class CommentController {
             @PathVariable Long postId,
             @RequestBody @Valid CommentCreateRequest request
     ) {
-        Long loginUserId = 1L;
-        return ResponseEntity.ok(commentService.createComment(postId, loginUserId, request));
+        return ResponseEntity.ok(commentService.createComment(postId, getLoginUserId(), request));
     }
 
     @PostMapping("/comments/{commentId}/replies")
@@ -32,8 +33,7 @@ public class CommentController {
             @PathVariable Long commentId,
             @RequestBody @Valid CommentCreateRequest request
     ) {
-        Long loginUserId = 2L;
-        return ResponseEntity.ok(commentService.createReply(commentId, loginUserId, request));
+        return ResponseEntity.ok(commentService.createReply(commentId, getLoginUserId(), request));
     }
 
     @PatchMapping("/comments/{commentId}")
@@ -41,20 +41,22 @@ public class CommentController {
             @PathVariable Long commentId,
             @RequestBody @Valid CommentUpdateRequest request
     ) {
-        Long loginUserId = 1L;
-        return ResponseEntity.ok(commentService.updateComment(commentId, loginUserId, request));
+        return ResponseEntity.ok(commentService.updateComment(commentId, getLoginUserId(), request));
     }
 
     @DeleteMapping("/comments/{commentId}")
     public ResponseEntity<CommentDeleteResponse> deleteComment(
             @PathVariable Long commentId
     ) {
-        Long loginUserId = 1L;
-        return ResponseEntity.ok(commentService.deleteComment(commentId, loginUserId));
+        return ResponseEntity.ok(commentService.deleteComment(commentId, getLoginUserId()));
     }
 
     @GetMapping("/posts/{postId}/comments")
     public ResponseEntity<CommentListResponse> getComments(@PathVariable Long postId) {
         return ResponseEntity.ok(commentService.getComments(postId));
+    }
+
+    private Long getLoginUserId() {
+        return 2L;
     }
 }
