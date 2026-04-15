@@ -22,16 +22,13 @@ public class JwtProvider {
 
     private final SecretKey secretKey;
     private final long accessTokenExpirationSeconds;
-    private final long refreshTokenExpirationSeconds;
 
     public JwtProvider(
             @Value("${custom.jwt.secret-key}") String secretKey,
-            @Value("${custom.jwt.access-token-expiration-seconds}") long accessTokenExpirationSeconds,
-            @Value("${custom.jwt.refresh-token-expiration-seconds}") long refreshTokenExpirationSeconds
+            @Value("${custom.jwt.access-token-expiration-seconds}") long accessTokenExpirationSeconds
     ) {
         this.secretKey = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
         this.accessTokenExpirationSeconds = accessTokenExpirationSeconds;
-        this.refreshTokenExpirationSeconds = refreshTokenExpirationSeconds;
     }
 
     public String createAccessToken(Member member) {
@@ -49,26 +46,9 @@ public class JwtProvider {
                 .compact();
     }
 
-    public String createRefreshToken(Member member) {
-        Instant now = Instant.now();
-        Instant expiry = now.plusSeconds(refreshTokenExpirationSeconds);
-
-        return Jwts.builder()
-                .subject(String.valueOf(member.getUserId()))
-                .claim("tokenType", "REFRESH")
-                .issuedAt(Date.from(now))
-                .expiration(Date.from(expiry))
-                .signWith(secretKey)
-                .compact();
-    }
-
     // 토큰 서명/만료/형식을 검증한다.
     public boolean validateToken(String token) {
         return validateTokenStatus(token).isValid();
-    }
-
-    public boolean validateRefreshToken(String token) {
-        return validateRefreshTokenStatus(token).isValid();
     }
 
     public TokenValidationStatus validateAccessTokenStatus(String token) {
@@ -104,20 +84,6 @@ public class JwtProvider {
         } catch (JwtException e) {
             return TokenValidationStatus.MALFORMED;
         }
-    }
-
-    public TokenValidationStatus validateRefreshTokenStatus(String token) {
-        TokenValidationStatus tokenStatus = validateTokenStatus(token);
-        if (!tokenStatus.isValid()) {
-            return tokenStatus;
-        }
-
-        String tokenType = parseClaims(token).get("tokenType", String.class);
-        if (!"REFRESH".equals(tokenType)) {
-            return TokenValidationStatus.INVALID_TOKEN_TYPE;
-        }
-
-        return TokenValidationStatus.VALID;
     }
 
     // subject(userId) 클레임을 Long으로 변환해 반환한다.

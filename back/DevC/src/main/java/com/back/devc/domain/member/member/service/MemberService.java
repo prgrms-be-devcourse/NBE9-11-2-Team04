@@ -25,7 +25,8 @@ public class MemberService {
                 member.getEmail(),
                 member.getNickname(),
                 member.getRole(),
-                member.getStatus()
+                member.getStatus(),
+                member.getCreatedAt()
         );
     }
 }
