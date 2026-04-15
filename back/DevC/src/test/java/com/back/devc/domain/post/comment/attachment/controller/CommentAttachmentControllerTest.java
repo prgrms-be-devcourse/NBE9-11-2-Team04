@@ -4,6 +4,7 @@ import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentDeleteR
 import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentListResponse;
 import com.back.devc.domain.post.comment.attachment.service.CommentAttachmentService;
 import com.back.devc.global.security.jwt.JwtProvider;
+import com.back.devc.domain.member.member.repository.MemberRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,9 @@ class CommentAttachmentControllerTest {
 
     @MockitoBean
     private JwtProvider jwtProvider;
+
+    @MockitoBean
+    private MemberRepository memberRepository;
 
     @MockitoBean
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;
