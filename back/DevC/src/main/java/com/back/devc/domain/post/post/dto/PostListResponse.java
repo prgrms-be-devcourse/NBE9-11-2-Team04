@@ -12,8 +12,8 @@ public record PostListResponse(
         Long userId,
         Long categoryId,
         int viewCount,
-        long likeCount,
-        long commentCount,
+        int likeCount,
+        int commentCount,
         LocalDateTime createdAt
 ) {
     public PostListResponse(Post post) {

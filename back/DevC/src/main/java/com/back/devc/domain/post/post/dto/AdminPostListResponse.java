@@ -12,8 +12,8 @@ public record AdminPostListResponse(
         Long categoryId,
         Boolean isDeleted,
         int viewCount,
-        long likeCount,
-        long commentCount,
+        int likeCount,
+        int commentCount,
         LocalDateTime createdAt
 ) {
     public AdminPostListResponse(Post post) {
