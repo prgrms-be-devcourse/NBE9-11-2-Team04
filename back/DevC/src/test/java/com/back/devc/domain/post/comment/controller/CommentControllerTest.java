@@ -5,6 +5,7 @@ import com.back.devc.domain.post.comment.dto.CommentListResponse;
 import com.back.devc.domain.post.comment.dto.CommentResponse;
 import com.back.devc.domain.post.comment.service.CommentService;
 import com.back.devc.global.security.jwt.JwtProvider;
+import com.back.devc.domain.member.member.repository.MemberRepository;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.junit.jupiter.api.DisplayName;
@@ -40,6 +41,9 @@ class CommentControllerTest {
     private JwtProvider jwtProvider;
 
     @MockitoBean
+    private MemberRepository memberRepository;
+
+    @MockitoBean
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     @Test
@@ -49,7 +53,7 @@ class CommentControllerTest {
 
         given(commentService.createComment(
                 ArgumentMatchers.eq(1L),
-                ArgumentMatchers.eq(1L),
+                ArgumentMatchers.eq(2L),
                 ArgumentMatchers.any()
         )).willReturn(response);
 
@@ -64,7 +68,7 @@ class CommentControllerTest {
 
         verify(commentService).createComment(
                 ArgumentMatchers.eq(1L),
-                ArgumentMatchers.eq(1L),
+                ArgumentMatchers.eq(2L),
                 ArgumentMatchers.any()
         );
     }
@@ -103,7 +107,7 @@ class CommentControllerTest {
 
         given(commentService.updateComment(
                 ArgumentMatchers.eq(1L),
-                ArgumentMatchers.eq(1L),
+                ArgumentMatchers.eq(2L),
                 ArgumentMatchers.any()
         )).willReturn(response);
 
@@ -118,7 +122,7 @@ class CommentControllerTest {
 
         verify(commentService).updateComment(
                 ArgumentMatchers.eq(1L),
-                ArgumentMatchers.eq(1L),
+                ArgumentMatchers.eq(2L),
                 ArgumentMatchers.any()
         );
     }

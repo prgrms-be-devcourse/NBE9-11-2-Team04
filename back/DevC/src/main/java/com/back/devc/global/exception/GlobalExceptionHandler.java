@@ -48,4 +48,16 @@ public class GlobalExceptionHandler {
                 .status(ErrorCode.UNAUTHORIZED.getStatus())
                 .body(ErrorResponse.of(ErrorCode.UNAUTHORIZED));
     }
+    // 엔티티 조회 실패 시 404로 응답
+    @ExceptionHandler(jakarta.persistence.EntityNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleEntityNotFound(jakarta.persistence.EntityNotFoundException e) {
+        return ResponseEntity.status(404)
+                .body(Map.of("message", e.getMessage()));
+    }
+    // 잘못된 요청 상태는 400으로 응답
+    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
+    public ResponseEntity<Map<String, String>> handleBadRequest(RuntimeException e) {
+        return ResponseEntity.badRequest()
+                .body(Map.of("message", e.getMessage()));
+    }
 }
