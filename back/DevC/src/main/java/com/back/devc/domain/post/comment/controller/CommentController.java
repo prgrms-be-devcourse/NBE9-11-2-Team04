@@ -6,14 +6,12 @@ import com.back.devc.domain.post.comment.dto.CommentListResponse;
 import com.back.devc.domain.post.comment.dto.CommentResponse;
 import com.back.devc.domain.post.comment.dto.CommentUpdateRequest;
 import com.back.devc.domain.post.comment.service.CommentService;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
+
 
 @RestController
 @RequestMapping("/api")
@@ -60,17 +58,5 @@ public class CommentController {
     @GetMapping("/posts/{postId}/comments")
     public ResponseEntity<CommentListResponse> getComments(@PathVariable Long postId) {
         return ResponseEntity.ok(commentService.getComments(postId));
-    }
-
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleEntityNotFound(EntityNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("message", e.getMessage()));
-    }
-
-    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
-    public ResponseEntity<Map<String, String>> handleBadRequest(RuntimeException e) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("message", e.getMessage()));
     }
 }
