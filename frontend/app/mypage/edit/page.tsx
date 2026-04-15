@@ -145,25 +145,14 @@ export default function EditProfilePage() {
         <div className="rounded-lg border border-border bg-card p-6">
           <h2 className="mb-6 text-lg font-semibold text-foreground">기본 정보</h2>
           <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="name">이름</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="bg-secondary"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="username">사용자 이름</Label>
-                <Input
-                  id="username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="bg-secondary"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">닉네임</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="bg-secondary"
+              />
             </div>
 
             <div className="space-y-2">
@@ -172,7 +161,8 @@ export default function EditProfilePage() {
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                readOnly
+                disabled
                 className="bg-secondary"
               />
             </div>

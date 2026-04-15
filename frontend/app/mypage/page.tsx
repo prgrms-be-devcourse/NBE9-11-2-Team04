@@ -177,7 +177,6 @@ export default function MyPage() {
             <div className="mb-4 flex flex-wrap items-center gap-4">
               <div>
                 <h1 className="text-2xl font-bold text-foreground">{displayName}</h1>
-                <p className="text-muted-foreground">@{displayUsername}</p>
               </div>
               <Link href="/mypage/edit">
                 <Button variant="outline" className="gap-2">

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import Link from "next/link"
@@ -7,14 +7,15 @@ import { Code2, Eye, EyeOff, Check, X, Github } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
+import { signup } from "@/lib/interaction"
 
 export default function SignUpPage() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
   const [formData, setFormData] = useState({
-    name: "",
+    nickname: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -29,51 +30,67 @@ export default function SignUpPage() {
   ]
 
   const passwordsMatch =
-    formData.password && formData.confirmPassword && formData.password === formData.confirmPassword
+    formData.password.length > 0 &&
+    formData.confirmPassword.length > 0 &&
+    formData.password === formData.confirmPassword
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setError("")
+
+    if (!formData.agreeTerms) {
+      setError("이용약관 및 개인정보처리방침에 동의해주세요.")
+      return
+    }
+
+    if (!passwordsMatch) {
+      setError("비밀번호 확인이 일치하지 않습니다.")
+      return
+    }
+
     setIsLoading(true)
 
-    // Simulate signup
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      await signup({
+        email: formData.email.trim(),
+        password: formData.password,
+        nickname: formData.nickname.trim(),
+      })
 
-    setIsLoading(false)
-    router.push("/login")
+      router.push("/login")
+    } catch (signupError) {
+      setError(signupError instanceof Error ? signupError.message : "회원가입 중 오류가 발생했습니다.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="mb-8 text-center">
           <Link href="/" className="inline-flex items-center gap-2">
             <Code2 className="h-8 w-8 text-primary" />
             <span className="text-2xl font-bold text-foreground">DevHub</span>
           </Link>
-          <p className="mt-2 text-muted-foreground">
-            새로운 계정을 만들어보세요
-          </p>
+          <p className="mt-2 text-muted-foreground">새 계정을 만들어보세요</p>
         </div>
 
-        {/* Sign Up Form */}
         <div className="rounded-lg border border-border bg-card p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Name */}
             <div className="space-y-2">
-              <Label htmlFor="name">이름 (닉네임)</Label>
+              <Label htmlFor="nickname">닉네임</Label>
               <Input
-                id="name"
+                id="nickname"
                 type="text"
                 placeholder="개발자닉네임"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                value={formData.nickname}
+                onChange={(e) => setFormData({ ...formData, nickname: e.target.value })}
                 required
                 className="bg-secondary"
               />
             </div>
 
-            {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">이메일</Label>
               <Input
@@ -87,7 +104,6 @@ export default function SignUpPage() {
               />
             </div>
 
-            {/* Password */}
             <div className="space-y-2">
               <Label htmlFor="password">비밀번호</Label>
               <div className="relative">
@@ -105,36 +121,25 @@ export default function SignUpPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {/* Password Requirements */}
-              {formData.password && (
+
+              {formData.password ? (
                 <div className="mt-2 space-y-1">
                   {passwordRequirements.map((req) => (
                     <div
                       key={req.label}
-                      className={`flex items-center gap-2 text-xs ${
-                        req.met ? "text-primary" : "text-muted-foreground"
-                      }`}
+                      className={`flex items-center gap-2 text-xs ${req.met ? "text-primary" : "text-muted-foreground"}`}
                     >
-                      {req.met ? (
-                        <Check className="h-3 w-3" />
-                      ) : (
-                        <X className="h-3 w-3" />
-                      )}
+                      {req.met ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                       {req.label}
                     </div>
                   ))}
                 </div>
-              )}
+              ) : null}
             </div>
 
-            {/* Confirm Password */}
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">비밀번호 확인</Label>
               <Input
@@ -142,42 +147,39 @@ export default function SignUpPage() {
                 type={showPassword ? "text" : "password"}
                 placeholder="비밀번호를 다시 입력하세요"
                 value={formData.confirmPassword}
-                onChange={(e) =>
-                  setFormData({ ...formData, confirmPassword: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 required
                 className="bg-secondary"
               />
-              {formData.confirmPassword && (
+
+              {formData.confirmPassword ? (
                 <div
-                  className={`flex items-center gap-2 text-xs ${
-                    passwordsMatch ? "text-primary" : "text-destructive"
-                  }`}
+                  className={`flex items-center gap-2 text-xs ${passwordsMatch ? "text-primary" : "text-destructive"}`}
                 >
                   {passwordsMatch ? (
                     <>
                       <Check className="h-3 w-3" />
-                      비밀번호가 일치합니다
+                      비밀번호가 일치합니다.
                     </>
                   ) : (
                     <>
                       <X className="h-3 w-3" />
-                      비밀번호가 일치하지 않습니다
+                      비밀번호가 일치하지 않습니다.
                     </>
                   )}
                 </div>
-              )}
+              ) : null}
             </div>
 
-            {/* Terms Agreement */}
             <div className="flex items-start gap-2">
-              <Checkbox
+              <input
                 id="terms"
+                type="checkbox"
                 checked={formData.agreeTerms}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, agreeTerms: checked as boolean })
+                onChange={(e) =>
+                  setFormData({ ...formData, agreeTerms: e.target.checked })
                 }
-                className="mt-0.5"
+                className="mt-1 h-4 w-4 rounded border border-input bg-secondary accent-primary"
               />
               <Label htmlFor="terms" className="text-sm font-normal leading-relaxed">
                 <Link href="/terms" className="text-primary hover:underline">
@@ -187,11 +189,10 @@ export default function SignUpPage() {
                 <Link href="/privacy" className="text-primary hover:underline">
                   개인정보처리방침
                 </Link>
-                에 동의합니다
+                에 동의합니다.
               </Label>
             </div>
 
-            {/* Submit Button */}
             <Button
               type="submit"
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
@@ -199,9 +200,10 @@ export default function SignUpPage() {
             >
               {isLoading ? "가입 처리 중..." : "회원가입"}
             </Button>
+
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
           </form>
 
-          {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-border" />
@@ -211,7 +213,6 @@ export default function SignUpPage() {
             </div>
           </div>
 
-          {/* Social Sign Up */}
           <div className="space-y-3">
             <Button variant="outline" className="w-full gap-2" type="button">
               <Github className="h-4 w-4" />
@@ -238,9 +239,9 @@ export default function SignUpPage() {
               </svg>
               Google로 가입
             </Button>
-            <Button 
-              variant="outline" 
-              className="w-full gap-2 bg-[#FEE500] text-[#000000] hover:bg-[#FEE500]/90 border-[#FEE500]" 
+            <Button
+              variant="outline"
+              className="w-full gap-2 border-[#FEE500] bg-[#FEE500] text-[#000000] hover:bg-[#FEE500]/90"
               type="button"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24">
@@ -254,7 +255,6 @@ export default function SignUpPage() {
           </div>
         </div>
 
-        {/* Login Link */}
         <p className="mt-6 text-center text-sm text-muted-foreground">
           이미 계정이 있으신가요?{" "}
           <Link href="/login" className="text-primary hover:underline">
