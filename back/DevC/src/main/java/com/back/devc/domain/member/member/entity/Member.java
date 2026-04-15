@@ -69,6 +69,10 @@ public class Member {
         return new Member(email, passwordHash, nickname, MemberRole.USER, MemberStatus.ACTIVE);
     }
 
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
     @PrePersist
     void prePersist() {
         LocalDateTime now = LocalDateTime.now();
@@ -90,4 +94,13 @@ public class Member {
         updatedAt = LocalDateTime.now();
     }
 
+    /**
+     * 회원의 상태를 업데이트하는 메서드
+     */
+    public void updateStatus(MemberStatus newStatus) {
+        if (newStatus == null) {
+            throw new IllegalArgumentException("변경할 상태값이 비어있습니다.");
+        }
+        this.status = newStatus;
+    }
 }

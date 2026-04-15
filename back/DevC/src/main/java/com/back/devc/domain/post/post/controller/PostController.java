@@ -1,17 +1,17 @@
 package com.back.devc.domain.post.post.controller;
 
-import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.post.post.dto.*;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.service.PostService;
 import com.back.devc.domain.post.post.type.PostSortType;
+import com.back.devc.global.security.jwt.JwtPrincipal;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,14 +23,17 @@ public class PostController {
 
     private final PostService postService;
 
-    //게시글 생성 + 여기에 로그인한 member 불러오는것 (추가했는데 확인 필요)
     @PostMapping
-    public ResponseEntity<PostCreateResponse> create(
-            @AuthenticationPrincipal Member member,
+    public  ResponseEntity<PostCreateResponse> create(
+            @AuthenticationPrincipal JwtPrincipal principal,
             @RequestBody @Valid PostCreateRequest request
     ) {
+        if (principal == null) {
+            throw new RuntimeException("인증 정보가 없습니다.");
+        }
+
         Post post = postService.write(
-                member,
+                principal.userId(),
                 request.categoryId(),
                 request.title(),
                 request.content()
@@ -82,11 +85,16 @@ public class PostController {
     //수정 하는 경우
     @PutMapping("/{postId}")
     public ResponseEntity<PostUpdateResponse> update(
+            @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long postId,
             @RequestBody @Valid PostUpdateRequest postUpdateRequest
     ) {
 
+        if (principal == null) {
+            throw new RuntimeException("인증 정보가 없습니다.");
+        }
         Post post = postService.update(
+                principal.userId(),
                 postId,
                 postUpdateRequest.title(),
                 postUpdateRequest.content(),
@@ -94,17 +102,23 @@ public class PostController {
         );
 
         return ResponseEntity.ok(PostUpdateResponse.from(post));
+
     }
 
-    //삭제 하는 경우 -> soft delete 처리 된다
     @DeleteMapping("/{postId}")
-    public ResponseEntity<PostDeleteResponse> delete(@PathVariable Long postId) {
+    public ResponseEntity<PostDeleteResponse> delete(
+            @AuthenticationPrincipal JwtPrincipal principal,
+            @PathVariable Long postId) {
 
-        postService.delete(postId);
+        if (principal == null) {
+            throw new RuntimeException("인증 정보가 없습니다.");
+        }
+
+        postService.delete(principal.userId(), postId);
 
         return ResponseEntity.ok(
                 new PostDeleteResponse(postId, "삭제되었습니다.")
         );
-    }
 
+    }
 }
