@@ -1,34 +1,50 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { Code2, Eye, EyeOff, Github } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Code2, Eye, EyeOff, Github } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { login } from "@/lib/interaction";
+import { persistLoginSession } from "@/lib/auth-storage";
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     rememberMe: false,
-  })
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    
-    // Simulate login
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    
-    setIsLoading(false)
-    router.push("/")
-  }
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const data = await login({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (!data.accessToken) {
+        throw new Error("토큰이 응답에 없습니다.");
+      }
+
+      persistLoginSession(data.accessToken, data.nickname);
+      router.push("/");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "로그인에 실패했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
@@ -38,9 +54,7 @@ export default function LoginPage() {
             <Code2 className="h-8 w-8 text-primary" />
             <span className="text-2xl font-bold text-foreground">DevHub</span>
           </Link>
-          <p className="mt-2 text-muted-foreground">
-            계정에 로그인하세요
-          </p>
+          <p className="mt-2 text-muted-foreground">계정으로 로그인하세요</p>
         </div>
 
         <div className="rounded-lg border border-border bg-card p-6">
@@ -52,7 +66,9 @@ export default function LoginPage() {
                 type="email"
                 placeholder="name@example.com"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 required
                 className="bg-secondary"
               />
@@ -74,7 +90,9 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   placeholder="비밀번호를 입력하세요"
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
                   required
                   className="bg-secondary pr-10"
                 />
@@ -112,6 +130,8 @@ export default function LoginPage() {
             >
               {isLoading ? "로그인 중..." : "로그인"}
             </Button>
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
           </form>
 
           <div className="relative my-6">
@@ -124,19 +144,11 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-3">
-            <Button
-              variant="outline"
-              className="w-full gap-2"
-              type="button"
-            >
+            <Button variant="outline" className="w-full gap-2" type="button">
               <Github className="h-4 w-4" />
               GitHub으로 로그인
             </Button>
-            <Button
-              variant="outline"
-              className="w-full gap-2"
-              type="button"
-            >
+            <Button variant="outline" className="w-full gap-2" type="button">
               <svg className="h-4 w-4" viewBox="0 0 24 24">
                 <path
                   fill="currentColor"
@@ -181,5 +193,5 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
-  )
+  );
 }
