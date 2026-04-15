@@ -18,7 +18,8 @@ bin/
 !**/src/test/**/bin/
 
 ### IntelliJ IDEA ###
-.idea
+gen/
+*.idea/
 *.iws
 *.iml
 *.ipr
@@ -285,4 +286,3 @@ gradle-app.setting
 *.hprof
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij,java,gradle,react,windows,macos
-
