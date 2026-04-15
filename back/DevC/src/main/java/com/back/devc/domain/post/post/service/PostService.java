@@ -1,10 +1,12 @@
 package com.back.devc.domain.post.post.service;
 
 import com.back.devc.domain.member.member.entity.Member;
+import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.category.entity.Category;
 import com.back.devc.domain.post.category.repository.CategoryRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,94 +15,56 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class PostService {
 
     private final PostRepository postRepository;
+    private final MemberRepository memberRepository;
     private final CategoryRepository categoryRepository;
 
-    // 게시글 생성
-    @Transactional
-    public Post write(Member member, Long categoryId, String title, String content) {
+    public Post write(Long userId, Long categoryId, String title, String content) {
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
 
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new IllegalArgumentException("카테고리가 존재하지 않습니다."));
+                .orElseThrow(() -> new EntityNotFoundException("카테고리를 찾을 수 없습니다. id=" + categoryId));
 
-        Post post = new Post(member, category, title, content);
+        Post post = Post.builder()
+                .member(member)
+                .category(category)
+                .title(title)
+                .content(content)
+                .build();
 
         return postRepository.save(post);
     }
 
-    // 게시글 수정
-    @Transactional
-    public Post update(Long postId, String title, String content, Long categoryId) {
-
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
-
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new IllegalArgumentException("카테고리가 존재하지 않습니다."));
-
-        post.update(title, content, category);
-
-        return post;
-    }
-
-    // 게시글 삭제 (soft delete)
-    @Transactional
-    public void delete(Long postId) {
-
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
-
-        //db상에는 존재하지만 isDeleted 상태가 true인 경우 처리
-        if (post.isDeleted()) {
-            throw new IllegalArgumentException("게시글이 존재하지 않습니다.");
-        }
-
-        post.delete();
-    }
-
-    // 게시글 단건 조회
-    @Transactional(readOnly = true)
-    public Post findById(Long postId) {
-
-        return postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
-    }
-
-    // 게시글 전체 조회
     @Transactional(readOnly = true)
     public List<Post> findAll() {
         return postRepository.findAll();
     }
 
-    // 조회수 증가
-    @Transactional
-    public void increaseViewCount(Long postId) {
-
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
-
-        post.increaseViewCount();
+    @Transactional(readOnly = true)
+    public Post findById(Long postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
     }
 
-    // 댓글 수 증가
-    @Transactional
-    public void increaseCommentCount(Long postId) {
-
+    public Post update(Long postId, String title, String content, Long categoryId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
+                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
 
-        post.increaseCommentCount();
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new EntityNotFoundException("카테고리를 찾을 수 없습니다. id=" + categoryId));
+
+        post.update(title, content, category);
+        return post;
     }
 
-    // 댓글 수 감소
-    @Transactional
-    public void decreaseCommentCount(Long postId) {
-
+    public void delete(Long postId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
+                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
 
-        post.decreaseCommentCount();
+        post.delete();
     }
 }

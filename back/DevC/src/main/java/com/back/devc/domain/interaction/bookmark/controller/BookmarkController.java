@@ -3,7 +3,9 @@ package com.back.devc.domain.interaction.bookmark.controller;
 import com.back.devc.domain.interaction.bookmark.dto.BookmarkResponse;
 import com.back.devc.domain.interaction.bookmark.dto.BookmarkedPostResponse;
 import com.back.devc.domain.interaction.bookmark.service.BookmarkService;
+import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,22 +18,24 @@ public class BookmarkController {
 
     @PostMapping("/posts/{postId}/bookmarks")
     public BookmarkResponse createBookmark(
-            @RequestParam Long userId,
+            @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long postId
     ) {
-        return bookmarkService.createBookmark(userId, postId);
+        return bookmarkService.createBookmark(principal.userId(), postId);
     }
 
     @DeleteMapping("/posts/{postId}/bookmarks")
     public BookmarkResponse cancelBookmark(
-            @RequestParam Long userId,
+            @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long postId
     ) {
-        return bookmarkService.cancelBookmark(userId, postId);
+        return bookmarkService.cancelBookmark(principal.userId(), postId);
     }
 
     @GetMapping("/users/me/bookmarks")
-    public List<BookmarkedPostResponse> getBookmarkedPosts(@RequestParam Long userId) {
-        return bookmarkService.getBookmarkedPosts(userId);
+    public List<BookmarkedPostResponse> getBookmarkedPosts(
+            @AuthenticationPrincipal JwtPrincipal principal
+    ) {
+        return bookmarkService.getBookmarkedPosts(principal.userId());
     }
 }
