@@ -76,9 +76,8 @@ public class PostService {
     // 게시글 전체 조회
     @Transactional(readOnly = true)
     public List<Post> findAll() {
-        return postRepository.findAll();
+        return postRepository.findAllByOrderByCreatedAtDesc();
     }
-
     // 조회수 증가
     @Transactional
     public void increaseViewCount(Long postId) {
