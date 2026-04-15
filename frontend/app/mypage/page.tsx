@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { PostCard, type Post } from "@/components/post-card"
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,7 @@ import {
   Github,
   Twitter,
 } from "lucide-react"
+import { AUTH_CHANGED_EVENT, getAuthSnapshot } from "@/lib/auth-storage"
 
 // Mock user data
 const userData = {
@@ -98,6 +99,31 @@ const likedPosts: Post[] = [
 
 export default function MyPage() {
   const [activeTab, setActiveTab] = useState("posts")
+  const [displayName, setDisplayName] = useState("김개발")
+  const [displayUsername, setDisplayUsername] = useState("kimdev")
+
+  useEffect(() => {
+    const syncProfile = () => {
+      const auth = getAuthSnapshot()
+      const fallbackName = "김개발"
+      const name = auth.nickname?.trim() || fallbackName
+      const usernameFromEmail = auth.email?.split("@")[0]?.trim()
+      const usernameFromName = name.trim().replace(/\s+/g, "")
+      const username = usernameFromEmail || usernameFromName || "kimdev"
+
+      setDisplayName(name)
+      setDisplayUsername(username)
+    }
+
+    syncProfile()
+    window.addEventListener(AUTH_CHANGED_EVENT, syncProfile as EventListener)
+    window.addEventListener("storage", syncProfile)
+
+    return () => {
+      window.removeEventListener(AUTH_CHANGED_EVENT, syncProfile as EventListener)
+      window.removeEventListener("storage", syncProfile)
+    }
+  }, [])
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
@@ -106,9 +132,9 @@ export default function MyPage() {
         <div className="flex flex-col items-start gap-6 sm:flex-row">
           {/* Avatar */}
           <Avatar className="h-24 w-24 border-4 border-primary/20">
-            <AvatarImage src={userData.avatar} alt={userData.name} />
+            <AvatarImage src={userData.avatar} alt={displayName} />
             <AvatarFallback className="bg-primary text-2xl text-primary-foreground">
-              {userData.name.slice(0, 2)}
+              {displayName.slice(0, 2)}
             </AvatarFallback>
           </Avatar>
 
@@ -116,8 +142,8 @@ export default function MyPage() {
           <div className="flex-1">
             <div className="mb-4 flex flex-wrap items-center gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-foreground">{userData.name}</h1>
-                <p className="text-muted-foreground">@{userData.username}</p>
+                <h1 className="text-2xl font-bold text-foreground">{displayName}</h1>
+                <p className="text-muted-foreground">@{displayUsername}</p>
               </div>
               <Link href="/mypage/edit">
                 <Button variant="outline" className="gap-2">
@@ -242,7 +268,7 @@ export default function MyPage() {
           {myPosts.length > 0 ? (
             <div className="grid gap-6">
               {myPosts.map((post) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard key={post.id} post={{ ...post, author: { ...post.author, name: displayName } }} />
               ))}
             </div>
           ) : (

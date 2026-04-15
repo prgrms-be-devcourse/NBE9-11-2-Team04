@@ -37,7 +37,7 @@ export default function LoginPage() {
         throw new Error("토큰이 응답에 없습니다.");
       }
 
-      persistLoginSession(data.accessToken, data.nickname);
+      persistLoginSession(data.accessToken, data.nickname, data.email);
       router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "로그인에 실패했습니다.");
