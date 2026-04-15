@@ -45,6 +45,10 @@ public class CommentServiceImpl implements CommentService {
         Comment parentComment = commentRepository.findById(parentCommentId)
                 .orElseThrow(() -> new EntityNotFoundException("부모 댓글을 찾을 수 없습니다. id=" + parentCommentId));
 
+        if (parentComment.isDeleted()) {
+            throw new IllegalStateException("삭제된 댓글에는 대댓글을 작성할 수 없습니다. id=" + parentCommentId);
+        }
+
         Comment reply = Comment.create(parentComment.getPostId(), loginUserId, parentCommentId, request.getContent());
         Comment savedReply = commentRepository.save(reply);
 
