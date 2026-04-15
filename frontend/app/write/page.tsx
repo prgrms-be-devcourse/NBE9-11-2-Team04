@@ -115,7 +115,7 @@ export default function WritePage() {
             className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <Save className="h-4 w-4" />
-            {isLoading ? "저장 중..." : "발행하기"}
+            {isLoading ? "저장 중..." : "저장"}
           </Button>
         </div>
       </div>

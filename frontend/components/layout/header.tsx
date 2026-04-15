@@ -98,7 +98,7 @@ export function Header() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <Code2 className="h-7 w-7 text-primary" />
-          <span className="text-xl font-bold text-foreground">DevHub</span>
+          <span className="text-xl font-bold text-foreground">DevConnect</span>
         </Link>
 
         {/* Desktop Navigation */}
