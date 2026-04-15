@@ -13,6 +13,8 @@ import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
+import org.assertj.core.api.AssertionsForClassTypes;
+import org.assertj.core.api.AssertionsForInterfaceTypes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -23,11 +25,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat; // 1. 중요: AssertionsForClassTypes 대신 이거 사용
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -108,43 +113,50 @@ class AdminReportServiceTest {
     @Nested
     @DisplayName("대기 신고 목록 조회")
     class GetPendingReportsTest {
+            @Test
+            @DisplayName("[성공] PENDING 상태 신고가 있으면 Page 객체를 반환한다")
+            void getPendingReports_returnsPage() {
+                // given
+                Pageable pageable = PageRequest.of(0, 10); // 0페이지, 10개씩
 
-        @Test
-        @DisplayName("[성공] PENDING 상태 신고가 있으면 DTO 리스트를 반환한다")
-        void getPendingReports_returnsList() {
-            // given - Report.from()이 호출될 수 있도록 실제 Report를 빌더로 생성
-            Member mockReporter = mock(Member.class);
-            given(mockReporter.getUserId()).willReturn(1L);
-            given(mockReporter.getNickname()).willReturn("tester");
+                Member mockReporter = mock(Member.class);
+                given(mockReporter.getUserId()).willReturn(1L);
+                given(mockReporter.getNickname()).willReturn("tester");
 
-            Report report = Report.builder()
-                    .reporter(mockReporter)
-                    .targetType("POST")
-                    .targetId(10L)
-                    .reasonType("ABUSE")
-                    .reasonDetail("욕설")
-                    .build();
+                Report report = Report.builder()
+                        .reporter(mockReporter)
+                        .targetType("POST")
+                        .targetId(10L)
+                        .reasonType("ABUSE")
+                        .reasonDetail("욕설")
+                        .build();
 
-            given(reportRepository.findAllByStatus("PENDING")).willReturn(List.of(report));
+                Page<Report> reportPage = new PageImpl<>(List.of(report), pageable, 1);
+                given(reportRepository.findAllByStatus("PENDING", pageable)).willReturn(reportPage);
 
-            // when
-            List<ReportResponseDTO> result = adminReportService.getPendingReports();
+                // when
+                Page<ReportResponseDTO> result = adminReportService.getPendingReports(pageable);
 
-            // then
-            assertThat(result).hasSize(1);
-            assertThat(result.get(0).getTargetType()).isEqualTo("POST");
-            assertThat(result.get(0).getStatus()).isEqualTo("PENDING");
-        }
+                // then
+                AssertionsForInterfaceTypes.assertThat(result.getContent()).hasSize(1); // Page 내부 리스트 확인
+                AssertionsForClassTypes.assertThat(result.getTotalElements()).isEqualTo(1); // 전체 개수 확인
+                AssertionsForClassTypes.assertThat(result.getContent().get(0).getTargetType()).isEqualTo("POST");
+            }
 
-        @Test
-        @DisplayName("[성공] PENDING 신고가 없으면 빈 리스트를 반환한다")
-        void getPendingReports_emptyList() {
-            given(reportRepository.findAllByStatus("PENDING")).willReturn(List.of());
+            @Test
+            @DisplayName("[성공] PENDING 신고가 없으면 빈 Page를 반환한다")
+            void getPendingReports_emptyPage() {
+                // given
+                Pageable pageable = PageRequest.of(0, 10);
+                given(reportRepository.findAllByStatus("PENDING", pageable)).willReturn(Page.empty());
 
-            List<ReportResponseDTO> result = adminReportService.getPendingReports();
+                // when
+                Page<ReportResponseDTO> result = adminReportService.getPendingReports(pageable);
 
-            assertThat(result).isEmpty();
-        }
+                // then
+                AssertionsForClassTypes.assertThat(result.isEmpty()).isTrue();
+                AssertionsForClassTypes.assertThat(result.getTotalElements()).isZero();
+            }
     }
 
     // ════════════════════════════════════════════════════════════
@@ -319,7 +331,10 @@ class AdminReportServiceTest {
         @Test
         @DisplayName("[실패] 관리자가 존재하지 않으면 MEMBER_NOT_FOUND 예외")
         void approveReport_adminNotFound() {
-            given(reportRepository.findById(1L)).willReturn(Optional.of(pendingPostReport()));
+            // 해결 포인트: given(...) 밖에서 객체를 먼저 만듭니다.
+            Report report = pendingPostReport();
+
+            given(reportRepository.findById(1L)).willReturn(Optional.of(report));
             given(memberRepository.findById(99L)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> adminReportService.approveReport(99L, dto))
@@ -331,7 +346,10 @@ class AdminReportServiceTest {
         @Test
         @DisplayName("[실패] 이미 RESOLVED된 신고를 승인하면 REPORT_ALREADY_PROCESSED 예외")
         void approveReport_alreadyResolved() {
-            given(reportRepository.findById(1L)).willReturn(Optional.of(resolvedReport()));
+            // 해결 포인트: 변수로 먼저 뽑기
+            Report report = resolvedReport();
+
+            given(reportRepository.findById(1L)).willReturn(Optional.of(report));
             given(memberRepository.findById(99L)).willReturn(Optional.of(admin));
 
             assertThatThrownBy(() -> adminReportService.approveReport(99L, dto))
@@ -343,7 +361,10 @@ class AdminReportServiceTest {
         @Test
         @DisplayName("[실패] 이미 REJECTED된 신고를 승인하면 REPORT_ALREADY_PROCESSED 예외")
         void approveReport_alreadyRejected() {
-            given(reportRepository.findById(1L)).willReturn(Optional.of(rejectedReport()));
+            // 해결 포인트: 변수로 먼저 뽑기
+            Report report = rejectedReport();
+
+            given(reportRepository.findById(1L)).willReturn(Optional.of(report));
             given(memberRepository.findById(99L)).willReturn(Optional.of(admin));
 
             assertThatThrownBy(() -> adminReportService.approveReport(99L, dto))
@@ -398,11 +419,12 @@ class AdminReportServiceTest {
                     .extracting(e -> ((ApiException) e).getErrorCode())
                     .isEqualTo(ErrorCode.REPORT_NOT_FOUND);
         }
-
         @Test
         @DisplayName("[실패] 관리자가 존재하지 않으면 MEMBER_NOT_FOUND 예외")
         void rejectReport_adminNotFound() {
-            given(reportRepository.findById(1L)).willReturn(Optional.of(pendingPostReport()));
+            Report report = pendingPostReport();
+
+            given(reportRepository.findById(1L)).willReturn(Optional.of(report));
             given(memberRepository.findById(99L)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> adminReportService.rejectReport(99L, dto))
@@ -414,7 +436,9 @@ class AdminReportServiceTest {
         @Test
         @DisplayName("[실패] 이미 RESOLVED된 신고를 반려하면 REPORT_ALREADY_PROCESSED 예외")
         void rejectReport_alreadyResolved() {
-            given(reportRepository.findById(1L)).willReturn(Optional.of(resolvedReport()));
+            Report report = resolvedReport();
+
+            given(reportRepository.findById(1L)).willReturn(Optional.of(report));
             given(memberRepository.findById(99L)).willReturn(Optional.of(admin));
 
             assertThatThrownBy(() -> adminReportService.rejectReport(99L, dto))
@@ -426,7 +450,9 @@ class AdminReportServiceTest {
         @Test
         @DisplayName("[실패] 이미 REJECTED된 신고를 다시 반려하면 REPORT_ALREADY_PROCESSED 예외")
         void rejectReport_alreadyRejected() {
-            given(reportRepository.findById(1L)).willReturn(Optional.of(rejectedReport()));
+            Report report = rejectedReport();
+
+            given(reportRepository.findById(1L)).willReturn(Optional.of(report));
             given(memberRepository.findById(99L)).willReturn(Optional.of(admin));
 
             assertThatThrownBy(() -> adminReportService.rejectReport(99L, dto))

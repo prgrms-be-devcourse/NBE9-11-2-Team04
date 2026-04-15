@@ -8,11 +8,13 @@ import com.back.devc.global.exception.ErrorCode;
 import com.back.devc.global.response.SuccessResponse;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/reports")
@@ -25,14 +27,18 @@ public class AdminReportController {
      * 대기 중인 신고 목록 조회 (PENDING 상태만)
      */
     @GetMapping("/pending")
-    public ResponseEntity<SuccessResponse<List<ReportResponseDTO>>> getPendingReports(
-            @AuthenticationPrincipal JwtPrincipal principal
+    public ResponseEntity<SuccessResponse<Page<ReportResponseDTO>>> getPendingReports(
+            @AuthenticationPrincipal JwtPrincipal principal,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
+        // 1. 권한 체크 (JWT 필터에서 이미 걸러지지만 명시적으로 한 번 더 확인 가능)
         if (principal == null) {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
-        List<ReportResponseDTO> reports = adminReportService.getPendingReports();
+        // 2. 서비스 호출 시 pageable 전달
+        Page<ReportResponseDTO> reports = adminReportService.getPendingReports(pageable);
+
         return ResponseEntity.ok(SuccessResponse.of("ADMIN_200", "신고 대기 목록 조회 성공", reports));
     }
 

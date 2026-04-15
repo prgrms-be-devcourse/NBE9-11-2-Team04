@@ -7,17 +7,17 @@ import com.back.devc.domain.interaction.report.repository.ReportRepository;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.entity.MemberStatus;
 import com.back.devc.domain.member.member.repository.MemberRepository;
-import com.back.devc.domain.post.post.entity.Post;
-import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
+import com.back.devc.domain.post.post.entity.Post;
+import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -33,10 +33,9 @@ public class AdminReportService {
      * 대기 중인 신고 목록 조회
      */
     @Transactional(readOnly = true)
-    public List<ReportResponseDTO> getPendingReports() {
-        return reportRepository.findAllByStatus("PENDING").stream()
-                .map(ReportResponseDTO::from)
-                .toList();
+    public Page<ReportResponseDTO> getPendingReports(Pageable pageable) {
+        return reportRepository.findAllByStatus("PENDING", pageable)
+                .map(ReportResponseDTO::from); // Page 객체는 자체적으로 .map을 지원합니다.
     }
 
     /**
