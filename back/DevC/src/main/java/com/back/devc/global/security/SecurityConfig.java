@@ -32,6 +32,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/api/users/me").authenticated()
+//                        관리자 API
+//                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().permitAll())
                 .csrf((csrf) -> csrf.disable())
                 .sessionManagement((sessionManagement) ->

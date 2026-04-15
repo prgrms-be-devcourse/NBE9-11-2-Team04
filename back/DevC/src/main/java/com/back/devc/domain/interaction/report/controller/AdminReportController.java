@@ -28,7 +28,9 @@ public class AdminReportController {
     public ResponseEntity<SuccessResponse<List<ReportResponseDTO>>> getPendingReports(
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
-        validateAdminRole(principal.role());
+        if (principal == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
 
         List<ReportResponseDTO> reports = adminReportService.getPendingReports();
         return ResponseEntity.ok(SuccessResponse.of("ADMIN_200", "신고 대기 목록 조회 성공", reports));
@@ -42,7 +44,9 @@ public class AdminReportController {
             @RequestBody AdminReportRequestDTO requestDto,
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
-        validateAdminRole(principal.role());
+        if (principal == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
 
         adminReportService.approveReport(principal.userId(), requestDto);
 
@@ -57,19 +61,12 @@ public class AdminReportController {
             @RequestBody AdminReportRequestDTO requestDto,
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
-        validateAdminRole(principal.role());
+        if (principal == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
 
         adminReportService.rejectReport(principal.userId(), requestDto);
 
         return ResponseEntity.ok(SuccessResponse.of("REPORT_REJECT_200", "신고 반려 완료", null));
-    }
-
-    /**
-     * 관리자 권한 체크 (JWT 내부의 Role 기반)
-     */
-    private void validateAdminRole(String role) {
-        if (!"ADMIN".equals(role)) {
-            throw new ApiException(ErrorCode.UNAUTHORIZED);
-        }
     }
 }

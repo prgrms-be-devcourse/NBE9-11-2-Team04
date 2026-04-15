@@ -85,6 +85,7 @@ public class Report {
         this.processedAt = LocalDateTime.now();
     }
 
+    // TODO: 신고 반려 시 사유 작성(미구현 - 테이블 구조 변경 필요)
     public void rejectReport(Member admin, String reasonReject) {
     }
 }
