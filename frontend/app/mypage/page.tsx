@@ -19,9 +19,13 @@ import {
   Github,
   Twitter,
 } from "lucide-react"
-import { AUTH_CHANGED_EVENT, getAuthSnapshot } from "@/lib/auth-storage"
+import {
+  AUTH_CHANGED_EVENT,
+  getAuthSnapshot,
+  getCurrentUserProfile,
+} from "@/lib/auth-storage"
 
-const userData = {
+const defaultUserData = {
   avatar: "",
   bio: "10년차 풀스택 개발자. React, TypeScript, Node.js를 주로 사용합니다.",
   location: "서울, 대한민국",
@@ -104,6 +108,13 @@ export default function MyPage() {
   const [displayName, setDisplayName] = useState("김개발")
   const [displayUsername, setDisplayUsername] = useState("kimdev")
   const [isAuthReady, setIsAuthReady] = useState(false)
+  const [profileData, setProfileData] = useState({
+    bio: defaultUserData.bio,
+    location: defaultUserData.location,
+    website: defaultUserData.website,
+    github: defaultUserData.github,
+    twitter: defaultUserData.twitter,
+  })
 
   useEffect(() => {
     const auth = getAuthSnapshot()
@@ -118,14 +129,23 @@ export default function MyPage() {
   useEffect(() => {
     const syncProfile = () => {
       const auth = getAuthSnapshot()
+      const profile = getCurrentUserProfile()
       const fallbackName = "김개발"
-      const name = auth.nickname?.trim() || fallbackName
+      const name = profile?.nickname?.trim() || auth.nickname?.trim() || fallbackName
       const usernameFromEmail = auth.email?.split("@")[0]?.trim()
+      const usernameFromProfile = profile?.username?.trim()
       const usernameFromName = name.trim().replace(/\s+/g, "")
-      const username = usernameFromEmail || usernameFromName || "kimdev"
+      const username = usernameFromProfile || usernameFromEmail || usernameFromName || "kimdev"
 
       setDisplayName(name)
       setDisplayUsername(username)
+      setProfileData({
+        bio: profile?.bio || defaultUserData.bio,
+        location: profile?.location || defaultUserData.location,
+        website: profile?.website || defaultUserData.website,
+        github: profile?.github || defaultUserData.github,
+        twitter: profile?.twitter || defaultUserData.twitter,
+      })
     }
 
     syncProfile()
@@ -147,7 +167,7 @@ export default function MyPage() {
       <div className="mb-8 rounded-lg border border-border bg-card p-6">
         <div className="flex flex-col items-start gap-6 sm:flex-row">
           <Avatar className="h-24 w-24 border-4 border-primary/20">
-            <AvatarImage src={userData.avatar} alt={displayName} />
+            <AvatarImage src={defaultUserData.avatar} alt={displayName} />
             <AvatarFallback className="bg-primary text-2xl text-primary-foreground">
               {displayName.slice(0, 2)}
             </AvatarFallback>
@@ -167,31 +187,31 @@ export default function MyPage() {
               </Link>
             </div>
 
-            <p className="mb-4 leading-relaxed text-foreground">{userData.bio}</p>
+            <p className="mb-4 leading-relaxed text-foreground">{profileData.bio}</p>
 
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
-                {userData.location}
+                {profileData.location}
               </div>
               <a
-                href={userData.website}
+                href={profileData.website}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 hover:text-primary"
               >
                 <LinkIcon className="h-4 w-4" />
-                {userData.website.replace("https://", "")}
+                {profileData.website.replace("https://", "")}
               </a>
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                {userData.joinedAt} 가입
+                {defaultUserData.joinedAt} 가입
               </div>
             </div>
 
             <div className="mt-4 flex gap-3">
               <a
-                href={`https://github.com/${userData.github}`}
+                href={`https://github.com/${profileData.github}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground"
@@ -199,7 +219,7 @@ export default function MyPage() {
                 <Github className="h-5 w-5" />
               </a>
               <a
-                href={`https://twitter.com/${userData.twitter}`}
+                href={`https://twitter.com/${profileData.twitter}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground"
@@ -212,19 +232,19 @@ export default function MyPage() {
 
         <div className="mt-6 grid grid-cols-4 gap-4 border-t border-border pt-6">
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{userData.stats.posts}</p>
+            <p className="text-2xl font-bold text-foreground">{defaultUserData.stats.posts}</p>
             <p className="text-sm text-muted-foreground">글</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{userData.stats.followers.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-foreground">{defaultUserData.stats.followers.toLocaleString()}</p>
             <p className="text-sm text-muted-foreground">팔로워</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{userData.stats.following}</p>
+            <p className="text-2xl font-bold text-foreground">{defaultUserData.stats.following}</p>
             <p className="text-sm text-muted-foreground">팔로잉</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{userData.stats.likes.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-foreground">{defaultUserData.stats.likes.toLocaleString()}</p>
             <p className="text-sm text-muted-foreground">좋아요</p>
           </div>
         </div>

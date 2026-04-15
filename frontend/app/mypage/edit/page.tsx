@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -9,17 +9,23 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { getAuthSnapshot } from "@/lib/auth-storage"
+import {
+  getAuthSnapshot,
+  getCurrentUserProfile,
+  isNicknameTaken,
+  saveCurrentUserProfile,
+} from "@/lib/auth-storage"
 
 export default function EditProfilePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [isAuthReady, setIsAuthReady] = useState(false)
+  const [error, setError] = useState("")
   const [formData, setFormData] = useState({
     name: "김개발",
     username: "kimdev",
     email: "kimdev@example.com",
-    bio: "10년차 풀스택 개발자. React, TypeScript, Node.js를 주로 사용합니다. 지속 가능한 코드와 팀 문화에 관심이 많습니다.",
+    bio: "10년차 풀스택 개발자입니다. React, TypeScript, Node.js를 주로 사용합니다.",
     location: "서울, 대한민국",
     website: "https://kimdev.blog",
     github: "kimdev",
@@ -33,18 +39,70 @@ export default function EditProfilePage() {
       return
     }
 
+    const profile = getCurrentUserProfile()
+    const nickname = profile?.nickname?.trim() || auth.nickname?.trim() || "김개발"
+    const email = profile?.email?.trim() || auth.email?.trim() || "kimdev@example.com"
+    const username =
+      profile?.username?.trim() ||
+      email.split("@")[0]?.trim() ||
+      nickname.replace(/\s+/g, "") ||
+      "kimdev"
+
+    setFormData((prev) => ({
+      ...prev,
+      name: nickname,
+      username,
+      email,
+      bio: profile?.bio ?? prev.bio,
+      location: profile?.location ?? prev.location,
+      website: profile?.website ?? prev.website,
+      github: profile?.github ?? prev.github,
+      twitter: profile?.twitter ?? prev.twitter,
+    }))
+
     setIsAuthReady(true)
   }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
     setIsLoading(true)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const nickname = formData.name.trim()
+      const email = formData.email.trim()
+      const username = formData.username.trim()
 
-    setIsLoading(false)
-    router.push("/mypage")
+      if (!nickname) {
+        throw new Error("닉네임을 입력해주세요.")
+      }
+
+      if (!email) {
+        throw new Error("이메일을 입력해주세요.")
+      }
+
+      const currentEmail = getAuthSnapshot().email
+      if (isNicknameTaken(nickname, currentEmail)) {
+        throw new Error("이미 사용 중인 닉네임입니다.")
+      }
+
+      saveCurrentUserProfile({
+        email,
+        nickname,
+        username: username || email.split("@")[0] || nickname.replace(/\s+/g, ""),
+        bio: formData.bio,
+        location: formData.location,
+        website: formData.website,
+        github: formData.github,
+        twitter: formData.twitter,
+      })
+
+      router.push("/mypage")
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "저장 중 오류가 발생했습니다.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (!isAuthReady) {
@@ -53,7 +111,6 @@ export default function EditProfilePage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Header */}
       <div className="mb-8 flex items-center gap-4">
         <Link href="/mypage">
           <Button variant="ghost" size="icon">
@@ -64,7 +121,6 @@ export default function EditProfilePage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Avatar Section */}
         <div className="flex items-center gap-6">
           <div className="relative">
             <Avatar className="h-24 w-24 border-4 border-primary/20">
@@ -82,13 +138,10 @@ export default function EditProfilePage() {
           </div>
           <div>
             <h3 className="font-semibold text-foreground">프로필 사진</h3>
-            <p className="text-sm text-muted-foreground">
-              JPG, PNG 파일을 업로드하세요
-            </p>
+            <p className="text-sm text-muted-foreground">JPG, PNG 파일을 업로드하세요</p>
           </div>
         </div>
 
-        {/* Basic Info */}
         <div className="rounded-lg border border-border bg-card p-6">
           <h2 className="mb-6 text-lg font-semibold text-foreground">기본 정보</h2>
           <div className="space-y-4">
@@ -131,12 +184,10 @@ export default function EditProfilePage() {
                 rows={4}
                 value={formData.bio}
                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                className="bg-secondary resize-none"
+                className="resize-none bg-secondary"
                 placeholder="자신을 소개해주세요"
               />
-              <p className="text-xs text-muted-foreground">
-                {formData.bio.length}/200자
-              </p>
+              <p className="text-xs text-muted-foreground">{formData.bio.length}/200자</p>
             </div>
 
             <div className="space-y-2">
@@ -152,7 +203,6 @@ export default function EditProfilePage() {
           </div>
         </div>
 
-        {/* Links */}
         <div className="rounded-lg border border-border bg-card p-6">
           <h2 className="mb-6 text-lg font-semibold text-foreground">링크</h2>
           <div className="space-y-4">
@@ -202,7 +252,6 @@ export default function EditProfilePage() {
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex justify-end gap-4">
           <Link href="/mypage">
             <Button variant="outline">취소</Button>
@@ -216,6 +265,7 @@ export default function EditProfilePage() {
             {isLoading ? "저장 중..." : "저장하기"}
           </Button>
         </div>
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
       </form>
     </div>
   )

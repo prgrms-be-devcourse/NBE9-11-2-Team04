@@ -2,6 +2,7 @@ export const AUTH_TOKEN_KEY = "accessToken";
 export const AUTH_NICKNAME_KEY = "nickname";
 export const AUTH_EMAIL_KEY = "email";
 export const AUTH_CHANGED_EVENT = "auth-changed";
+export const AUTH_PROFILES_KEY = "userProfiles";
 
 export type AuthSnapshot = {
   token: string | null;
@@ -9,6 +10,19 @@ export type AuthSnapshot = {
   email: string | null;
   isLoggedIn: boolean;
 };
+
+export type UserProfile = {
+  email: string;
+  nickname: string;
+  username: string;
+  bio: string;
+  location: string;
+  website: string;
+  github: string;
+  twitter: string;
+};
+
+type UserProfileMap = Record<string, UserProfile>;
 
 export function getAuthSnapshot(): AuthSnapshot {
   if (typeof window === "undefined") {
@@ -35,6 +49,31 @@ function notifyAuthChanged() {
   window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
 }
 
+function readProfileMap(): UserProfileMap {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  const raw = localStorage.getItem(AUTH_PROFILES_KEY);
+  if (!raw) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(raw) as UserProfileMap;
+  } catch {
+    return {};
+  }
+}
+
+function writeProfileMap(profileMap: UserProfileMap) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  localStorage.setItem(AUTH_PROFILES_KEY, JSON.stringify(profileMap));
+}
+
 export function persistLoginSession(
   accessToken: string,
   nickname?: string | null,
@@ -58,7 +97,90 @@ export function persistLoginSession(
     localStorage.removeItem(AUTH_EMAIL_KEY);
   }
 
+  const normalizedEmail = email?.trim();
+  const normalizedNickname = nickname?.trim();
+  if (normalizedEmail && normalizedNickname) {
+    const profileMap = readProfileMap();
+    const prev = profileMap[normalizedEmail];
+    const username = normalizedEmail.split("@")[0] ?? normalizedNickname;
+
+    profileMap[normalizedEmail] = {
+      email: normalizedEmail,
+      nickname: normalizedNickname,
+      username: prev?.username || username,
+      bio: prev?.bio || "",
+      location: prev?.location || "",
+      website: prev?.website || "",
+      github: prev?.github || "",
+      twitter: prev?.twitter || "",
+    };
+    writeProfileMap(profileMap);
+  }
+
   notifyAuthChanged();
+}
+
+export function getCurrentUserProfile(): UserProfile | null {
+  const auth = getAuthSnapshot();
+  const email = auth.email?.trim();
+  if (!email) {
+    return null;
+  }
+
+  return readProfileMap()[email] ?? null;
+}
+
+export function isNicknameTaken(nickname: string, currentEmail?: string | null): boolean {
+  const target = nickname.trim().toLowerCase();
+  if (!target) {
+    return false;
+  }
+
+  const normalizedCurrentEmail = currentEmail?.trim().toLowerCase();
+  const profileMap = readProfileMap();
+
+  return Object.values(profileMap).some((profile) => {
+    const email = profile.email.trim().toLowerCase();
+    if (normalizedCurrentEmail && email === normalizedCurrentEmail) {
+      return false;
+    }
+
+    return profile.nickname.trim().toLowerCase() === target;
+  });
+}
+
+export function saveCurrentUserProfile(nextProfile: UserProfile): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const auth = getAuthSnapshot();
+  const prevEmail = auth.email?.trim();
+  const nextEmail = nextProfile.email.trim();
+  const profileMap = readProfileMap();
+
+  if (prevEmail && prevEmail !== nextEmail) {
+    delete profileMap[prevEmail];
+  }
+
+  profileMap[nextEmail] = {
+    ...nextProfile,
+    email: nextEmail,
+    nickname: nextProfile.nickname.trim(),
+    username: nextProfile.username.trim(),
+    bio: nextProfile.bio,
+    location: nextProfile.location,
+    website: nextProfile.website,
+    github: nextProfile.github,
+    twitter: nextProfile.twitter,
+  };
+  writeProfileMap(profileMap);
+
+  if (auth.token) {
+    persistLoginSession(auth.token, nextProfile.nickname, nextEmail);
+  } else {
+    notifyAuthChanged();
+  }
 }
 
 export function clearLoginSession() {
