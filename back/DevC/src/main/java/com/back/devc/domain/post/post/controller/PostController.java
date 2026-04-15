@@ -25,7 +25,7 @@ public class PostController {
 
     //게시글 생성 + 여기에 로그인한 member 불러오는것 (추가했는데 확인 필요)
     @PostMapping
-    public PostCreateResponse create(
+    public ResponseEntity<PostCreateResponse> create(
             @AuthenticationPrincipal Member member,
             @RequestBody @Valid PostCreateRequest request
     ) {
@@ -36,8 +36,9 @@ public class PostController {
                 request.content()
         );
 
-        return PostCreateResponse.from(post);
+        return ResponseEntity.ok(PostCreateResponse.from(post));
     }
+
 
     // 전체 목록 조회 -> 리스트로 담아서 전달 (관리자쪽에서 사용하기 위해 isDeleted=true인것도 같이 조회)
     @GetMapping("/admin")
@@ -54,11 +55,11 @@ public class PostController {
 
     //상세 조회 하는 경우
     @GetMapping("/{postid}")
-    public PostDetailResponse detail(@PathVariable Long postid) {
+    public ResponseEntity<PostDetailResponse> detail(@PathVariable Long postid) {
 
         Post post = postService.findById(postid);
 
-        return PostDetailResponse.from(post);
+        return ResponseEntity.ok(PostDetailResponse.from(post));
     }
 
     //게시글 조회 (좋아요,최신순,조회수)
@@ -80,21 +81,30 @@ public class PostController {
 
     //수정 하는 경우
     @PutMapping("/{postId}")
-    public PostUpdateResponse update(@PathVariable Long postId, @RequestBody @Valid PostUpdateRequest postUpdateRequest) {
-        Post post =postService.update(
+    public ResponseEntity<PostUpdateResponse> update(
+            @PathVariable Long postId,
+            @RequestBody @Valid PostUpdateRequest postUpdateRequest
+    ) {
+
+        Post post = postService.update(
                 postId,
                 postUpdateRequest.title(),
                 postUpdateRequest.content(),
                 postUpdateRequest.categoryId()
-                );
-        return PostUpdateResponse.from(post);
+        );
+
+        return ResponseEntity.ok(PostUpdateResponse.from(post));
     }
 
     //삭제 하는 경우 -> soft delete 처리 된다
     @DeleteMapping("/{postId}")
-    public PostDeleteResponse delete(@PathVariable Long postId) {
+    public ResponseEntity<PostDeleteResponse> delete(@PathVariable Long postId) {
+
         postService.delete(postId);
-        return new PostDeleteResponse(postId,"삭제되었습니다.");
+
+        return ResponseEntity.ok(
+                new PostDeleteResponse(postId, "삭제되었습니다.")
+        );
     }
 
 }
