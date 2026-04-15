@@ -2,7 +2,6 @@ package com.back.devc.domain.auth.service;
 
 import com.back.devc.domain.auth.dto.login.LoginRequest;
 import com.back.devc.domain.auth.dto.login.LoginResponse;
-import com.back.devc.domain.auth.dto.logout.LogoutRequest;
 import com.back.devc.domain.auth.dto.logout.LogoutResponse;
 import com.back.devc.domain.auth.dto.reissue.ReissueRequest;
 import com.back.devc.domain.auth.dto.reissue.ReissueResponse;
@@ -29,7 +28,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
 
     @Transactional(readOnly = true)
-    public LogoutResponse logout(LogoutRequest request) {
+    public LogoutResponse logout() {
         return new LogoutResponse("로그아웃이 완료되었습니다.");
     }
 

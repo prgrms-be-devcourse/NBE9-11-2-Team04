@@ -2,7 +2,6 @@ package com.back.devc.domain.auth.controller;
 
 import com.back.devc.domain.auth.dto.login.LoginRequest;
 import com.back.devc.domain.auth.dto.login.LoginResponse;
-import com.back.devc.domain.auth.dto.logout.LogoutRequest;
 import com.back.devc.domain.auth.dto.logout.LogoutResponse;
 import com.back.devc.domain.auth.dto.reissue.ReissueRequest;
 import com.back.devc.domain.auth.dto.reissue.ReissueResponse;
@@ -36,8 +35,8 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<SuccessResponse<LogoutResponse>> logout(@RequestBody(required = false) LogoutRequest request) {
-        LogoutResponse response = authService.logout(request);
+    public ResponseEntity<SuccessResponse<LogoutResponse>> logout() {
+        LogoutResponse response = authService.logout();
         SuccessCode successCode = SuccessCode.LOGOUT_SUCCESS;
         return ResponseEntity
                 .status(successCode.getStatus())
