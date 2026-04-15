@@ -6,6 +6,7 @@ import com.back.devc.domain.interaction.notification.entity.Notification;
 import com.back.devc.domain.interaction.notification.repository.NotificationRepository;
 import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
+import com.back.devc.domain.post.post.repository.PostRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,11 +21,15 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final CommentRepository commentRepository;
+    private final PostRepository postRepository;
 
     @Override
     @Transactional
     public void createCommentNotification(Long postId, Long actorUserId, Long commentId) {
-        Long postOwnerId = 1L;
+        Long postOwnerId = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId))
+                .getMember()
+                .getUserId();
 
         if (postOwnerId.equals(actorUserId)) {
             return;
@@ -47,6 +52,10 @@ public class NotificationServiceImpl implements NotificationService {
     public void createReplyNotification(Long parentCommentId, Long actorUserId, Long replyCommentId) {
         Comment parentComment = commentRepository.findById(parentCommentId)
                 .orElseThrow(() -> new EntityNotFoundException("부모 댓글을 찾을 수 없습니다. id=" + parentCommentId));
+
+        if (parentComment.isDeleted()) {
+            return;
+        }
 
         Long receiverUserId = parentComment.getUserId();
 
