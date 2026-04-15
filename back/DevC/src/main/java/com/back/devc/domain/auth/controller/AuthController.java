@@ -3,8 +3,6 @@ package com.back.devc.domain.auth.controller;
 import com.back.devc.domain.auth.dto.login.LoginRequest;
 import com.back.devc.domain.auth.dto.login.LoginResponse;
 import com.back.devc.domain.auth.dto.logout.LogoutResponse;
-import com.back.devc.domain.auth.dto.reissue.ReissueRequest;
-import com.back.devc.domain.auth.dto.reissue.ReissueResponse;
 import com.back.devc.domain.auth.dto.signup.SignUpRequest;
 import com.back.devc.domain.auth.dto.signup.SignUpResponse;
 import com.back.devc.domain.auth.service.AuthService;
@@ -24,15 +22,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
-
-    @PostMapping("/reissue")
-    public ResponseEntity<SuccessResponse<ReissueResponse>> reissue(@Valid @RequestBody ReissueRequest request) {
-        ReissueResponse response = authService.reissue(request);
-        SuccessCode successCode = SuccessCode.REISSUE_SUCCESS;
-        return ResponseEntity
-                .status(successCode.getStatus())
-                .body(SuccessResponse.of(successCode, response));
-    }
 
     @PostMapping("/logout")
     public ResponseEntity<SuccessResponse<LogoutResponse>> logout() {

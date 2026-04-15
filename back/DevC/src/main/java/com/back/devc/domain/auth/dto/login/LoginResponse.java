@@ -9,7 +9,6 @@ public record LoginResponse(
         String nickname,
         MemberRole role,
         MemberStatus status,
-        String accessToken,
-        String refreshToken
+        String accessToken
 ) {
 }
