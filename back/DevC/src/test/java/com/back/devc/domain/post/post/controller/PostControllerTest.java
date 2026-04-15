@@ -34,16 +34,12 @@ class PostControllerTest {
 
     @Autowired
     private MockMvc mvc;
-
     @Autowired
     private ObjectMapper objectMapper;
-
     @Autowired
     private MemberRepository memberRepository;
-
     @Autowired
     private CategoryRepository categoryRepository;
-
     @Autowired
     private PostRepository postRepository;
 
@@ -63,11 +59,6 @@ class PostControllerTest {
                         "testUser"
                 )
         );
-//        // 테스트를 위해, categoryInitData에서 생성된 카테고리 중 첫번째 카테고리 가져옴
-//        category = categoryRepository.findAll()
-//                .stream()
-//                .findFirst()
-//                .orElseThrow();
 
         category = new Category("테스트 자유");
         category = categoryRepository.save(category);
@@ -317,6 +308,102 @@ class PostControllerTest {
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.content[0].categoryId").value(category.getCategoryId()))
                 .andExpect(jsonPath("$.content[1].categoryId").value(category.getCategoryId()));
+    }
+
+    @Test
+    @DisplayName("카테고리 + 최신순 조회")
+    void t10() throws Exception {
+
+        // given
+        Category category2 = categoryRepository.save(new Category("공지"));
+
+        Post p1 = postRepository.save(new Post(member, category, "자유1", "내용1"));
+        Thread.sleep(10);
+        Post p2 = postRepository.save(new Post(member, category, "자유2", "내용2"));
+
+        // 다른 카테고리
+        postRepository.save(new Post(member, category2, "공지1", "내용3"));
+
+        // when & then
+        mvc.perform(get("/api/v1/posts")
+                        .param("categoryId", String.valueOf(category.getCategoryId()))
+                        .param("sort", "latest")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                // 최신순 → p2 먼저
+                .andExpect(jsonPath("$.content[0].title").value("자유2"))
+                .andExpect(jsonPath("$.content[1].title").value("자유1"));
+    }
+
+    @Test
+    @DisplayName("카테고리 + 좋아요순 조회")
+    void t11() throws Exception {
+
+        // given
+        Category category2 = categoryRepository.save(new Category("공지"));
+
+        Post p1 = postRepository.save(new Post(member, category, "자유1", "내용1"));
+        Post p2 = postRepository.save(new Post(member, category, "자유2", "내용2"));
+
+        // 좋아요 차이
+        for (int i = 0; i < 5; i++) p1.increaseLikeCount();
+        for (int i = 0; i < 10; i++) p2.increaseLikeCount();
+
+        // 다른 카테고리
+        Post other = postRepository.save(new Post(member, category2, "공지1", "내용3"));
+        for (int i = 0; i < 100; i++) other.increaseLikeCount();
+
+        postRepository.flush();
+
+        // when & then
+        mvc.perform(get("/api/v1/posts")
+                        .param("categoryId", String.valueOf(category.getCategoryId()))
+                        .param("sort", "likes")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                // 좋아요 많은 p2 먼저
+                .andExpect(jsonPath("$.content[0].title").value("자유2"))
+                .andExpect(jsonPath("$.content[1].title").value("자유1"));
+    }
+
+    @Test
+    @DisplayName("카테고리 + 조회수순 조회")
+    void t12() throws Exception {
+
+        // given
+        Category category2 = categoryRepository.save(new Category("공지"));
+
+        Post p1 = postRepository.save(new Post(member, category, "자유1", "내용1"));
+        Post p2 = postRepository.save(new Post(member, category, "자유2", "내용2"));
+
+        // 조회수 차이
+        for (int i = 0; i < 5; i++) p1.increaseViewCount();
+        for (int i = 0; i < 10; i++) p2.increaseViewCount();
+
+        // 다른 카테고리
+        Post other = postRepository.save(new Post(member, category2, "공지1", "내용3"));
+        for (int i = 0; i < 100; i++) other.increaseViewCount();
+
+        postRepository.flush();
+
+        // when & then
+        mvc.perform(get("/api/v1/posts")
+                        .param("categoryId", String.valueOf(category.getCategoryId()))
+                        .param("sort", "views")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                // 조회수 많은 p2 먼저
+                .andExpect(jsonPath("$.content[0].title").value("자유2"))
+                .andExpect(jsonPath("$.content[1].title").value("자유1"));
     }
 
 
