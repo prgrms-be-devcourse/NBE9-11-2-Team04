@@ -33,7 +33,6 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="mb-8 text-center">
           <Link href="/" className="inline-flex items-center gap-2">
             <Code2 className="h-8 w-8 text-primary" />
@@ -44,10 +43,8 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Login Form */}
         <div className="rounded-lg border border-border bg-card p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">이메일</Label>
               <Input
@@ -61,7 +58,6 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Password */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">비밀번호</Label>
@@ -96,7 +92,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Remember Me */}
             <div className="flex items-center gap-2">
               <Checkbox
                 id="remember"
@@ -110,7 +105,6 @@ export default function LoginPage() {
               </Label>
             </div>
 
-            {/* Submit Button */}
             <Button
               type="submit"
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
@@ -120,7 +114,6 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-border" />
@@ -130,7 +123,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Social Login */}
           <div className="space-y-3">
             <Button
               variant="outline"
@@ -181,7 +173,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Sign Up Link */}
         <p className="mt-6 text-center text-sm text-muted-foreground">
           계정이 없으신가요?{" "}
           <Link href="/signup" className="text-primary hover:underline">
