@@ -93,4 +93,14 @@ public class Member {
     void preUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    /**
+     * 회원의 상태를 업데이트하는 메서드
+     */
+    public void updateStatus(MemberStatus newStatus) {
+        if (newStatus == null) {
+            throw new IllegalArgumentException("변경할 상태값이 비어있습니다.");
+        }
+        this.status = newStatus;
+    }
 }
