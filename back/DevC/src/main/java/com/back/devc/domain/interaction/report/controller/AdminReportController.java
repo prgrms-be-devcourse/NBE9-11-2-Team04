@@ -31,12 +31,10 @@ public class AdminReportController {
             @AuthenticationPrincipal JwtPrincipal principal,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        // 1. 권한 체크 (JWT 필터에서 이미 걸러지지만 명시적으로 한 번 더 확인 가능)
         if (principal == null) {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
-        // 2. 서비스 호출 시 pageable 전달
         Page<ReportResponseDTO> reports = adminReportService.getPendingReports(pageable);
 
         return ResponseEntity.ok(SuccessResponse.of("ADMIN_200", "신고 대기 목록 조회 성공", reports));
