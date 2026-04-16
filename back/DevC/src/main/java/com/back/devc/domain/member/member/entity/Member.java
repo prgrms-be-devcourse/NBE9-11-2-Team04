@@ -24,7 +24,8 @@ import java.time.LocalDateTime;
         name = "users",
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_users_email", columnNames = "email"),
-                @UniqueConstraint(name = "uk_users_nickname", columnNames = "nickname")
+                @UniqueConstraint(name = "uk_users_nickname", columnNames = "nickname"),
+                @UniqueConstraint(name = "uk_users_provider_provider_user_id", columnNames = {"provider", "provider_user_id"})
         }
 )
 public class Member {
@@ -51,22 +52,65 @@ public class Member {
     @Column(name = "status", nullable = false, length = 20)
     private MemberStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "provider", nullable = false, length = 20)
+    private AuthProvider provider;
+
+    @Column(name = "provider_user_id", nullable = false, length = 100)
+    private String providerUserId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    private Member(String email, String passwordHash, String nickname, MemberRole role, MemberStatus status) {
+    private Member(
+            String email,
+            String passwordHash,
+            String nickname,
+            MemberRole role,
+            MemberStatus status,
+            AuthProvider provider,
+            String providerUserId
+    ) {
         this.email = email;
         this.passwordHash = passwordHash;
         this.nickname = nickname;
         this.role = role;
         this.status = status;
+        this.provider = provider;
+        this.providerUserId = providerUserId;
     }
 
     public static Member createLocalMember(String email, String passwordHash, String nickname) {
-        return new Member(email, passwordHash, nickname, MemberRole.USER, MemberStatus.ACTIVE);
+        return new Member(
+                email,
+                passwordHash,
+                nickname,
+                MemberRole.USER,
+                MemberStatus.ACTIVE,
+                AuthProvider.LOCAL,
+                email
+        );
+    }
+
+    public static Member createOAuthMember(
+            AuthProvider provider,
+            String providerUserId,
+            String email,
+            String passwordHash,
+            String nickname
+    ) {
+        return new Member(
+                email,
+                passwordHash,
+                nickname,
+                MemberRole.USER,
+                MemberStatus.ACTIVE,
+                provider,
+                providerUserId
+        );
     }
 
     public void updateNickname(String nickname) {
@@ -85,6 +129,14 @@ public class Member {
             status = MemberStatus.ACTIVE;
         }
 
+        if (provider == null) {
+            provider = AuthProvider.LOCAL;
+        }
+
+        if (providerUserId == null || providerUserId.isBlank()) {
+            providerUserId = email;
+        }
+
         createdAt = now;
         updatedAt = now;
     }
@@ -94,9 +146,6 @@ public class Member {
         updatedAt = LocalDateTime.now();
     }
 
-    /**
-     * 회원의 상태를 업데이트하는 메서드
-     */
     public void updateStatus(MemberStatus newStatus) {
         if (newStatus == null) {
             throw new IllegalArgumentException("변경할 상태값이 비어있습니다.");
