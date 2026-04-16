@@ -90,12 +90,12 @@ public class OAuth2Controller {
     ) {
         HttpSession session = httpServletRequest.getSession(false);
         if (session == null) {
-            throw new ApiException(ErrorCode.UNAUTHORIZED);
+            throw new ApiException(ErrorCode.OAUTH2_PENDING_SIGNUP_EXPIRED);
         }
 
         Object raw = session.getAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY);
         if (!(raw instanceof OAuthPendingSignup pending)) {
-            throw new ApiException(ErrorCode.UNAUTHORIZED);
+            throw new ApiException(ErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED);
         }
 
         Member member = oAuth2MemberService.completeGithubSignup(pending, request.nickname());
