@@ -25,6 +25,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -49,20 +50,46 @@ public class OAuth2Controller {
     private String accessCookieSameSite;
 
     @GetMapping("/me")
-    public OAuth2MeResponse me(@AuthenticationPrincipal OAuth2User oauth2User) {
+    public OAuth2MeResponse me(
+            @AuthenticationPrincipal OAuth2User oauth2User,
+            HttpServletRequest httpServletRequest
+    ) {
+        HttpSession session = httpServletRequest.getSession(false);
+        if (session != null) {
+            Object raw = session.getAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY);
+            if (raw instanceof OAuthPendingSignup pending) {
+                Map<String, Object> attributes = new LinkedHashMap<>();
+                attributes.put("pendingSignup", true);
+                attributes.put("provider", pending.provider());
+                attributes.put("providerUserId", pending.providerUserId());
+                attributes.put("email", pending.emailFromProvider());
+                attributes.put("login", pending.loginFromProvider());
+
+                return new OAuth2MeResponse(
+                        false,
+                        null,
+                        List.of(),
+                        attributes
+                );
+            }
+        }
+
         if (oauth2User == null) {
-            return new OAuth2MeResponse(false, null, List.of(), Map.of());
+            return new OAuth2MeResponse(false, null, List.of(), Map.of("pendingSignup", false));
         }
 
         List<String> authorities = oauth2User.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
+        Map<String, Object> attributes = new LinkedHashMap<>(oauth2User.getAttributes());
+        attributes.put("pendingSignup", false);
+
         return new OAuth2MeResponse(
                 true,
                 oauth2User.getName(),
                 authorities,
-                oauth2User.getAttributes()
+                attributes
         );
     }
 
