@@ -11,3 +11,21 @@ spring:
           github:
             client-id: ${GITHUB_CLIENT_ID}
             client-secret: ${GITHUB_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+
+custom:
+  oauth2:
+    # Outh2 로그인 성공 시 리디렉션할 URL (프론트엔드)
+    frontend-success-url: http://localhost:3000/login
+    # Oauth2 로그인 실패 시 리디렉션할 URL (프론트엔드)
+    frontend-failure-url: http://localhost:3000/login
+    # Oauth2 클라이언트에서 허용할 리디렉션 URI (프론트엔드)
+    allowed-redirect-uris: http://localhost:3000/login,http://localhost:3000/oauth/callback
+  cors:
+    # CORS 허용할 출처 (프론트엔드)
+    allowed-origins: http://localhost:3000
+  jwt:
+    # JWT 토큰의 비밀 키 (개발 환경에서는 간단한 키 사용)
+    access-cookie-name: access_token
+    access-cookie-secure: false
+    access-cookie-same-site: Lax
