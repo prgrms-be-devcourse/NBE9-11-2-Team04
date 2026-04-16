@@ -3,6 +3,7 @@ package com.back.devc.domain.auth.service;
 import com.back.devc.domain.auth.dto.oauth.OAuthPendingSignup;
 import com.back.devc.domain.member.member.entity.AuthProvider;
 import com.back.devc.domain.member.member.entity.Member;
+import com.back.devc.domain.member.member.entity.MemberStatus;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
@@ -105,7 +106,14 @@ public class OAuth2MemberService {
                 provider, pending.providerUserId()
         );
         if (existing.isPresent()) {
-            return existing.get();
+            Member member = existing.get();
+
+            // 가입완료 API 우회로로 블랙리스트 계정 토큰 발급되는 문제 방지
+            if (member.getStatus() == MemberStatus.BLACKLISTED) {
+                throw new ApiException(ErrorCode.MEMBER_BLACKLISTED);
+            }
+
+            return member;
         }
 
         String normalizedNickname = nickname == null ? "" : nickname.trim();
