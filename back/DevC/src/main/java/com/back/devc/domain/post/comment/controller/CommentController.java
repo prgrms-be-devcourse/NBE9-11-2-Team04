@@ -1,5 +1,7 @@
 package com.back.devc.domain.post.comment.controller;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import com.back.devc.domain.post.comment.dto.CommentCreateRequest;
 import com.back.devc.domain.post.comment.dto.CommentDeleteResponse;
 import com.back.devc.domain.post.comment.dto.CommentListResponse;
@@ -28,7 +30,7 @@ public class CommentController {
             @PathVariable Long postId,
             @RequestBody @Valid CommentCreateRequest request
     ) {
-        return ResponseEntity.ok(commentService.createComment(postId, principal.userId(), request));
+        return ResponseEntity.ok(commentService.createComment(postId, getAuthenticatedUserId(principal), request));
     }
 
     @PostMapping("/comments/{commentId}/replies")
@@ -37,7 +39,7 @@ public class CommentController {
             @PathVariable Long commentId,
             @RequestBody @Valid CommentCreateRequest request
     ) {
-        return ResponseEntity.ok(commentService.createReply(commentId, principal.userId(), request));
+        return ResponseEntity.ok(commentService.createReply(commentId, getAuthenticatedUserId(principal), request));
     }
 
     @PatchMapping("/comments/{commentId}")
@@ -46,7 +48,7 @@ public class CommentController {
             @PathVariable Long commentId,
             @RequestBody @Valid CommentUpdateRequest request
     ) {
-        return ResponseEntity.ok(commentService.updateComment(commentId, principal.userId(), request));
+        return ResponseEntity.ok(commentService.updateComment(commentId, getAuthenticatedUserId(principal), request));
     }
 
     @DeleteMapping("/comments/{commentId}")
@@ -54,11 +56,18 @@ public class CommentController {
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long commentId
     ) {
-        return ResponseEntity.ok(commentService.deleteComment(commentId, principal.userId()));
+        return ResponseEntity.ok(commentService.deleteComment(commentId, getAuthenticatedUserId(principal)));
     }
 
     @GetMapping("/posts/{postId}/comments")
     public ResponseEntity<CommentListResponse> getComments(@PathVariable Long postId) {
         return ResponseEntity.ok(commentService.getComments(postId));
+    }
+
+    private Long getAuthenticatedUserId(JwtPrincipal principal) {
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증이 필요합니다.");
+        }
+        return principal.userId();
     }
 }

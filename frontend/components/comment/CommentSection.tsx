@@ -23,6 +23,63 @@ type CommentListResponse = {
     comments: CommentItem[]
 }
 
+function getCurrentUserId(): number | null {
+    if (typeof window === "undefined") {
+        return null
+    }
+
+    const token = window.localStorage.getItem("accessToken")
+    if (!token) {
+        return null
+    }
+
+    try {
+        const payload = token.split(".")[1]
+        const decoded = JSON.parse(atob(payload)) as {
+            userId?: number | string
+            user_id?: number | string
+            id?: number | string
+            sub?: number | string
+        }
+
+        const rawUserId = decoded.userId ?? decoded.user_id ?? decoded.id ?? decoded.sub
+
+        if (typeof rawUserId === "number") {
+            return rawUserId
+        }
+
+        if (typeof rawUserId === "string") {
+            const parsedUserId = Number(rawUserId)
+            return Number.isNaN(parsedUserId) ? null : parsedUserId
+        }
+
+        return null
+    } catch {
+        return null
+    }
+}
+
+function getAuthHeaders(): Record<string, string> {
+    if (typeof window === "undefined") {
+        return {
+            "Content-Type": "application/json",
+        }
+    }
+
+    const token = window.localStorage.getItem("accessToken")
+
+    if (!token) {
+        return {
+            "Content-Type": "application/json",
+        }
+    }
+
+    return {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+    }
+}
+
 
 function sortCommentsByNewest(comments: CommentItem[]): CommentItem[] {
     return [...comments]
@@ -47,6 +104,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
     const [editingCommentId, setEditingCommentId] = useState<number | null>(null)
     const [editInputs, setEditInputs] = useState<Record<number, string>>({})
     const [editingSubmittingId, setEditingSubmittingId] = useState<number | null>(null)
+    const [currentUserId, setCurrentUserId] = useState<number | null>(null)
 
     const loadComments = useCallback(async () => {
         try {
@@ -72,6 +130,26 @@ export default function CommentSection({ postId }: CommentSectionProps) {
         void loadComments()
     }, [loadComments])
 
+    useEffect(() => {
+        const syncCurrentUserId = () => {
+            setCurrentUserId(getCurrentUserId())
+        }
+
+        syncCurrentUserId()
+
+        window.addEventListener("storage", syncCurrentUserId)
+        window.addEventListener("focus", syncCurrentUserId)
+        document.addEventListener("visibilitychange", syncCurrentUserId)
+        window.addEventListener("auth-changed", syncCurrentUserId as EventListener)
+
+        return () => {
+            window.removeEventListener("storage", syncCurrentUserId)
+            window.removeEventListener("focus", syncCurrentUserId)
+            document.removeEventListener("visibilitychange", syncCurrentUserId)
+            window.removeEventListener("auth-changed", syncCurrentUserId as EventListener)
+        }
+    }, [])
+
     const handleCreateComment = async () => {
         const trimmedComment = newComment.trim()
 
@@ -85,9 +163,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
 
             const response = await fetch(`http://localhost:8080/api/posts/${postId}/comments`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({
                     content: trimmedComment,
                 }),
@@ -119,9 +195,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
 
             const response = await fetch(`http://localhost:8080/api/comments/${commentId}/replies`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({
                     content,
                 }),
@@ -151,6 +225,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
 
             const response = await fetch(`http://localhost:8080/api/comments/${commentId}`, {
                 method: "DELETE",
+                headers: getAuthHeaders(),
             })
 
             if (!response.ok) {
@@ -193,9 +268,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
 
             const response = await fetch(`http://localhost:8080/api/comments/${commentId}`, {
                 method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({
                     content,
                 }),
@@ -293,23 +366,25 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                             <p className="text-xs text-muted-foreground">
                                 작성자: {comment.nickname ?? `user-${comment.userId}`}
                             </p>
-                            <div className="flex items-center gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => handleStartEdit(comment.commentId, comment.content)}
-                                    className="text-xs font-medium text-primary hover:underline"
-                                >
-                                    수정
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => handleDeleteComment(comment.commentId)}
-                                    disabled={deletingCommentId === comment.commentId}
-                                    className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    {deletingCommentId === comment.commentId ? "삭제 중..." : "삭제"}
-                                </button>
-                            </div>
+                            {comment.userId === currentUserId && (
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleStartEdit(comment.commentId, comment.content)}
+                                        className="text-xs font-medium text-primary hover:underline"
+                                    >
+                                        수정
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteComment(comment.commentId)}
+                                        disabled={deletingCommentId === comment.commentId}
+                                        className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        {deletingCommentId === comment.commentId ? "삭제 중..." : "삭제"}
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         <div className="mt-3 flex justify-end">
@@ -401,23 +476,25 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                                             <p className="text-xs text-muted-foreground">
                                                 작성자: {reply.nickname ?? `user-${reply.userId}`}
                                             </p>
-                                            <div className="flex items-center gap-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleStartEdit(reply.commentId, reply.content)}
-                                                    className="text-xs font-medium text-primary hover:underline"
-                                                >
-                                                    수정
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleDeleteComment(reply.commentId)}
-                                                    disabled={deletingCommentId === reply.commentId}
-                                                    className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                                                >
-                                                    {deletingCommentId === reply.commentId ? "삭제 중..." : "삭제"}
-                                                </button>
-                                            </div>
+                                            {reply.userId === currentUserId && (
+                                                <div className="flex items-center gap-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleStartEdit(reply.commentId, reply.content)}
+                                                        className="text-xs font-medium text-primary hover:underline"
+                                                    >
+                                                        수정
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteComment(reply.commentId)}
+                                                        disabled={deletingCommentId === reply.commentId}
+                                                        className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                                    >
+                                                        {deletingCommentId === reply.commentId ? "삭제 중..." : "삭제"}
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
