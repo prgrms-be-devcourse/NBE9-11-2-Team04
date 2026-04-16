@@ -132,12 +132,12 @@ class CommentControllerTest {
     void deleteComment_success() throws Exception {
         CommentDeleteResponse response = org.mockito.Mockito.mock(CommentDeleteResponse.class);
 
-        given(commentService.deleteComment(1L, 1L)).willReturn(response);
+        given(commentService.deleteComment(1L, 2L)).willReturn(response);
 
         mockMvc.perform(delete("/api/comments/{commentId}", 1L))
                 .andExpect(status().isOk());
 
-        verify(commentService).deleteComment(1L, 1L);
+        verify(commentService).deleteComment(1L, 2L);
     }
 
     @Test
