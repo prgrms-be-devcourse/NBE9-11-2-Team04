@@ -5,7 +5,27 @@ import { Heart, Bookmark } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const BASE_URL = "http://localhost:8080"
-const USER_ID = 1
+
+function getAuthHeaders(): Record<string, string> {
+  if (typeof window === "undefined") {
+    return {
+      "Content-Type": "application/json",
+    }
+  }
+
+  const token = window.localStorage.getItem("accessToken")
+
+  if (!token) {
+    return {
+      "Content-Type": "application/json",
+    }
+  }
+
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  }
+}
 
 type InteractionButtonsProps = {
   postId: number
@@ -32,10 +52,10 @@ export default function InteractionButtons({
     try {
       const method = liked ? "DELETE" : "POST"
 
-      const res = await fetch(
-        `${BASE_URL}/posts/${postId}/likes?userId=${USER_ID}`,
-        { method }
-      )
+      const res = await fetch(`${BASE_URL}/posts/${postId}/likes`, {
+        method,
+        headers: getAuthHeaders(),
+      })
 
       if (!res.ok) {
         throw new Error("좋아요 처리 실패")
@@ -59,10 +79,10 @@ export default function InteractionButtons({
     try {
       const method = bookmarked ? "DELETE" : "POST"
 
-      const res = await fetch(
-        `${BASE_URL}/posts/${postId}/bookmarks?userId=${USER_ID}`,
-        { method }
-      )
+      const res = await fetch(`${BASE_URL}/posts/${postId}/bookmarks`, {
+        method,
+        headers: getAuthHeaders(),
+      })
 
       if (!res.ok) {
         throw new Error("북마크 처리 실패")

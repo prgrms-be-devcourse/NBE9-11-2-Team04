@@ -1,5 +1,8 @@
 package com.back.devc.domain.post.post.service;
 
+import com.back.devc.domain.interaction.postLike.repository.PostLikeRepository;
+import com.back.devc.domain.post.post.dto.PostDetailResponse;
+
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.category.entity.Category;
@@ -23,6 +26,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final MemberRepository memberRepository;
     private final CategoryRepository categoryRepository;
+    private final PostLikeRepository postLikeRepository;
 
     // 게시글 작성
     public Post write(Long userId, Long categoryId, String title, String content) {
@@ -53,6 +57,18 @@ public class PostService {
     public Post findById(Long postId) {
         return postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
+    }
+
+    // 단건 상세 조회 (현재 로그인 사용자의 좋아요 여부 포함)
+    @Transactional(readOnly = true)
+    public PostDetailResponse findDetailById(Long postId, Long loginUserId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
+
+        boolean liked = loginUserId != null
+                && postLikeRepository.existsByMember_UserIdAndPost_PostId(loginUserId, postId);
+
+        return PostDetailResponse.from(post, liked);
     }
 
     // 게시글 목록 조회 (페이징 + 정렬 + 카테고리 필터)

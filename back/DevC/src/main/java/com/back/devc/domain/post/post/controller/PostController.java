@@ -58,11 +58,14 @@ public class PostController {
 
     //상세 조회 하는 경우
     @GetMapping("/{postid}")
-    public ResponseEntity<PostDetailResponse> detail(@PathVariable Long postid) {
+    public ResponseEntity<PostDetailResponse> detail(
+            @AuthenticationPrincipal JwtPrincipal principal,
+            @PathVariable Long postid
+    ) {
 
-        Post post = postService.findById(postid);
+        Long loginUserId = principal != null ? principal.userId() : null;
 
-        return ResponseEntity.ok(PostDetailResponse.from(post));
+        return ResponseEntity.ok(postService.findDetailById(postid, loginUserId));
     }
 
     //게시글 조회 (좋아요,최신순,조회수)
