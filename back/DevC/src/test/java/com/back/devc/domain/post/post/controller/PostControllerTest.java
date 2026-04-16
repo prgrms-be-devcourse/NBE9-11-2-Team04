@@ -232,7 +232,7 @@ class PostControllerTest {
 
         // when & then (최신순 조회)
         mvc.perform(get("/api/v1/posts")
-                        .param("sort", "latest")
+                        .param("sort", "LATEST")
                         .param("page", "0")
                         .param("size", "10"))
                 .andDo(print())
@@ -263,7 +263,7 @@ class PostControllerTest {
 
         // when
         ResultActions result = mvc.perform(get("/api/v1/posts")
-                .param("sort", "likes")
+                .param("sort", "LIKES")
                 .param("page", "0")
                 .param("size", "10")
         );
@@ -297,7 +297,7 @@ class PostControllerTest {
 
         // when
         ResultActions result = mvc.perform(get("/api/v1/posts")
-                .param("sort", "views")
+                .param("sort", "VIEWS")
                 .param("page", "0")
                 .param("size", "10")
         );
@@ -355,7 +355,7 @@ class PostControllerTest {
         // when & then
         mvc.perform(get("/api/v1/posts")
                         .param("categoryId", String.valueOf(category.getCategoryId()))
-                        .param("sort", "latest")
+                        .param("sort", "LATEST")
                         .param("page", "0")
                         .param("size", "10"))
                 .andDo(print())
@@ -389,7 +389,7 @@ class PostControllerTest {
         // when & then
         mvc.perform(get("/api/v1/posts")
                         .param("categoryId", String.valueOf(category.getCategoryId()))
-                        .param("sort", "likes")
+                        .param("sort", "LIKES")
                         .param("page", "0")
                         .param("size", "10"))
                 .andDo(print())
@@ -423,7 +423,7 @@ class PostControllerTest {
         // when & then
         mvc.perform(get("/api/v1/posts")
                         .param("categoryId", String.valueOf(category.getCategoryId()))
-                        .param("sort", "views")
+                        .param("sort", "VIEWS")
                         .param("page", "0")
                         .param("size", "10"))
                 .andDo(print())

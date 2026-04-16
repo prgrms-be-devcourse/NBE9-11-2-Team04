@@ -74,7 +74,7 @@ public class PostController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) PostSearchType searchType,
-            @RequestParam(defaultValue = "latest") PostSortType sort,
+            @RequestParam(defaultValue = "LATEST") PostSortType sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {

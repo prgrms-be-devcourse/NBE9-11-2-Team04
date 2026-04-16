@@ -61,11 +61,11 @@ public class PostService {
     public Page<Post> getPosts(Long categoryId, String keyword, PostSearchType searchType, PostSortType sort, int page, int size) {
 
         Sort jpaSort = switch (sort) {
-            case views -> Sort.by(
+            case VIEWS -> Sort.by(
                     Sort.Order.desc("viewCount"),
                     Sort.Order.desc("createdAt")
             );
-            case likes -> Sort.by(
+            case LIKES -> Sort.by(
                     Sort.Order.desc("likeCount"),
                     Sort.Order.desc("createdAt")
             );
