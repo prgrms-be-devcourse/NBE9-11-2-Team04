@@ -3,7 +3,7 @@ package com.back.devc.domain.auth.controller;
 import com.back.devc.domain.auth.dto.OAuth2MeResponse;
 import com.back.devc.domain.auth.dto.oauth.OAuthPendingSignup;
 import com.back.devc.domain.auth.dto.oauth.OAuthSignupCompleteRequest;
-import com.back.devc.domain.auth.dto.signup.SignUpResponse;
+import com.back.devc.domain.auth.dto.oauth.OAuthSignupCompleteResponse;
 import com.back.devc.domain.auth.service.OAuth2MemberService;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.global.exception.ApiException;
@@ -65,12 +65,7 @@ public class OAuth2Controller {
                 attributes.put("email", pending.emailFromProvider());
                 attributes.put("login", pending.loginFromProvider());
 
-                return new OAuth2MeResponse(
-                        false,
-                        null,
-                        List.of(),
-                        attributes
-                );
+                return new OAuth2MeResponse(false, null, List.of(), attributes);
             }
         }
 
@@ -85,16 +80,11 @@ public class OAuth2Controller {
         Map<String, Object> attributes = new LinkedHashMap<>(oauth2User.getAttributes());
         attributes.put("pendingSignup", false);
 
-        return new OAuth2MeResponse(
-                true,
-                oauth2User.getName(),
-                authorities,
-                attributes
-        );
+        return new OAuth2MeResponse(true, oauth2User.getName(), authorities, attributes);
     }
 
     @PostMapping("/signup/complete")
-    public ResponseEntity<SuccessResponse<SignUpResponse>> completeSignup(
+    public ResponseEntity<SuccessResponse<OAuthSignupCompleteResponse>> completeSignup(
             @Valid @RequestBody OAuthSignupCompleteRequest request,
             HttpServletRequest httpServletRequest
     ) {
@@ -121,12 +111,10 @@ public class OAuth2Controller {
 
         session.removeAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY);
 
-        SignUpResponse body = new SignUpResponse(
-                member.getUserId(),
+        OAuthSignupCompleteResponse body = new OAuthSignupCompleteResponse(
+                accessToken,
                 member.getEmail(),
-                member.getNickname(),
-                member.getRole(),
-                member.getStatus()
+                member.getNickname()
         );
 
         SuccessCode successCode = SuccessCode.SIGN_UP_SUCCESS;

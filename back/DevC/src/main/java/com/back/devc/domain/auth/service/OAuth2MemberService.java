@@ -42,6 +42,10 @@ public class OAuth2MemberService {
 
     @Transactional
     public Member completeGithubSignup(OAuthPendingSignup pending, String nickname) {
+        if (pending == null || pending.providerUserId() == null || pending.providerUserId().isBlank()) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+
         String normalizedNickname = nickname == null ? "" : nickname.trim();
         if (normalizedNickname.isBlank()) {
             throw new ApiException(ErrorCode.BAD_REQUEST);
@@ -51,7 +55,6 @@ public class OAuth2MemberService {
             throw new ApiException(ErrorCode.NICKNAME_ALREADY_EXISTS);
         }
 
-        // 이미 생성된 경우에는 기존 멤버 반환
         Optional<Member> existing = memberRepository.findByProviderAndProviderUserId(
                 AuthProvider.GITHUB, pending.providerUserId()
         );
