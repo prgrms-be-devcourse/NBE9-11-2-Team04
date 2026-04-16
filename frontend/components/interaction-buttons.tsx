@@ -52,7 +52,7 @@ export default function InteractionButtons({
     try {
       const method = liked ? "DELETE" : "POST"
 
-      const res = await fetch(`${BASE_URL}/posts/${postId}/likes`, {
+      const res = await fetch(`${BASE_URL}/api/posts/${postId}/likes`, {
         method,
         headers: getAuthHeaders(),
       })
@@ -79,7 +79,7 @@ export default function InteractionButtons({
     try {
       const method = bookmarked ? "DELETE" : "POST"
 
-      const res = await fetch(`${BASE_URL}/posts/${postId}/bookmarks`, {
+      const res = await fetch(`${BASE_URL}/api/posts/${postId}/bookmarks`, {
         method,
         headers: getAuthHeaders(),
       })

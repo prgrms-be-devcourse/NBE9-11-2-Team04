@@ -107,7 +107,7 @@ export default function PostDetailPage() {
             setLikeLoading(true)
             setError(null)
 
-            const response = await fetch(`http://localhost:8080/posts/${postId}/likes`, {
+            const response = await fetch(`http://localhost:8080/api/posts/${postId}/likes`, {
                 method: liked ? "DELETE" : "POST",
                 headers: getAuthHeaders(),
             })
@@ -119,6 +119,7 @@ export default function PostDetailPage() {
             const data = await response.json()
             setLiked(Boolean(data?.liked))
             setLikeCount(typeof data?.likeCount === "number" ? data.likeCount : 0)
+            window.dispatchEvent(new CustomEvent("notifications-updated"))
         } catch (err) {
             setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
         } finally {
