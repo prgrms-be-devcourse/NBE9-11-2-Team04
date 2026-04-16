@@ -19,7 +19,7 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     Optional<Member> findByEmail(String email);
 
     Optional<Member> findByProviderAndProviderUserId(AuthProvider provider, String providerUserId);
-}
+
     // 닉네임 검색 (부분 일치)
     Page<Member> findByNicknameContainingIgnoreCase(String nickname, Pageable pageable);
 
@@ -31,5 +31,4 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
             "LOWER(m.nickname) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(m.email) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     Page<Member> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
-
 }
