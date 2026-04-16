@@ -5,6 +5,7 @@ import com.back.devc.global.security.oauth2.OAuth2LoginSuccessHandler;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -18,36 +19,58 @@ import org.springframework.security.web.header.writers.frameoptions.XFrameOption
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain filterChain(
+    @Order(1)
+    SecurityFilterChain oauth2FilterChain(
             HttpSecurity http,
             ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider,
-            JwtAuthenticationFilter jwtAuthenticationFilter,
-            CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
             OAuth2LoginSuccessHandler oauth2LoginSuccessHandler
     ) throws Exception {
         http
-                .authorizeHttpRequests((authorizeHttpRequests) -> authorizeHttpRequests
+                .securityMatcher("/oauth2/**", "/login/oauth2/**")
+                .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
+                .csrf(csrf -> csrf.disable())
+                // OAuth2 state 저장이 필요하므로 OAuth 구간은 세션 허용
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
+
+        if (clientRegistrationRepositoryProvider.getIfAvailable() != null) {
+            http.oauth2Login(oauth2 -> oauth2.successHandler(oauth2LoginSuccessHandler));
+        }
+
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
+    SecurityFilterChain apiFilterChain(
+            HttpSecurity http,
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            CustomAuthenticationEntryPoint customAuthenticationEntryPoint
+    ) throws Exception {
+        http
+                .securityMatcher("/api/**", "/h2-console/**", "/error", "/favicon.ico")
+                .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/favicon.ico").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/api/users/me").authenticated()
                         .anyRequest().permitAll())
-                .csrf((csrf) -> csrf.disable())
-                .sessionManagement((sessionManagement) ->
-                        sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling((exceptionHandling) -> exceptionHandling
-                        .authenticationEntryPoint(customAuthenticationEntryPoint))
-                .headers((headers) -> headers
-                        .addHeaderWriter(new XFrameOptionsHeaderWriter(
-                                XFrameOptionsHeaderWriter.XFrameOptionsMode.SAMEORIGIN)))
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(customAuthenticationEntryPoint))
+                .headers(headers -> headers.addHeaderWriter(
+                        new XFrameOptionsHeaderWriter(XFrameOptionsHeaderWriter.XFrameOptionsMode.SAMEORIGIN)))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        if (clientRegistrationRepositoryProvider.getIfAvailable() != null) {
-            http.oauth2Login((oauth2Login) -> oauth2Login
-                    .successHandler(oauth2LoginSuccessHandler));
-        }
+        return http.build();
+    }
+
+    @Bean
+    @Order(3)
+    SecurityFilterChain defaultFilterChain(HttpSecurity http) throws Exception {
+        http
+                .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
+                .csrf(csrf -> csrf.disable());
 
         return http.build();
     }
