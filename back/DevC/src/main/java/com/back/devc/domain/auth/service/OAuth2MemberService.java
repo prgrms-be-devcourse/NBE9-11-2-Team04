@@ -22,6 +22,7 @@ import java.util.UUID;
 public class OAuth2MemberService {
 
     private static final String GITHUB_EMAIL_DOMAIN = "@users.noreply.github.com";
+    private static final String KAKAO_EMAIL_DOMAIN = "@users.noreply.kakao.com";
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
@@ -81,12 +82,27 @@ public class OAuth2MemberService {
 
     @Transactional
     public Member completeGithubSignup(OAuthPendingSignup pending, String nickname) {
+        return completeSignupByProvider(AuthProvider.GITHUB, pending, nickname, GITHUB_EMAIL_DOMAIN, "github_");
+    }
+
+    @Transactional
+    public Member completeKakaoSignup(OAuthPendingSignup pending, String nickname) {
+        return completeSignupByProvider(AuthProvider.KAKAO, pending, nickname, KAKAO_EMAIL_DOMAIN, "kakao_");
+    }
+
+    private Member completeSignupByProvider(
+            AuthProvider provider,
+            OAuthPendingSignup pending,
+            String nickname,
+            String fallbackEmailDomain,
+            String emailLocalPrefix
+    ) {
         if (pending == null || pending.providerUserId() == null || pending.providerUserId().isBlank()) {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
         Optional<Member> existing = memberRepository.findByProviderAndProviderUserId(
-                AuthProvider.GITHUB, pending.providerUserId()
+                provider, pending.providerUserId()
         );
         if (existing.isPresent()) {
             return existing.get();
@@ -101,11 +117,16 @@ public class OAuth2MemberService {
             throw new ApiException(ErrorCode.NICKNAME_ALREADY_EXISTS);
         }
 
-        String resolvedEmail = resolveUniqueEmail(pending.emailFromProvider(), pending.providerUserId());
+        String resolvedEmail = resolveUniqueEmail(
+                pending.emailFromProvider(),
+                pending.providerUserId(),
+                fallbackEmailDomain,
+                emailLocalPrefix
+        );
         String encodedPassword = passwordEncoder.encode(UUID.randomUUID().toString());
 
         Member newMember = Member.createOAuthMember(
-                AuthProvider.GITHUB,
+                provider,
                 pending.providerUserId(),
                 resolvedEmail,
                 encodedPassword,
@@ -133,17 +154,24 @@ public class OAuth2MemberService {
         return provider == null ? "" : provider.trim().toLowerCase(Locale.ROOT);
     }
 
-    private String resolveUniqueEmail(String emailFromGithub, String providerUserId) {
-        if (emailFromGithub != null && !emailFromGithub.isBlank() && !memberRepository.existsByEmail(emailFromGithub)) {
-            return emailFromGithub;
+    private String resolveUniqueEmail(
+            String emailFromProvider,
+            String providerUserId,
+            String fallbackDomain,
+            String localPrefix
+    ) {
+        if (emailFromProvider != null
+                && !emailFromProvider.isBlank()
+                && !memberRepository.existsByEmail(emailFromProvider)) {
+            return emailFromProvider;
         }
 
-        String baseLocalPart = "github_" + providerUserId;
-        String candidate = baseLocalPart + GITHUB_EMAIL_DOMAIN;
+        String baseLocalPart = localPrefix + providerUserId;
+        String candidate = baseLocalPart + fallbackDomain;
         int sequence = 1;
 
         while (memberRepository.existsByEmail(candidate)) {
-            candidate = baseLocalPart + "_" + sequence + GITHUB_EMAIL_DOMAIN;
+            candidate = baseLocalPart + "_" + sequence + fallbackDomain;
             sequence++;
         }
 
