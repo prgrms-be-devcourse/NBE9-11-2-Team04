@@ -39,7 +39,7 @@ export function Footer() {
           <div className="md:col-span-2">
             <Link href="/" className="flex items-center gap-2">
               <Code2 className="h-6 w-6 text-primary" />
-              <span className="text-lg font-bold text-foreground">DevHub</span>
+              <span className="text-lg font-bold text-foreground">DevConnect</span>
             </Link>
             <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
               개발자들을 위한 지식 공유 커뮤니티입니다. 최신 기술 트렌드, 실무 경험, 다양한 개발 이야기를 함께 나눠보세요.

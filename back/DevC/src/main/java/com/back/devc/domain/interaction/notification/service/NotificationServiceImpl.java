@@ -68,6 +68,49 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Transactional
+    public void createPostLikeNotification(Long postId, Long actorUserId) {
+        Long postOwnerId = findPostOwnerId(postId);
+
+        if (postOwnerId.equals(actorUserId)) {
+            return;
+        }
+
+        boolean alreadyNotified = notificationRepository
+                .existsByUserIdAndActorUserIdAndPostIdAndType(postOwnerId, actorUserId, postId, "LIKE");
+
+        if (alreadyNotified) {
+            return;
+        }
+
+        saveNotification(
+                postOwnerId,
+                actorUserId,
+                postId,
+                null,
+                "LIKE",
+                actorUserId + "번 사용자가 회원님의 게시글을 좋아합니다."
+        );
+    }
+
+    @Override
+    @Transactional
+    public void createReportNotification(Long targetUserId, Long actorUserId, Long postId, String message) {
+        if (targetUserId.equals(actorUserId)) {
+            return;
+        }
+
+        saveNotification(
+                targetUserId,
+                actorUserId,
+                postId,
+                null,
+                "REPORT",
+                message
+        );
+    }
+
+    @Override
     public NotificationListResponse getMyNotifications(Long loginUserId) {
         List<NotificationResponse> notifications = notificationRepository.findByUserIdOrderByCreatedAtDesc(loginUserId)
                 .stream()

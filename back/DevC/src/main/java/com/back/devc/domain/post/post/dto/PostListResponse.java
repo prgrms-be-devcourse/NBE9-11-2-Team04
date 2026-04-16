@@ -9,7 +9,8 @@ import java.util.Optional;
 public record PostListResponse(
         Long postId,
         String title,
-        Long userId,
+        String content,
+        String nickName,
         Long categoryId,
         int viewCount,
         int likeCount,
@@ -20,7 +21,8 @@ public record PostListResponse(
         this(
                 post.getPostId(),
                 post.getTitle(),
-                post.getMember() != null ? post.getMember().getUserId() : null,
+                post.getContent(),
+                post.getMember() != null ? post.getMember().getNickname() : null,
                 post.getCategory().getCategoryId(),
                 post.getViewCount(),
                 post.getLikeCount(),
