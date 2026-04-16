@@ -112,7 +112,6 @@ public class OAuth2Controller {
         session.removeAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY);
 
         OAuthSignupCompleteResponse body = new OAuthSignupCompleteResponse(
-                accessToken,
                 member.getEmail(),
                 member.getNickname()
         );
