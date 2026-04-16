@@ -11,6 +11,10 @@ export type BookmarkResponse = {
   bookmarked: boolean;
 };
 
+export type OAuthSignupCompleteRequest = {
+  nickname: string;
+};
+
 export async function likePost(postId: number): Promise<LikeResponse> {
   return apiFetch<LikeResponse>(`/posts/${postId}/likes`, {
     method: "POST",

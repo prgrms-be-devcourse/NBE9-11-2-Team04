@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { signup } from "@/lib/auth"
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
+
 export default function SignUpPage() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
@@ -33,6 +35,11 @@ export default function SignUpPage() {
     formData.password.length > 0 &&
     formData.confirmPassword.length > 0 &&
     formData.password === formData.confirmPassword
+
+  const handleGithubSignup = () => {
+    setError("")
+    window.location.href = `${API_BASE_URL}/oauth2/authorization/github`
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -214,7 +221,12 @@ export default function SignUpPage() {
           </div>
 
           <div className="space-y-3">
-            <Button variant="outline" className="w-full gap-2" type="button">
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              type="button"
+              onClick={handleGithubSignup}
+            >
               <Github className="h-4 w-4" />
               GitHub으로 가입
             </Button>

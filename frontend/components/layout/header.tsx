@@ -12,7 +12,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { AUTH_CHANGED_EVENT, clearLoginSession, getAuthSnapshot } from "@/lib/auth-storage"
+import {
+  AUTH_CHANGED_EVENT,
+  clearLoginSession,
+  getAuthSnapshot,
+  persistLoginSession,
+} from "@/lib/auth-storage"
 
 const categories = [
   { name: "IT 기술 정보", href: "/category/tech" },
@@ -33,6 +38,21 @@ type HeaderNotificationListResponse = {
   notifications: HeaderNotificationItem[]
 }
 
+type SuccessResponse<T> = {
+  code?: string
+  message?: string
+  timestamp?: string
+  data?: T
+}
+
+type MeResponse = {
+  userId?: number
+  email?: string
+  nickname?: string
+  role?: string
+  status?: string
+}
+
 function isNotificationUnread(notification: HeaderNotificationItem) {
   return !(notification.isRead ?? notification.read ?? false)
 }
@@ -51,7 +71,37 @@ export function Header() {
       setNickname(auth.nickname ?? "")
     }
 
+    const syncAuthFromServer = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/users/me`, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        })
+
+        if (res.ok) {
+          const body = (await res.json()) as SuccessResponse<MeResponse>
+          const me = body?.data
+
+          if (me?.email || me?.nickname) {
+            persistLoginSession(
+              "oauth-cookie-session",
+              me?.nickname ?? null,
+              me?.email ?? null
+            )
+          }
+        } else if (res.status === 401) {
+          clearLoginSession()
+        }
+      } catch {
+        // 네트워크 오류 시에는 기존 local 상태 유지
+      } finally {
+        syncAuthState()
+      }
+    }
+
     syncAuthState()
+    void syncAuthFromServer()
 
     const handleStorage = () => {
       syncAuthState()
@@ -80,6 +130,7 @@ export function Header() {
       try {
         const response = await fetch(`${API_BASE_URL}/api/notifications`, {
           cache: "no-store",
+          credentials: "include",
         })
 
         if (!response.ok) {
