@@ -28,7 +28,10 @@ export async function apiFetch<T>(
   const accessToken = token ?? getStoredAccessToken()
 
   const finalHeaders = new Headers()
-  finalHeaders.set("Content-Type", "application/json")
+
+  if (!(rest.body instanceof FormData)) {
+    finalHeaders.set("Content-Type", "application/json")
+  }
 
   if (headers) {
     const incomingHeaders = new Headers(headers)

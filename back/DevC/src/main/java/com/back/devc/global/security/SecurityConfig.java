@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -18,6 +19,7 @@ import org.springframework.security.web.header.writers.frameoptions.XFrameOption
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
@@ -57,19 +59,10 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/favicon.ico").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
-
-                        // 인증 없이 접근 가능
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/search-logs/popular").permitAll()
-
-                        // 인증 필요
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/users/me").authenticated()
                         .requestMatchers("/api/mypage/**").authenticated()
-                        .requestMatchers("/api/users/me/likes").authenticated()
-                        .requestMatchers("/api/users/me/bookmarks").authenticated()
-                        .requestMatchers("/api/users/me/search-logs/**").authenticated()
-                        .requestMatchers("/api/posts/*/likes").authenticated()
-                        .requestMatchers("/api/posts/*/bookmarks").authenticated()
-
                         .anyRequest().permitAll()
                 )
                 .cors(Customizer.withDefaults())

@@ -43,9 +43,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token != null
                 && SecurityContextHolder.getContext().getAuthentication() == null
                 && jwtProvider.validateAccessTokenStatus(token) == TokenValidationStatus.VALID) {
-            Long userId = jwtProvider.getUserId(token);
 
+            Long userId = jwtProvider.getUserId(token);
             Member member = memberRepository.findById(userId).orElse(null);
+
             if (!isAuthenticatableMember(member)) {
                 SecurityContextHolder.clearContext();
                 filterChain.doFilter(request, response);
@@ -75,11 +76,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private String resolveToken(HttpServletRequest request) {
         String bearerToken = resolveBearerToken(request);
-        if (bearerToken != null) {
+        if (isValidAccessToken(bearerToken)) {
             return bearerToken;
         }
 
-        return resolveCookieToken(request);
+        String cookieToken = resolveCookieToken(request);
+        if (isValidAccessToken(cookieToken)) {
+            return cookieToken;
+        }
+
+        return null;
+    }
+
+    private boolean isValidAccessToken(String token) {
+        return token != null
+                && jwtProvider.validateAccessTokenStatus(token) == TokenValidationStatus.VALID;
     }
 
     private String resolveBearerToken(HttpServletRequest request) {
@@ -105,10 +116,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (accessCookieName.equals(cookie.getName())) {
                 String value = cookie.getValue();
-                if (value != null && !value.isBlank()) {
-                    return value;
-                }
-                return null;
+                return (value == null || value.isBlank()) ? null : value.trim();
             }
         }
 

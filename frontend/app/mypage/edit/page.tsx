@@ -5,9 +5,23 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Settings, Mail, User, ArrowLeft, MapPin, Link as LinkIcon, Github, Twitter, FileText } from "lucide-react"
+import {
+  Settings,
+  Mail,
+  User,
+  ArrowLeft,
+  MapPin,
+  Link as LinkIcon,
+  Github,
+  Twitter,
+  FileText,
+} from "lucide-react"
 import { apiFetch } from "@/lib/api"
-import { AUTH_CHANGED_EVENT, getAuthSnapshot } from "@/lib/auth-storage"
+import {
+  getCurrentUserProfile,
+  persistLoginSession,
+  saveCurrentUserProfile,
+} from "@/lib/auth-storage"
 
 type MyProfileResponse = {
   userId: number
@@ -66,15 +80,16 @@ export default function MyPageEditPage() {
           nickname: profile.nickname ?? "",
         })
 
-        const rawProfile = typeof window !== "undefined" ? localStorage.getItem("userProfile") : null
-        const savedProfile = rawProfile ? JSON.parse(rawProfile) : {}
+        persistLoginSession(undefined, profile.nickname ?? "", profile.email ?? "")
+
+        const savedProfile = getCurrentUserProfile()
 
         setLocalProfile({
-          bio: savedProfile.bio ?? "",
-          location: savedProfile.location ?? "",
-          website: savedProfile.website ?? "",
-          github: savedProfile.github ?? "",
-          twitter: savedProfile.twitter ?? "",
+          bio: savedProfile?.bio ?? "",
+          location: savedProfile?.location ?? "",
+          website: savedProfile?.website ?? "",
+          github: savedProfile?.github ?? "",
+          twitter: savedProfile?.twitter ?? "",
         })
       } catch (err) {
         if (err instanceof Error && err.message === "UNAUTHORIZED") {
@@ -137,40 +152,18 @@ export default function MyPageEditPage() {
         }),
       })
 
-      if (typeof window !== "undefined") {
-        const rawAuth = localStorage.getItem("auth")
+      persistLoginSession(undefined, updatedProfile.nickname, updatedProfile.email)
 
-        if (rawAuth) {
-          const auth = JSON.parse(rawAuth)
-          localStorage.setItem(
-            "auth",
-            JSON.stringify({
-              ...auth,
-              email: updatedProfile.email,
-              nickname: updatedProfile.nickname,
-            })
-          )
-        }
-
-        const rawUserProfile = localStorage.getItem("userProfile")
-        const existingUserProfile = rawUserProfile ? JSON.parse(rawUserProfile) : {}
-
-        localStorage.setItem(
-          "userProfile",
-          JSON.stringify({
-            ...existingUserProfile,
-            email: updatedProfile.email,
-            nickname: updatedProfile.nickname,
-            bio: localProfile.bio,
-            location: localProfile.location,
-            website: localProfile.website,
-            github: localProfile.github,
-            twitter: localProfile.twitter,
-          })
-        )
-
-        window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
-      }
+      saveCurrentUserProfile({
+        email: updatedProfile.email,
+        nickname: updatedProfile.nickname,
+        username: updatedProfile.email.split("@")[0] || updatedProfile.nickname,
+        bio: localProfile.bio,
+        location: localProfile.location,
+        website: localProfile.website,
+        github: localProfile.github,
+        twitter: localProfile.twitter,
+      })
 
       alert("프로필 수정이 완료되었습니다.")
       router.push("/mypage")

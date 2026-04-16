@@ -1,58 +1,85 @@
-import { apiFetch } from "./api";
+import { apiFetch } from "./api"
+
+type SuccessResponse<T> = {
+  code: string
+  message: string
+  timestamp: string
+  data: T
+}
 
 export type LikeResponse = {
-  postId: number;
-  liked: boolean;
-  likeCount: number;
-};
+  postId: number
+  liked: boolean
+  likeCount: number
+}
 
 export type BookmarkResponse = {
-  postId: number;
-  bookmarked: boolean;
-};
+  postId: number
+  bookmarked: boolean
+}
 
 export type OAuthSignupCompleteRequest = {
-  nickname: string;
-};
+  nickname: string
+}
+
+export type OAuthSignupCompleteResponse = {
+  email: string
+  nickname: string
+}
 
 export async function likePost(postId: number): Promise<LikeResponse> {
   return apiFetch<LikeResponse>(`/posts/${postId}/likes`, {
     method: "POST",
     auth: true,
-  });
+  })
 }
 
 export async function unlikePost(postId: number): Promise<LikeResponse> {
   return apiFetch<LikeResponse>(`/posts/${postId}/likes`, {
     method: "DELETE",
     auth: true,
-  });
+  })
 }
 
 export async function bookmarkPost(postId: number): Promise<BookmarkResponse> {
   return apiFetch<BookmarkResponse>(`/posts/${postId}/bookmarks`, {
     method: "POST",
     auth: true,
-  });
+  })
 }
 
 export async function unbookmarkPost(postId: number): Promise<BookmarkResponse> {
   return apiFetch<BookmarkResponse>(`/posts/${postId}/bookmarks`, {
     method: "DELETE",
     auth: true,
-  });
+  })
 }
 
 export async function toggleLike(
   postId: number,
   liked: boolean
 ): Promise<LikeResponse> {
-  return liked ? unlikePost(postId) : likePost(postId);
+  return liked ? unlikePost(postId) : likePost(postId)
 }
 
 export async function toggleBookmark(
   postId: number,
   bookmarked: boolean
 ): Promise<BookmarkResponse> {
-  return bookmarked ? unbookmarkPost(postId) : bookmarkPost(postId);
+  return bookmarked ? unbookmarkPost(postId) : bookmarkPost(postId)
+}
+
+export async function completeOAuthSignup(
+  body: OAuthSignupCompleteRequest
+): Promise<OAuthSignupCompleteResponse> {
+  const res = await apiFetch<SuccessResponse<OAuthSignupCompleteResponse>>(
+    "/api/auth/oauth2/signup/complete",
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+      auth: true,
+    }
+  )
+
+  return res.data
 }

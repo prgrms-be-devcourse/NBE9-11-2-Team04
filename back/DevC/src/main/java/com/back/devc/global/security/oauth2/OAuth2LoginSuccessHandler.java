@@ -1,5 +1,6 @@
 package com.back.devc.global.security.oauth2;
 
+import com.back.devc.domain.auth.dto.oauth.OAuthPendingSignup;
 import com.back.devc.domain.auth.service.OAuth2MemberService;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.entity.MemberStatus;
@@ -7,7 +8,9 @@ import com.back.devc.global.security.jwt.JwtProvider;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -18,13 +21,18 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.Optional;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
+    public static final String PENDING_SIGNUP_SESSION_KEY = "OAUTH2_PENDING_SIGNUP";
+
     private static final String ERROR_INVALID_PRINCIPAL = "OAUTH2_INVALID_PRINCIPAL";
     private static final String ERROR_MEMBER_BLACKLISTED = "OAUTH2_MEMBER_BLACKLISTED";
+    private static final String ERROR_UNSUPPORTED_PROVIDER = "OAUTH2_UNSUPPORTED_PROVIDER";
     private static final String ERROR_TOKEN_ISSUE = "OAUTH2_TOKEN_ISSUE";
 
     private final OAuth2MemberService oAuth2MemberService;
@@ -59,28 +67,56 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             provider = oauth2Token.getAuthorizedClientRegistrationId();
         }
 
-        try {
-            Member member = oAuth2MemberService.getOrCreateGithubMember(oauth2User);
+        if (!isSupportedProvider(provider)) {
+            response.sendRedirect(redirectUrlResolver.buildFailureUrl(ERROR_UNSUPPORTED_PROVIDER));
+            return;
+        }
 
-            if (member.getStatus() == MemberStatus.BLACKLISTED) {
-                response.sendRedirect(redirectUrlResolver.buildFailureUrl(ERROR_MEMBER_BLACKLISTED));
+        try {
+            OAuthPendingSignup pending = oAuth2MemberService.buildPendingSignup(provider, oauth2User);
+
+            Optional<Member> existing =
+                    oAuth2MemberService.findMemberByProviderUserId(provider, pending.providerUserId());
+
+            if (existing.isPresent()) {
+                Member member = existing.get();
+
+                if (member.getStatus() == MemberStatus.BLACKLISTED) {
+                    response.sendRedirect(redirectUrlResolver.buildFailureUrl(ERROR_MEMBER_BLACKLISTED));
+                    return;
+                }
+
+                HttpSession session = request.getSession(false);
+                if (session != null) {
+                    session.removeAttribute(PENDING_SIGNUP_SESSION_KEY);
+                }
+
+                String accessToken = jwtProvider.createAccessToken(member);
+
+                ResponseCookie accessCookie = ResponseCookie.from(accessCookieName, accessToken)
+                        .httpOnly(true)
+                        .secure(accessCookieSecure)
+                        .path("/")
+                        .maxAge(accessTokenExpirationSeconds)
+                        .sameSite(accessCookieSameSite)
+                        .build();
+
+                response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+                response.sendRedirect(redirectUrlResolver.buildSuccessUrl(provider, member));
                 return;
             }
 
-            String accessToken = jwtProvider.createAccessToken(member);
+            HttpSession session = request.getSession(true);
+            session.setAttribute(PENDING_SIGNUP_SESSION_KEY, pending);
 
-            ResponseCookie accessCookie = ResponseCookie.from(accessCookieName, accessToken)
-                    .httpOnly(true)
-                    .secure(accessCookieSecure)
-                    .path("/")
-                    .maxAge(accessTokenExpirationSeconds)
-                    .sameSite(accessCookieSameSite)
-                    .build();
-
-            response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
-            response.sendRedirect(redirectUrlResolver.buildSuccessUrl(provider, member));
+            response.sendRedirect(redirectUrlResolver.buildSignupUrl(provider));
         } catch (Exception e) {
+            log.error("OAuth2 login success handler failed. provider={}", provider, e);
             response.sendRedirect(redirectUrlResolver.buildFailureUrl(ERROR_TOKEN_ISSUE));
         }
+    }
+
+    private boolean isSupportedProvider(String provider) {
+        return "github".equalsIgnoreCase(provider) || "kakao".equalsIgnoreCase(provider);
     }
 }
