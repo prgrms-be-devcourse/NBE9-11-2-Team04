@@ -18,8 +18,15 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.back.devc.global.security.jwt.JwtPrincipal;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+
+import java.util.List;
+
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import org.springframework.security.core.context.SecurityContextHolder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -57,14 +64,19 @@ class CommentControllerTest {
                 ArgumentMatchers.any()
         )).willReturn(response);
 
-        mockMvc.perform(post("/api/posts/{postId}/comments", 1L)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "content": "첫번째 댓글"
-                                }
-                                """))
-                .andExpect(status().isOk());
+        SecurityContextHolder.getContext().setAuthentication(createAuthentication());
+        try {
+            mockMvc.perform(post("/api/posts/{postId}/comments", 1L)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                      "content": "첫번째 댓글"
+                                    }
+                                    """))
+                    .andExpect(status().isOk());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
 
         verify(commentService).createComment(
                 ArgumentMatchers.eq(1L),
@@ -84,14 +96,19 @@ class CommentControllerTest {
                 ArgumentMatchers.any()
         )).willReturn(response);
 
-        mockMvc.perform(post("/api/comments/{commentId}/replies", 1L)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "content": "대댓글입니다."
-                                }
-                                """))
-                .andExpect(status().isOk());
+        SecurityContextHolder.getContext().setAuthentication(createAuthentication());
+        try {
+            mockMvc.perform(post("/api/comments/{commentId}/replies", 1L)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                      "content": "대댓글입니다."
+                                    }
+                                    """))
+                    .andExpect(status().isOk());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
 
         verify(commentService).createReply(
                 ArgumentMatchers.eq(1L),
@@ -111,14 +128,19 @@ class CommentControllerTest {
                 ArgumentMatchers.any()
         )).willReturn(response);
 
-        mockMvc.perform(patch("/api/comments/{commentId}", 1L)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "content": "수정된 댓글"
-                                }
-                                """))
-                .andExpect(status().isOk());
+        SecurityContextHolder.getContext().setAuthentication(createAuthentication());
+        try {
+            mockMvc.perform(patch("/api/comments/{commentId}", 1L)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                      "content": "수정된 댓글"
+                                    }
+                                    """))
+                    .andExpect(status().isOk());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
 
         verify(commentService).updateComment(
                 ArgumentMatchers.eq(1L),
@@ -134,8 +156,13 @@ class CommentControllerTest {
 
         given(commentService.deleteComment(1L, 2L)).willReturn(response);
 
-        mockMvc.perform(delete("/api/comments/{commentId}", 1L))
-                .andExpect(status().isOk());
+        SecurityContextHolder.getContext().setAuthentication(createAuthentication());
+        try {
+            mockMvc.perform(delete("/api/comments/{commentId}", 1L))
+                    .andExpect(status().isOk());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
 
         verify(commentService).deleteComment(1L, 2L);
     }
@@ -151,5 +178,10 @@ class CommentControllerTest {
                 .andExpect(status().isOk());
 
         verify(commentService).getComments(1L);
+    }
+
+    private Authentication createAuthentication() {
+        JwtPrincipal principal = new JwtPrincipal(2L, "test@test.com", "USER");
+        return new UsernamePasswordAuthenticationToken(principal, null, List.of());
     }
 }
