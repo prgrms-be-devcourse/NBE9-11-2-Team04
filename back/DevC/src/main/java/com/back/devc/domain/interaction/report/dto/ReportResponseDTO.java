@@ -10,24 +10,42 @@ import java.time.LocalDateTime;
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ReportResponseDTO {
+
     private final Long reportId;
-    private final Long reporterId;
+
+    private final String reporterEmail;
     private final String reporterNickname;
-    private final String targetType;        // POST, COMMENT
+
+    private final String targetType;     // POST, COMMENT
     private final Long targetId;
+
+    private final String targetNickname; // 작성자 닉네임
+    private final String targetTitle;
+    private final String targetContent;
+
     private final String reasonType;
     private final String reasonDetail;
-    private final String status;            // PENDING, RESOLVED, REJECTED
+
+    private final String status;
+
     private final LocalDateTime createdAt;
     private final LocalDateTime processedAt;
 
-    public static ReportResponseDTO from(Report report) {
+    public static ReportResponseDTO of(
+            Report report,
+            String targetNickname,
+            String targetTitle,
+            String targetContent
+    ) {
         return new ReportResponseDTO(
                 report.getReportId(),
-                report.getReporter().getUserId(),
+                report.getReporter().getEmail(),
                 report.getReporter().getNickname(),
                 report.getTargetType(),
                 report.getTargetId(),
+                targetNickname,
+                targetTitle,
+                targetContent,
                 report.getReasonType(),
                 report.getReasonDetail(),
                 report.getStatus(),

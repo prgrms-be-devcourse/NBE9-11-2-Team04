@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useEffect, useState } from "react"
 import {
   CheckCircle,
   XCircle,
@@ -9,157 +8,249 @@ import {
   FileText,
   MessageSquare,
   User,
-  Eye,
   MoreHorizontal,
+  Eye,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent } from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Textarea } from "@/components/ui/textarea"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
-import {
-  getReports,
-  processReport,
-  Report,
-  ReportStatus,
-} from "./api"
+/* =========================
+   API CONFIG
+========================= */
 
-/* ---------------- label mapping ---------------- */
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "")
 
-const typeLabels: Record<string, { label: string; icon: any }> = {
-  POST: { label: "게시글", icon: FileText },
-  COMMENT: { label: "댓글", icon: MessageSquare },
+/* =========================
+   TYPES
+========================= */
+
+type ReportType = "post" | "comment" | "user"
+type ReportStatus = "pending" | "resolved" | "rejected"
+type ReportReason = "spam" | "abuse" | "inappropriate" | "impersonation" | "other"
+
+interface Report {
+  reportId: number
+  targetType: ReportType
+  reasonType: ReportReason
+  reasonDetail: string
+  reporter: { reporterNickname: string; reporterEmail: string }
+  target: {
+    targetType: ReportType
+    targetId: string
+    title?: string
+    content?: string
+    author?: string
+  }
+  status: ReportStatus
+  createdAt: string
 }
 
-const reasonLabels: Record<string, string> = {
-  SPAM: "스팸/광고",
-  ABUSE: "욕설/비방",
-  HATE: "혐오",
-  ETC: "기타",
+/* =========================
+   LABELS
+========================= */
+
+const reasonLabels: Record<ReportReason, string> = {
+  spam: "스팸/광고",
+  abuse: "욕설/비방",
+  inappropriate: "부적절",
+  impersonation: "사칭",
+  other: "기타",
 }
 
-const statusLabels: Record<string, string> = {
-  PENDING: "대기중",
-  RESOLVED: "처리완료",
-  REJECTED: "반려",
+const typeLabels: Record<ReportType, { label: string; icon: any }> = {
+  post: { label: "게시글", icon: FileText },
+  comment: { label: "댓글", icon: MessageSquare },
+  user: { label: "사용자", icon: User },
 }
 
-/* ---------------- page ---------------- */
+const statusLabels: Record<ReportStatus, { label: string; className: string }> = {
+  pending: { label: "대기", className: "bg-yellow-500/10 text-yellow-500" },
+  resolved: { label: "처리완료", className: "bg-green-500/10 text-green-500" },
+  rejected: { label: "반려", className: "bg-muted text-muted-foreground" },
+}
 
-export default function ReportsPage() {
-  const qc = useQueryClient()
+/* =========================
+   API
+========================= */
 
-  const [selected, setSelected] = useState<Report | null>(null)
-  const [note, setNote] = useState("")
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [action, setAction] = useState<"RESOLVED" | "REJECTED" | null>(null)
+async function fetchReports(): Promise<Report[]> {
+  const res = await fetch(`${API_BASE}/api/admin/reports`)
+  if (!res.ok) throw new Error("신고 조회 실패")
 
-  /* -------- data fetch -------- */
-  const { data, isLoading } = useQuery({
-    queryKey: ["reports"],
-    queryFn: () => getReports(),
+  const data = await res.json()
+  return data.data
+}
+
+async function processReportApi(params: {
+  id: string
+  action: "resolve" | "reject"
+  adminNote: string
+  sanctionType?: string
+}) {
+  const res = await fetch(`${API_BASE}/api/admin/reports/${params.id}/process`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
   })
 
-  const reports = data?.reports ?? []
+  if (!res.ok) throw new Error("처리 실패")
+  return res.json()
+}
 
-  const pending = reports.filter((r) => r.status === "PENDING")
-  const resolved = reports.filter((r) => r.status === "RESOLVED")
-  const rejected = reports.filter((r) => r.status === "REJECTED")
+/* =========================
+   PAGE
+========================= */
 
-  /* -------- mutation -------- */
-  const mutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: "RESOLVED" | "REJECTED" }) =>
-      processReport(id, { status, adminNote: note }),
+export default function ReportsManagementPage() {
+  const [reports, setReports] = useState<Report[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["reports"] })
-      setDialogOpen(false)
-      setSelected(null)
-      setNote("")
-    },
-  })
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null)
 
-  const openAction = (report: Report, status: "RESOLVED" | "REJECTED") => {
-    setSelected(report)
-    setAction(status)
-    setDialogOpen(true)
+  const [processDialog, setProcessDialog] = useState<{
+    open: boolean
+    report: Report | null
+    action: "resolve" | "reject" | null
+  }>({ open: false, report: null, action: null })
+
+  const [adminNote, setAdminNote] = useState("")
+  const [sanctionType, setSanctionType] = useState("")
+
+  /* =========================
+     LOAD
+  ========================= */
+
+  const loadReports = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const data = await fetchReports()
+      setReports(data)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleSubmit = () => {
-    if (!selected || !action) return
+  useEffect(() => {
+    loadReports()
+  }, [])
 
-    mutation.mutate({
-      id: selected.reportId,
-      status: action,
-    })
+  /* =========================
+     PROCESS
+  ========================= */
+
+  const openProcessDialog = (report: Report, action: "resolve" | "reject") => {
+    setProcessDialog({ open: true, report, action })
+    setAdminNote("")
+    setSanctionType("")
   }
 
-  /* ---------------- table ---------------- */
+  const processReport = async () => {
+    if (!processDialog.report || !processDialog.action) return
 
-  const TableView = ({ list }: { list: Report[] }) => (
-    <div className="rounded-lg border">
+    try {
+      await processReportApi({
+        id: processDialog.report.id,
+        action: processDialog.action,
+        adminNote,
+        sanctionType,
+      })
+
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === processDialog.report!.id
+            ? { ...r, status: processDialog.action === "resolve" ? "resolved" : "rejected" }
+            : r
+        )
+      )
+
+      setProcessDialog({ open: false, report: null, action: null })
+    } catch (e) {
+      alert("처리 실패")
+    }
+  }
+
+  /* =========================
+     FILTERS
+  ========================= */
+
+  const pendingReports = reports.filter((r) => r.status === "pending")
+  const resolvedReports = reports.filter((r) => r.status === "resolved")
+  const rejectedReports = reports.filter((r) => r.status === "rejected")
+
+  if (loading) return <div className="p-6">로딩중...</div>
+  if (error) return <div className="p-6 text-red-500">{error}</div>
+
+  /* =========================
+     TABLE
+  ========================= */
+
+  const ReportTable = ({ data, showActions }: { data: Report[]; showActions: boolean }) => (
+    <div className="border rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>유형</TableHead>
             <TableHead>사유</TableHead>
-            <TableHead>대상ID</TableHead>
+            <TableHead>내용</TableHead>
             <TableHead>신고자</TableHead>
             <TableHead>상태</TableHead>
-            <TableHead />
+            {showActions && <TableHead>작업</TableHead>}
           </TableRow>
         </TableHeader>
 
         <TableBody>
-          {list.map((r) => {
-            const TypeIcon = typeLabels[r.targetType].icon
+          {data.map((r) => (
+            <TableRow key={r.id}>
+              <TableCell>{typeLabels[r.type].label}</TableCell>
+              <TableCell>{reasonLabels[r.reason]}</TableCell>
+              <TableCell className="max-w-[300px] truncate">
+                {r.target.title || r.target.content}
+              </TableCell>
+              <TableCell>{r.reporter.name}</TableCell>
+              <TableCell>
+                <span className={statusLabels[r.status].className}>
+                  {statusLabels[r.status].label}
+                </span>
+              </TableCell>
 
-            return (
-              <TableRow key={r.reportId}>
+              {showActions && (
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <TypeIcon className="h-4 w-4" />
-                    {typeLabels[r.targetType].label}
-                  </div>
-                </TableCell>
-
-                <TableCell>{reasonLabels[r.reasonType]}</TableCell>
-
-                <TableCell>{r.targetId}</TableCell>
-
-                <TableCell>{r.reporter.name}</TableCell>
-
-                <TableCell>{statusLabels[r.status]}</TableCell>
-
-                <TableCell className="text-right">
-                  <Button size="icon" variant="ghost" onClick={() => setSelected(r)}>
+                  <Button size="icon" variant="ghost" onClick={() => setSelectedReport(r)}>
                     <Eye />
                   </Button>
 
-                  {r.status === "PENDING" && (
+                  {r.status === "pending" && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button size="icon" variant="ghost">
@@ -167,94 +258,89 @@ export default function ReportsPage() {
                         </Button>
                       </DropdownMenuTrigger>
 
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openAction(r, "RESOLVED")}>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => openProcessDialog(r, "resolve")}>
                           처리
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => openAction(r, "REJECTED")}>
+                        <DropdownMenuItem onClick={() => openProcessDialog(r, "reject")}>
                           반려
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
                 </TableCell>
-              </TableRow>
-            )
-          })}
+              )}
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     </div>
   )
 
-  /* ---------------- UI ---------------- */
+  /* =========================
+     UI
+  ========================= */
 
   return (
     <div className="space-y-6">
+      <h1 className="text-2xl font-bold">신고 관리</h1>
 
-      <h1 className="text-xl font-bold">Report 관리</h1>
-
-      <div className="grid grid-cols-3 gap-4">
-        <Card><CardContent>대기: {pending.length}</CardContent></Card>
-        <Card><CardContent>처리: {resolved.length}</CardContent></Card>
-        <Card><CardContent>반려: {rejected.length}</CardContent></Card>
-      </div>
-
-      <Tabs defaultValue="PENDING">
+      <Tabs defaultValue="pending">
         <TabsList>
-          <TabsTrigger value="PENDING">대기</TabsTrigger>
-          <TabsTrigger value="RESOLVED">처리</TabsTrigger>
-          <TabsTrigger value="REJECTED">반려</TabsTrigger>
+          <TabsTrigger value="pending">대기 ({pendingReports.length})</TabsTrigger>
+          <TabsTrigger value="resolved">완료</TabsTrigger>
+          <TabsTrigger value="rejected">반려</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="PENDING">
-          <TableView list={pending} />
+        <TabsContent value="pending">
+          <ReportTable data={pendingReports} showActions />
         </TabsContent>
 
-        <TabsContent value="RESOLVED">
-          <TableView list={resolved} />
+        <TabsContent value="resolved">
+          <ReportTable data={resolvedReports} showActions={false} />
         </TabsContent>
 
-        <TabsContent value="REJECTED">
-          <TableView list={rejected} />
+        <TabsContent value="rejected">
+          <ReportTable data={rejectedReports} showActions={false} />
         </TabsContent>
       </Tabs>
 
-      {/* dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* PROCESS MODAL */}
+      <Dialog open={processDialog.open} onOpenChange={() => setProcessDialog({ open: false, report: null, action: null })}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>처리</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-2">
-            <Label>메모</Label>
-            <Textarea value={note} onChange={(e) => setNote(e.target.value)} />
-          </div>
+          <Select value={sanctionType} onValueChange={setSanctionType}>
+            <SelectTrigger>
+              <SelectValue placeholder="제재 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="warn">경고</SelectItem>
+              <SelectItem value="ban">차단</SelectItem>
+              <SelectItem value="delete">삭제</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <Button onClick={handleSubmit}>
-            확인
-          </Button>
+          <Textarea value={adminNote} onChange={(e) => setAdminNote(e.target.value)} />
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProcessDialog({ open: false, report: null, action: null })}>
+              취소
+            </Button>
+            <Button onClick={processReport}>확인</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* detail */}
-      {selected && (
-        <Dialog open onOpenChange={() => setSelected(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>상세</DialogTitle>
-            </DialogHeader>
-
-            <div className="space-y-2 text-sm">
-              <div>type: {selected.targetType}</div>
-              <div>reason: {selected.reasonType}</div>
-              <div>detail: {selected.reasonDetail}</div>
-              <div>user: {selected.reporter.name}</div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
+      {/* DETAIL */}
+      <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
+        <DialogContent>
+          <DialogTitle>상세</DialogTitle>
+          {selectedReport?.description}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
