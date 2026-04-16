@@ -16,7 +16,6 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 
@@ -24,11 +23,13 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
+    private static final String ERROR_INVALID_PRINCIPAL = "OAUTH2_INVALID_PRINCIPAL";
+    private static final String ERROR_MEMBER_BLACKLISTED = "OAUTH2_MEMBER_BLACKLISTED";
+    private static final String ERROR_TOKEN_ISSUE = "OAUTH2_TOKEN_ISSUE";
+
     private final OAuth2MemberService oAuth2MemberService;
     private final JwtProvider jwtProvider;
-
-    @Value("${custom.oauth2.frontend-success-url:http://localhost:3000/login}")
-    private String frontendSuccessUrl;
+    private final OAuth2RedirectUrlResolver redirectUrlResolver;
 
     @Value("${custom.jwt.access-token-expiration-seconds:3600}")
     private long accessTokenExpirationSeconds;
@@ -49,7 +50,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             Authentication authentication
     ) throws IOException, ServletException {
         if (!(authentication.getPrincipal() instanceof OAuth2User oauth2User)) {
-            response.sendRedirect(errorRedirect("invalid_principal"));
+            response.sendRedirect(redirectUrlResolver.buildFailureUrl(ERROR_INVALID_PRINCIPAL));
             return;
         }
 
@@ -62,7 +63,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             Member member = oAuth2MemberService.getOrCreateGithubMember(oauth2User);
 
             if (member.getStatus() == MemberStatus.BLACKLISTED) {
-                response.sendRedirect(errorRedirect("member_blacklisted"));
+                response.sendRedirect(redirectUrlResolver.buildFailureUrl(ERROR_MEMBER_BLACKLISTED));
                 return;
             }
 
@@ -77,27 +78,9 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                     .build();
 
             response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
-
-            String redirectUrl = UriComponentsBuilder.fromUriString(frontendSuccessUrl)
-                    .queryParam("oauth", "success")
-                    .queryParam("provider", provider)
-                    .queryParam("userId", member.getUserId())
-                    .queryParam("email", member.getEmail())
-                    .queryParam("nickname", member.getNickname())
-                    .build(true)
-                    .toUriString();
-
-            response.sendRedirect(redirectUrl);
+            response.sendRedirect(redirectUrlResolver.buildSuccessUrl(provider, member));
         } catch (Exception e) {
-            response.sendRedirect(errorRedirect("token_issue"));
+            response.sendRedirect(redirectUrlResolver.buildFailureUrl(ERROR_TOKEN_ISSUE));
         }
-    }
-
-    private String errorRedirect(String reason) {
-        return UriComponentsBuilder.fromUriString(frontendSuccessUrl)
-                .queryParam("oauth", "error")
-                .queryParam("reason", reason)
-                .build(true)
-                .toUriString();
     }
 }

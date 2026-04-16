@@ -1,11 +1,13 @@
 package com.back.devc.global.security;
 
 import com.back.devc.global.security.jwt.JwtAuthenticationFilter;
+import com.back.devc.global.security.oauth2.OAuth2LoginFailureHandler;
 import com.back.devc.global.security.oauth2.OAuth2LoginSuccessHandler;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -23,17 +25,20 @@ public class SecurityConfig {
     SecurityFilterChain oauth2FilterChain(
             HttpSecurity http,
             ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider,
-            OAuth2LoginSuccessHandler oauth2LoginSuccessHandler
+            OAuth2LoginSuccessHandler oauth2LoginSuccessHandler,
+            OAuth2LoginFailureHandler oauth2LoginFailureHandler
     ) throws Exception {
         http
                 .securityMatcher("/oauth2/**", "/login/oauth2/**")
                 .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
-                // OAuth2 state 저장이 필요하므로 OAuth 구간은 세션 허용
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
 
         if (clientRegistrationRepositoryProvider.getIfAvailable() != null) {
-            http.oauth2Login(oauth2 -> oauth2.successHandler(oauth2LoginSuccessHandler));
+            http.oauth2Login(oauth2 -> oauth2
+                    .successHandler(oauth2LoginSuccessHandler)
+                    .failureHandler(oauth2LoginFailureHandler));
         }
 
         return http.build();
@@ -55,6 +60,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/users/me").authenticated()
                         .anyRequest().permitAll())
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(customAuthenticationEntryPoint))
@@ -70,6 +76,7 @@ public class SecurityConfig {
     SecurityFilterChain defaultFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable());
 
         return http.build();
