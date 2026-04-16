@@ -46,6 +46,15 @@ public class OAuth2MemberService {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
+        // 1) 같은 OAuth 계정으로 이미 가입된 경우: 바로 반환 (멱등성 보장)
+        Optional<Member> existing = memberRepository.findByProviderAndProviderUserId(
+                AuthProvider.GITHUB, pending.providerUserId()
+        );
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+
+        // 2) 신규 가입인 경우에만 닉네임 검증
         String normalizedNickname = nickname == null ? "" : nickname.trim();
         if (normalizedNickname.isBlank()) {
             throw new ApiException(ErrorCode.BAD_REQUEST);
@@ -53,13 +62,6 @@ public class OAuth2MemberService {
 
         if (memberRepository.existsByNickname(normalizedNickname)) {
             throw new ApiException(ErrorCode.NICKNAME_ALREADY_EXISTS);
-        }
-
-        Optional<Member> existing = memberRepository.findByProviderAndProviderUserId(
-                AuthProvider.GITHUB, pending.providerUserId()
-        );
-        if (existing.isPresent()) {
-            return existing.get();
         }
 
         String resolvedEmail = resolveUniqueEmail(pending.emailFromProvider(), pending.providerUserId());
