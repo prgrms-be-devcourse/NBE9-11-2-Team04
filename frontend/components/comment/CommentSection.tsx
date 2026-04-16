@@ -23,6 +23,8 @@ type CommentListResponse = {
     comments: CommentItem[]
 }
 
+type ReplyFilesMap = Record<number, File[]>
+
 function getCurrentUserId(): number | null {
     if (typeof window === "undefined") {
         return null
@@ -105,6 +107,8 @@ export default function CommentSection({ postId }: CommentSectionProps) {
     const [editInputs, setEditInputs] = useState<Record<number, string>>({})
     const [editingSubmittingId, setEditingSubmittingId] = useState<number | null>(null)
     const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+    const [newCommentFiles, setNewCommentFiles] = useState<File[]>([])
+    const [replyFiles, setReplyFiles] = useState<ReplyFilesMap>({})
 
     const loadComments = useCallback(async () => {
         try {
@@ -150,6 +154,34 @@ export default function CommentSection({ postId }: CommentSectionProps) {
         }
     }, [])
 
+    const uploadCommentAttachments = async (commentId: number, files: File[]) => {
+        if (files.length === 0) {
+            return
+        }
+
+        const formData = new FormData()
+
+        files.forEach((file, index) => {
+            formData.append("files", file)
+            formData.append("fileOrder", String(index + 1))
+        })
+
+        const token =
+            typeof window === "undefined"
+                ? null
+                : window.localStorage.getItem("accessToken")
+
+        const response = await fetch(`http://localhost:8080/api/comments/${commentId}/attachments`, {
+            method: "POST",
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            body: formData,
+        })
+
+        if (!response.ok) {
+            throw new Error("댓글 첨부파일 업로드에 실패했습니다.")
+        }
+    }
+
     const handleCreateComment = async () => {
         const trimmedComment = newComment.trim()
 
@@ -173,7 +205,14 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                 throw new Error("댓글 작성에 실패했습니다.")
             }
 
+            const createdComment = await response.json()
+
+            if (typeof createdComment?.commentId === "number" && newCommentFiles.length > 0) {
+                await uploadCommentAttachments(createdComment.commentId, newCommentFiles)
+            }
+
             setNewComment("")
+            setNewCommentFiles([])
             await loadComments()
         } catch (err) {
             setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
@@ -205,9 +244,19 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                 throw new Error("대댓글 작성에 실패했습니다.")
             }
 
+            const createdReply = await response.json()
+
+            if (typeof createdReply?.commentId === "number" && (replyFiles[commentId]?.length ?? 0) > 0) {
+                await uploadCommentAttachments(createdReply.commentId, replyFiles[commentId] ?? [])
+            }
+
             setReplyInputs((prev) => ({
                 ...prev,
                 [commentId]: "",
+            }))
+            setReplyFiles((prev) => ({
+                ...prev,
+                [commentId]: [],
             }))
             setOpenedReplyId(null)
             await loadComments()
@@ -298,7 +347,27 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                     placeholder="댓글을 입력하세요."
                     className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
                 />
-                <div className="flex justify-end">
+
+                <label className="mt-3 inline-flex w-fit cursor-pointer items-center rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50">
+                    파일 첨부
+                    <input
+                        type="file"
+                        multiple
+                        onChange={(event) => {
+                            setNewCommentFiles(Array.from(event.target.files ?? []))
+                        }}
+                        className="hidden"
+                    />
+                </label>
+
+                <div className="flex items-center justify-between gap-3">
+                    {newCommentFiles.length > 0 ? (
+                        <p className="text-xs text-muted-foreground">
+                            첨부파일 {newCommentFiles.length}개 선택됨
+                        </p>
+                    ) : (
+                        <p className="text-xs text-muted-foreground">선택된 첨부파일 없음</p>
+                    )}
                     <button
                         type="button"
                         onClick={handleCreateComment}
@@ -314,9 +383,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                 <p className="mt-4 text-sm text-muted-foreground">댓글을 불러오는 중입니다...</p>
             )}
 
-            {error && (
-                <p className="mt-4 text-sm text-destructive">{error}</p>
-            )}
+            {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
 
             {!loading && !error && comments.length === 0 && (
                 <p className="mt-4 text-sm text-muted-foreground">아직 댓글이 없습니다.</p>
@@ -327,16 +394,16 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                     <div key={comment.commentId} className="rounded-lg border border-border p-4">
                         {editingCommentId === comment.commentId ? (
                             <div className="space-y-2">
-        <textarea
-            value={editInputs[comment.commentId] ?? ""}
-            onChange={(e) =>
-                setEditInputs((prev) => ({
-                    ...prev,
-                    [comment.commentId]: e.target.value,
-                }))
-            }
-            className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        />
+                                <textarea
+                                    value={editInputs[comment.commentId] ?? ""}
+                                    onChange={(e) =>
+                                        setEditInputs((prev) => ({
+                                            ...prev,
+                                            [comment.commentId]: e.target.value,
+                                        }))
+                                    }
+                                    className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                                />
                                 <div className="flex justify-end gap-2">
                                     <button
                                         type="button"
@@ -403,17 +470,41 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                             <div className="mt-4 ml-4 border-l-2 border-border/70 pl-4">
                                 <p className="mb-2 text-xs font-medium text-muted-foreground">이 댓글에 답글 달기</p>
                                 <div className="space-y-2 rounded-md bg-muted/30 p-3">
-            <textarea
-                value={replyInputs[comment.commentId] ?? ""}
-                onChange={(e) =>
-                    setReplyInputs((prev) => ({
-                        ...prev,
-                        [comment.commentId]: e.target.value,
-                    }))
-                }
-                placeholder="답글을 입력하세요."
-                className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-            />
+                                    <textarea
+                                        value={replyInputs[comment.commentId] ?? ""}
+                                        onChange={(e) =>
+                                            setReplyInputs((prev) => ({
+                                                ...prev,
+                                                [comment.commentId]: e.target.value,
+                                            }))
+                                        }
+                                        placeholder="답글을 입력하세요."
+                                        className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                                    />
+
+                                    <label className="mt-3 inline-flex w-fit cursor-pointer items-center rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50">
+                                        파일 첨부
+                                        <input
+                                            type="file"
+                                            multiple
+                                            onChange={(event) => {
+                                                setReplyFiles((prev) => ({
+                                                    ...prev,
+                                                    [comment.commentId]: Array.from(event.target.files ?? []),
+                                                }))
+                                            }}
+                                            className="hidden"
+                                        />
+                                    </label>
+
+                                    {(replyFiles[comment.commentId]?.length ?? 0) > 0 ? (
+                                        <p className="mt-2 text-xs text-muted-foreground">
+                                            첨부파일 {replyFiles[comment.commentId]?.length ?? 0}개 선택됨
+                                        </p>
+                                    ) : (
+                                        <p className="mt-2 text-xs text-muted-foreground">선택된 첨부파일 없음</p>
+                                    )}
+
                                     <div className="flex justify-end">
                                         <button
                                             type="button"
@@ -422,9 +513,9 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                                                 replySubmittingId === comment.commentId ||
                                                 !(replyInputs[comment.commentId] ?? "").trim()
                                             }
-                                            className="rounded-md bg-secondary px-3 py-2 text-sm font-medium text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
                                         >
-                                            {replySubmittingId === comment.commentId ? "작성 중..." : "답글 작성"}
+                                            {replySubmittingId === comment.commentId ? "답글 작성 중..." : "답글 작성"}
                                         </button>
                                     </div>
                                 </div>
@@ -437,16 +528,16 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                                     <div key={reply.commentId} className="rounded-md bg-muted/50 p-3 shadow-sm">
                                         {editingCommentId === reply.commentId ? (
                                             <div className="space-y-2">
-            <textarea
-                value={editInputs[reply.commentId] ?? ""}
-                onChange={(e) =>
-                    setEditInputs((prev) => ({
-                        ...prev,
-                        [reply.commentId]: e.target.value,
-                    }))
-                }
-                className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-            />
+                                                <textarea
+                                                    value={editInputs[reply.commentId] ?? ""}
+                                                    onChange={(e) =>
+                                                        setEditInputs((prev) => ({
+                                                            ...prev,
+                                                            [reply.commentId]: e.target.value,
+                                                        }))
+                                                    }
+                                                    className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                                                />
                                                 <div className="flex justify-end gap-2">
                                                     <button
                                                         type="button"
