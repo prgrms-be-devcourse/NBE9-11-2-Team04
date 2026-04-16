@@ -1,5 +1,6 @@
 package com.back.devc.global.security.oauth2;
 
+import com.back.devc.domain.auth.dto.oauth.OAuthPendingSignup;
 import com.back.devc.domain.auth.service.OAuth2MemberService;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.entity.MemberStatus;
@@ -7,6 +8,7 @@ import com.back.devc.global.security.jwt.JwtProvider;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -18,10 +20,13 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
+
+    public static final String PENDING_SIGNUP_SESSION_KEY = "OAUTH2_PENDING_SIGNUP";
 
     private static final String ERROR_INVALID_PRINCIPAL = "OAUTH2_INVALID_PRINCIPAL";
     private static final String ERROR_MEMBER_BLACKLISTED = "OAUTH2_MEMBER_BLACKLISTED";
@@ -60,25 +65,35 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         }
 
         try {
-            Member member = oAuth2MemberService.getOrCreateGithubMember(oauth2User);
+            OAuthPendingSignup pending = oAuth2MemberService.buildGithubPendingSignup(oauth2User);
 
-            if (member.getStatus() == MemberStatus.BLACKLISTED) {
-                response.sendRedirect(redirectUrlResolver.buildFailureUrl(ERROR_MEMBER_BLACKLISTED));
+            Optional<Member> existing = oAuth2MemberService.findGithubMemberByProviderUserId(pending.providerUserId());
+            if (existing.isPresent()) {
+                Member member = existing.get();
+
+                if (member.getStatus() == MemberStatus.BLACKLISTED) {
+                    response.sendRedirect(redirectUrlResolver.buildFailureUrl(ERROR_MEMBER_BLACKLISTED));
+                    return;
+                }
+
+                String accessToken = jwtProvider.createAccessToken(member);
+                ResponseCookie accessCookie = ResponseCookie.from(accessCookieName, accessToken)
+                        .httpOnly(true)
+                        .secure(accessCookieSecure)
+                        .path("/")
+                        .maxAge(accessTokenExpirationSeconds)
+                        .sameSite(accessCookieSameSite)
+                        .build();
+
+                response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+                response.sendRedirect(redirectUrlResolver.buildSuccessUrl(provider, member));
                 return;
             }
 
-            String accessToken = jwtProvider.createAccessToken(member);
+            HttpSession session = request.getSession(true);
+            session.setAttribute(PENDING_SIGNUP_SESSION_KEY, pending);
 
-            ResponseCookie accessCookie = ResponseCookie.from(accessCookieName, accessToken)
-                    .httpOnly(true)
-                    .secure(accessCookieSecure)
-                    .path("/")
-                    .maxAge(accessTokenExpirationSeconds)
-                    .sameSite(accessCookieSameSite)
-                    .build();
-
-            response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
-            response.sendRedirect(redirectUrlResolver.buildSuccessUrl(provider, member));
+            response.sendRedirect(redirectUrlResolver.buildSignupUrl(provider));
         } catch (Exception e) {
             response.sendRedirect(redirectUrlResolver.buildFailureUrl(ERROR_TOKEN_ISSUE));
         }

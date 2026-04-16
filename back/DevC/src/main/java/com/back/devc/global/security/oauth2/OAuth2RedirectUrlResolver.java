@@ -19,7 +19,10 @@ public class OAuth2RedirectUrlResolver {
     @Value("${custom.oauth2.frontend-failure-url:http://localhost:3000/login}")
     private String frontendFailureUrl;
 
-    @Value("${custom.oauth2.allowed-redirect-uris:http://localhost:3000/login}")
+    @Value("${custom.oauth2.frontend-signup-url:http://localhost:3000/oauth/signup}")
+    private String frontendSignupUrl;
+
+    @Value("${custom.oauth2.allowed-redirect-uris:http://localhost:3000/login,http://localhost:3000/oauth/signup}")
     private String allowedRedirectUrisCsv;
 
     public String buildSuccessUrl(String provider, Member member) {
@@ -41,6 +44,16 @@ public class OAuth2RedirectUrlResolver {
         return UriComponentsBuilder.fromUriString(baseUrl)
                 .queryParam("oauth", "error")
                 .queryParam("errorCode", errorCode)
+                .build(true)
+                .toUriString();
+    }
+
+    public String buildSignupUrl(String provider) {
+        String baseUrl = resolveAllowedOrFallback(frontendSignupUrl, frontendFailureUrl);
+
+        return UriComponentsBuilder.fromUriString(baseUrl)
+                .queryParam("oauth", "pending_signup")
+                .queryParam("provider", provider)
                 .build(true)
                 .toUriString();
     }
