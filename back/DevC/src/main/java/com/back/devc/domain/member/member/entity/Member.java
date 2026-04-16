@@ -113,8 +113,19 @@ public class Member {
         );
     }
 
+    public void updateEmail(String email) {
+        this.email = email;
+    }
+
     public void updateNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public void updateStatus(MemberStatus newStatus) {
+        if (newStatus == null) {
+            throw new IllegalArgumentException("변경할 상태값이 비어있습니다.");
+        }
+        this.status = newStatus;
     }
 
     @PrePersist
@@ -144,12 +155,5 @@ public class Member {
     @PreUpdate
     void preUpdate() {
         updatedAt = LocalDateTime.now();
-    }
-
-    public void updateStatus(MemberStatus newStatus) {
-        if (newStatus == null) {
-            throw new IllegalArgumentException("변경할 상태값이 비어있습니다.");
-        }
-        this.status = newStatus;
     }
 }

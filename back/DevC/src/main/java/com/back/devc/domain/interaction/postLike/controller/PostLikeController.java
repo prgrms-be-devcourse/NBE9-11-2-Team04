@@ -1,14 +1,11 @@
 package com.back.devc.domain.interaction.postLike.controller;
 
-import com.back.devc.domain.interaction.postLike.dto.LikedPostResponse;
 import com.back.devc.domain.interaction.postLike.dto.PostLikeResponse;
 import com.back.devc.domain.interaction.postLike.service.PostLikeService;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api")
@@ -31,12 +28,5 @@ public class PostLikeController {
             @PathVariable Long postId
     ) {
         return postLikeService.cancelLike(principal.userId(), postId);
-    }
-
-    @GetMapping("/users/me/likes")
-    public List<LikedPostResponse> getLikedPosts(
-            @AuthenticationPrincipal JwtPrincipal principal
-    ) {
-        return postLikeService.getLikedPosts(principal.userId());
     }
 }

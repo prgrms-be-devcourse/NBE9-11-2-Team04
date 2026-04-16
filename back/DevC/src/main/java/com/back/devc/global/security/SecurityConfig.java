@@ -57,9 +57,21 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/favicon.ico").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
+
+                        // 인증 없이 접근 가능
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/users/me").authenticated()
-                        .anyRequest().permitAll())
+                        .requestMatchers("/api/search-logs/popular").permitAll()
+
+                        // 인증 필요
+                        .requestMatchers("/api/mypage/**").authenticated()
+                        .requestMatchers("/api/users/me/likes").authenticated()
+                        .requestMatchers("/api/users/me/bookmarks").authenticated()
+                        .requestMatchers("/api/users/me/search-logs/**").authenticated()
+                        .requestMatchers("/api/posts/*/likes").authenticated()
+                        .requestMatchers("/api/posts/*/bookmarks").authenticated()
+
+                        .anyRequest().permitAll()
+                )
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
