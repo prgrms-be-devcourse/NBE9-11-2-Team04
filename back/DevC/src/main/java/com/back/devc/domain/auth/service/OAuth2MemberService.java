@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -30,6 +31,10 @@ public class OAuth2MemberService {
 
         if ("github".equals(normalized)) {
             return buildGithubPendingSignup(oauth2User);
+        }
+
+        if ("kakao".equals(normalized)) {
+            return buildKakaoPendingSignup(oauth2User);
         }
 
         throw new ApiException(ErrorCode.UNAUTHORIZED);
@@ -52,8 +57,26 @@ public class OAuth2MemberService {
         return new OAuthPendingSignup("github", providerUserId, email, login);
     }
 
-    public Optional<Member> findGithubMemberByProviderUserId(String providerUserId) {
-        return memberRepository.findByProviderAndProviderUserId(AuthProvider.GITHUB, providerUserId);
+    public OAuthPendingSignup buildKakaoPendingSignup(OAuth2User oauth2User) {
+        String providerUserId = valueAsString(oauth2User.getAttribute("id")).trim();
+        if (providerUserId.isBlank()) {
+            throw new IllegalStateException("Kakao 사용자 id를 찾을 수 없습니다.");
+        }
+
+        String email = "";
+        String login = "";
+
+        Object accountRaw = oauth2User.getAttribute("kakao_account");
+        if (accountRaw instanceof Map<?, ?> accountMap) {
+            email = valueAsString(accountMap.get("email")).trim();
+
+            Object profileRaw = accountMap.get("profile");
+            if (profileRaw instanceof Map<?, ?> profileMap) {
+                login = valueAsString(profileMap.get("nickname")).trim();
+            }
+        }
+
+        return new OAuthPendingSignup("kakao", providerUserId, email, login);
     }
 
     @Transactional
@@ -97,6 +120,10 @@ public class OAuth2MemberService {
 
         if ("github".equals(normalized)) {
             return AuthProvider.GITHUB;
+        }
+
+        if ("kakao".equals(normalized)) {
+            return AuthProvider.KAKAO;
         }
 
         throw new ApiException(ErrorCode.UNAUTHORIZED);
