@@ -41,6 +41,8 @@ public class CommentAttachmentServiceImpl implements CommentAttachmentService {
             List<MultipartFile> files,
             List<Integer> fileOrders
     ) {
+        // 첨부파일 처리 전에 댓글이 실제로 존재하는지, 그리고 soft delete 된 댓글이 아닌지 먼저 검증
+        // 현재 댓글 기능은 soft delete 기반이라서 삭제된 댓글에는 첨부파일 업로드를 허용하지 않음
         Comment comment = validateComment(commentId);
 
         if (files == null || files.isEmpty()) {
@@ -104,6 +106,8 @@ public class CommentAttachmentServiceImpl implements CommentAttachmentService {
 
     @Override
     public CommentAttachmentListResponse getAttachments(Long commentId) {
+        // 조회도 업로드/삭제와 동일하게 댓글 상태를 먼저 확인
+        // 삭제된 댓글에 대해서는 첨부파일 목록 조회 역시 막음
         Comment comment = validateComment(commentId);
 
         List<CommentAttachmentResponse> attachments = commentAttachmentRepository
@@ -118,9 +122,12 @@ public class CommentAttachmentServiceImpl implements CommentAttachmentService {
     @Override
     @Transactional
     public CommentAttachmentDeleteResponse deleteAttachment(Long commentId, Long attachmentId) {
+        // 삭제 전에 댓글 자체가 유효한지 먼저 확인
+        // 존재하지 않거나 soft delete 된 댓글이면 첨부파일 삭제도 진행하지 않음
         Comment comment = validateComment(commentId);
 
-        // 현재 댓글 흐름은 soft delete 기반이므로, 삭제된 댓글의 첨부파일은 별도로 삭제 처리하지 않도록 한 번 더 방어
+        // validateComment(...) 에서 한 번 걸러지지만,
+        // 삭제 로직은 영향도가 크기 때문에 "삭제된 댓글의 첨부파일은 삭제하지 않는다"는 의도를 한 번 더 명확히 남겨둠
         if (comment.isDeleted()) {
             throw new IllegalStateException("삭제된 댓글의 첨부파일은 삭제할 수 없습니다.");
         }
@@ -142,7 +149,18 @@ public class CommentAttachmentServiceImpl implements CommentAttachmentService {
         );
     }
 
+    /**
+     * 첨부파일 처리 전 공통으로 사용하는 댓글 검증 메서드
+     *
+     * 이 서비스에서 업로드 / 조회 / 삭제를 할 때 모두 같은 기준으로 댓글을 확인해야 하므로,
+     * 중복 코드를 줄이기 위해 공통 메서드로 분리
+     *
+     * 검증 내용
+     * - commentId 에 해당하는 댓글이 실제로 존재하는지
+     * - 현재 댓글이 soft delete 상태가 아닌지
+     */
     private Comment validateComment(Long commentId) {
+        // 먼저 commentId 로 실제 댓글을 조회하고, 없으면 바로 예외를 발생시킨다.
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException("댓글을 찾을 수 없습니다. id=" + commentId));
 

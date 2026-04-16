@@ -1,5 +1,11 @@
 package com.back.devc.domain.interaction.notification.controller;
 
+import com.back.devc.global.security.jwt.JwtPrincipal;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+
+import java.util.List;
+
 import com.back.devc.domain.interaction.notification.dto.NotificationListResponse;
 import com.back.devc.domain.interaction.notification.dto.NotificationResponse;
 import com.back.devc.domain.interaction.notification.service.NotificationService;
@@ -47,10 +53,9 @@ class NotificationControllerTest {
         NotificationListResponse response = org.mockito.Mockito.mock(NotificationListResponse.class);
 
         given(notificationService.getMyNotifications(1L)).willReturn(response);
-
-        mockMvc.perform(get("/api/notifications"))
+        mockMvc.perform(get("/api/notifications")
+                        .principal(createAuthentication()))
                 .andExpect(status().isOk());
-
         verify(notificationService).getMyNotifications(1L);
     }
 
@@ -60,10 +65,14 @@ class NotificationControllerTest {
         NotificationResponse response = org.mockito.Mockito.mock(NotificationResponse.class);
 
         given(notificationService.readNotification(1L, 1L)).willReturn(response);
-
-        mockMvc.perform(patch("/api/notifications/{notificationId}/read", 1L))
+        mockMvc.perform(patch("/api/notifications/{notificationId}/read", 1L)
+                        .principal(createAuthentication()))
                 .andExpect(status().isOk());
-
         verify(notificationService).readNotification(1L, 1L);
+    }
+
+    private Authentication createAuthentication() {
+        JwtPrincipal principal = new JwtPrincipal(1L, "test@test.com", "USER");
+        return new UsernamePasswordAuthenticationToken(principal, null, List.of());
     }
 }

@@ -29,6 +29,7 @@ public class CommentServiceImpl implements CommentService {
     private final CommentRepository commentRepository;
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
+    // 댓글/대댓글 작성 시 알림 기능과 연결하기 위해 주입한 서비스
     private final NotificationService notificationService;
 
     @Override
@@ -40,6 +41,8 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = Comment.create(postId, loginUserId, null, request.getContent());
         Comment savedComment = commentRepository.save(comment);
 
+        // 댓글 저장이 끝난 뒤 게시글 작성자에게 댓글 알림을 생성
+        // 알림 생성은 service 내부에서 "자기 글에 본인이 댓글 단 경우 알림 제외" 같은 정책까지 함께 처리
         notificationService.createCommentNotification(postId, loginUserId, savedComment.getId());
 
         return toResponse(savedComment);
@@ -54,6 +57,8 @@ public class CommentServiceImpl implements CommentService {
         Comment reply = Comment.create(parentComment.getPostId(), loginUserId, parentCommentId, request.getContent());
         Comment savedReply = commentRepository.save(reply);
 
+        // 대댓글 저장이 끝난 뒤 부모 댓글 작성자에게 답글 알림을 생성
+        // 실제 알림 생성 가능 여부(삭제된 부모 댓글인지, 본인 댓글인지 등)는 NotificationService 에서 한 번 더 검증
         notificationService.createReplyNotification(parentCommentId, loginUserId, savedReply.getId());
 
         return toResponse(savedReply);
@@ -127,23 +132,46 @@ public class CommentServiceImpl implements CommentService {
         return parentComments;
     }
 
+    /**
+     * 댓글 조회 공통 메서드
+     *
+     * 댓글 수정/삭제/답글 작성 등 여러 곳에서 같은 조회 로직이 반복되기 때문에
+     * 중복을 줄이기 위해 공통 메서드로 분리
+     */
     private Comment findCommentOrThrow(Long commentId, String message) {
         return commentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException(message));
     }
 
+    /**
+     * 답글 작성 가능 여부 검증
+     *
+     * 현재 댓글은 soft delete 방식이라서,
+     * 삭제된 부모 댓글에는 새로운 대댓글을 달 수 없도록 막음
+     */
     private void validateReplyWritable(Comment parentComment, Long parentCommentId) {
         if (parentComment.isDeleted()) {
             throw new IllegalStateException("삭제된 댓글에는 대댓글을 작성할 수 없습니다. id=" + parentCommentId);
         }
     }
 
+    /**
+     * 현재 로그인 사용자가 해당 댓글의 작성자인지 검증
+     *
+     * 댓글 수정/삭제는 본인 댓글에 대해서만 가능하므로 공통 검증으로 분리
+     */
     private void validateCommentOwner(Comment comment, Long loginUserId, String message) {
         if (!comment.isOwner(loginUserId)) {
             throw new IllegalArgumentException(message);
         }
     }
 
+    /**
+     * 댓글이 soft delete 상태가 아닌지 검증
+     *
+     * 현재 정책상 삭제된 댓글은 수정할 수 없으므로,
+     * 수정 전에 별도로 상태를 확인
+     */
     private void validateCommentNotDeleted(Comment comment, String message) {
         if (comment.isDeleted()) {
             throw new IllegalStateException(message);
