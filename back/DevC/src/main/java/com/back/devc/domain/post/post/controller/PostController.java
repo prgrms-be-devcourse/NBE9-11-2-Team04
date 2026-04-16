@@ -68,7 +68,7 @@ public class PostController {
 
     //게시글 조회 (좋아요,최신순,조회수)
     //카테고리 파라미터를 넣으면 -> 카테고리 + (좋아요,최신순,조회수) 정렬가능하다
-    //게시글 검색기능 추가 (검색어, searchType : title, content, title_or_content )
+    //게시글 검색기능 추가 (검색어, searchType : TITLE, CONTENT, TITLE_OR_CONTENT )
     @GetMapping
     public ResponseEntity<Page<PostListResponse>> list(
             @RequestParam(required = false) Long categoryId,

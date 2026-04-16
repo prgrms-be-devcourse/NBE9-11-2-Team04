@@ -78,7 +78,7 @@ public class PostService {
 
         if (hasKeyword) {
 
-            String kw = keyword.trim();
+            String kw = keyword.trim(); // 빈칸 제거
 
             // 제목 검색
             if (searchType == PostSearchType.TITLE) {

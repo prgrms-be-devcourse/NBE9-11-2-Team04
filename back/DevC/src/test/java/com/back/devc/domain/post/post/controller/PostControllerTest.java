@@ -143,6 +143,7 @@ class PostControllerTest {
                 .andExpect(jsonPath("$.length()").value(3))
                 .andExpect(jsonPath("$[1].isDeleted").value(true));
     }
+
     // =========================
     // DETAIL
     // =========================
@@ -176,12 +177,12 @@ class PostControllerTest {
                         put("/api/v1/posts/" + post.getPostId())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                {
-                                  "title": "수정 후 제목",
-                                  "content": "수정 후 내용",
-                                  "categoryId": %d
-                                }
-                                """.formatted(category.getCategoryId()))
+                                        {
+                                          "title": "수정 후 제목",
+                                          "content": "수정 후 내용",
+                                          "categoryId": %d
+                                        }
+                                        """.formatted(category.getCategoryId()))
                 )
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -434,5 +435,254 @@ class PostControllerTest {
                 .andExpect(jsonPath("$.content[1].title").value("자유1"));
     }
 
+    // =========================
+    // 제목, 내용, 제목+내용 검색
+    // =========================
+
+    @Test
+    @DisplayName("게시글 제목 검색")
+    void t13() throws Exception {
+
+        postRepository.save(new Post(member, category, "스프링 공부", "내용1"));
+        postRepository.save(new Post(member, category, "자바 공부", "내용2"));
+        postRepository.save(new Post(member, category, "리액트 공부", "내용3"));
+
+        mvc.perform(get("/api/v1/posts")
+                        .param("keyword", "스프링")
+                        .param("searchType", "TITLE")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].title").value("스프링 공부"));
+    }
+
+    @Test
+    @DisplayName("게시글 내용 검색")
+    void t14() throws Exception {
+
+        postRepository.save(new Post(member, category, "글1", "스프링부트 강의"));
+        postRepository.save(new Post(member, category, "글2", "자바 강의"));
+        postRepository.save(new Post(member, category, "글3", "스프링 핵심"));
+
+        mvc.perform(get("/api/v1/posts")
+                        .param("keyword", "스프링")
+                        .param("searchType", "CONTENT")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2));
+    }
+
+    @Test
+    @DisplayName("게시글 제목 + 내용 검색")
+    void t15() throws Exception {
+
+        postRepository.save(new Post(member, category, "스프링", "자바 내용"));
+        postRepository.save(new Post(member, category, "자바", "스프링 내용"));
+        postRepository.save(new Post(member, category, "리액트", "프론트"));
+
+        mvc.perform(get("/api/v1/posts")
+                        .param("keyword", "스프링")
+                        .param("searchType", "TITLE_OR_CONTENT")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2));
+    }
+
+    @Test
+    @DisplayName("제목 검색 + 최신순")
+    void t16() throws Exception {
+
+        Post p1 = postRepository.save(new Post(member, category, "스프링 1", "내용1"));
+        Thread.sleep(10);
+        Post p2 = postRepository.save(new Post(member, category, "스프링 2", "내용2"));
+
+        mvc.perform(get("/api/v1/posts")
+                        .param("keyword", "스프링")
+                        .param("searchType", "TITLE")
+                        .param("sort", "LATEST")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].title").value("스프링 2")); // p2
+    }
+
+    @Test
+    @DisplayName("제목 검색 + 좋아요순")
+    void t17() throws Exception {
+
+        Post p1 = postRepository.save(new Post(member, category, "스프링 1", "내용1"));
+        Post p2 = postRepository.save(new Post(member, category, "스프링 2", "내용2"));
+
+        for (int i = 0; i < 10; i++) p1.increaseLikeCount(); // p1번의 좋아요를 더 많게 작성
+        for (int i = 0; i < 5; i++) p2.increaseLikeCount();
+
+        mvc.perform(get("/api/v1/posts")
+                        .param("keyword", "스프링")
+                        .param("searchType", "TITLE")
+                        .param("sort", "LIKES")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].title").value("스프링 1")); // p1
+    }
+
+
+    @Test
+    @DisplayName("제목 검색 + 조회수순")
+    void t18() throws Exception {
+
+        Post p1 = postRepository.save(new Post(member, category, "스프링 1", "내용1"));
+        Post p2 = postRepository.save(new Post(member, category, "스프링 2", "내용2"));
+        Post p3 = postRepository.save(new Post(member, category, "스프링 3", "내용3"));
+
+        for (int i = 0; i < 5; i++) p1.increaseViewCount();
+        for (int i = 0; i < 10; i++) p2.increaseViewCount();
+        for (int i = 0; i < 5; i++) p3.increaseViewCount();
+
+        mvc.perform(get("/api/v1/posts")
+                        .param("keyword", "스프링")
+                        .param("searchType", "TITLE")
+                        .param("sort", "VIEWS")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].title").value("스프링 2")); // p2
+    }
+
+
+    @Test
+    @DisplayName("내용 검색 + 최신순")
+    void t19() throws Exception {
+
+        Post p1 = postRepository.save(new Post(member, category, "글1", "스프링 1"));
+        Thread.sleep(10);
+        Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 2"));
+
+        mvc.perform(get("/api/v1/posts")
+                        .param("keyword", "스프링")
+                        .param("searchType", "CONTENT")
+                        .param("sort", "LATEST")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].title").value("글2")); // p2
+    }
+
+    @Test
+    @DisplayName("내용 검색 + 좋아요순")
+    void t20() throws Exception {
+
+        Post p1 = postRepository.save(new Post(member, category, "글1", "스프링 1"));
+        Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 2"));
+
+        for (int i = 0; i < 10; i++) p1.increaseLikeCount();
+        for (int i = 0; i < 5; i++) p2.increaseLikeCount();
+
+        mvc.perform(get("/api/v1/posts")
+                        .param("keyword", "스프링")
+                        .param("searchType", "CONTENT")
+                        .param("sort", "LIKES")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].title").value("글1")); // p1
+    }
+
+    @Test
+    @DisplayName("내용 검색 + 조회수순")
+    void t21() throws Exception {
+
+        Post p1 = postRepository.save(new Post(member, category, "글1", "스프링 1"));
+        Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 2"));
+        Post p3 = postRepository.save(new Post(member, category, "글3", "스프링 3"));
+
+        for (int i = 0; i < 5; i++) p1.increaseViewCount();
+        for (int i = 0; i < 10; i++) p2.increaseViewCount();
+        for (int i = 0; i < 5; i++) p3.increaseViewCount();
+
+        mvc.perform(get("/api/v1/posts")
+                        .param("keyword", "스프링")
+                        .param("searchType", "CONTENT")
+                        .param("sort", "VIEWS")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].title").value("글2")); // p2
+    }
+
+    @Test
+    @DisplayName("제목+내용 검색 + 최신순")
+    void t22() throws Exception {
+
+        Post p1 = postRepository.save(new Post(member, category, "스프링 글1", "내용 A"));
+        Thread.sleep(10);
+        Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 내용"));
+
+        mvc.perform(get("/api/v1/posts")
+                        .param("keyword", "스프링")
+                        .param("searchType", "TITLE_OR_CONTENT")
+                        .param("sort", "LATEST")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].title").value("글2")); // p2
+    }
+
+    @Test
+    @DisplayName("제목+내용 검색 + 좋아요순")
+    void t23() throws Exception {
+
+        Post p1 = postRepository.save(new Post(member, category, "스프링 글1", "내용 A"));
+        Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 내용"));
+
+        for (int i = 0; i < 10; i++) p1.increaseLikeCount();
+        for (int i = 0; i < 5; i++) p2.increaseLikeCount();
+
+        mvc.perform(get("/api/v1/posts")
+                        .param("keyword", "스프링")
+                        .param("searchType", "TITLE_OR_CONTENT")
+                        .param("sort", "LIKES")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].title").value("스프링 글1")); // p1
+    }
+
+    @Test
+    @DisplayName("제목+내용 검색 + 조회수순")
+    void t24() throws Exception {
+
+        Post p1 = postRepository.save(new Post(member, category, "스프링 글1", "내용 A"));
+        Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 내용"));
+        Post p3 = postRepository.save(new Post(member, category, "글3", "내용 스프링"));
+
+        for (int i = 0; i < 5; i++) p1.increaseViewCount();
+        for (int i = 0; i < 10; i++) p2.increaseViewCount();
+        for (int i = 0; i < 5; i++) p3.increaseViewCount();
+
+        mvc.perform(get("/api/v1/posts")
+                        .param("keyword", "스프링")
+                        .param("searchType", "TITLE_OR_CONTENT")
+                        .param("sort", "VIEWS")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].title").value("글2")); // p2
+    }
 
 }
