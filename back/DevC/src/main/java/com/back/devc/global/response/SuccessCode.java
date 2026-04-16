@@ -8,6 +8,12 @@ public enum SuccessCode {
     ME_SUCCESS(HttpStatus.OK, "USER_200_ME_SUCCESS", "내 정보 조회에 성공했습니다."),
     SIGN_UP_SUCCESS(HttpStatus.CREATED, "AUTH_201_SIGNUP_SUCCESS", "회원가입이 완료되었습니다."),
 
+    // 관리자 유저 관리
+    MEMBER_LIST_SUCCESS(HttpStatus.OK, "ADM_200_MEMBER_LIST", "회원 목록 조회가 완료되었습니다."),
+    MEMBER_DETAIL_SUCCESS(HttpStatus.OK, "ADM_200_MEMBER_DETAIL", "회원 상세 정보 조회가 완료되었습니다."),
+    MEMBER_STATUS_UPDATE_SUCCESS(HttpStatus.OK, "ADM_200_MEMBER_STATUS_UPDATE", "회원 상태 변경이 완료되었습니다."),
+    MEMBER_SEARCH_SUCCESS(HttpStatus.OK, "ADM_200_MEMBER_SEARCH", "회원 검색이 완료되었습니다."),
+
     //신고 관련 성공 코드
     REPORT_SUCCESS(HttpStatus.OK, "REPORT_200", "신고가 정상적으로 접수되었습니다.");
 
