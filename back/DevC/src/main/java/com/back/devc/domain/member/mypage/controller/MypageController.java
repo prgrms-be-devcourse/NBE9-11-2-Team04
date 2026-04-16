@@ -5,6 +5,8 @@ import com.back.devc.domain.member.mypage.dto.MyPostResponse;
 import com.back.devc.domain.member.mypage.dto.MyProfileResponse;
 import com.back.devc.domain.member.mypage.dto.UpdateMyProfileRequest;
 import com.back.devc.domain.member.mypage.service.MypageService;
+import com.back.devc.global.exception.ApiException;
+import com.back.devc.global.exception.ErrorCode;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,36 +22,42 @@ public class MypageController {
 
     private final MypageService mypageService;
 
-    // 내 프로필 조회
     @GetMapping
     public MyProfileResponse getMyProfile(
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
+        validatePrincipal(principal);
         return mypageService.getMyProfile(principal.userId());
     }
 
-    // 내가 쓴 글
     @GetMapping("/posts")
     public List<MyPostResponse> getMyPosts(
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
+        validatePrincipal(principal);
         return mypageService.getMyPosts(principal.userId());
     }
 
-    // 내가 쓴 댓글
     @GetMapping("/comments")
     public List<MyCommentResponse> getMyComments(
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
+        validatePrincipal(principal);
         return mypageService.getMyComments(principal.userId());
     }
 
-    // 프로필 수정
     @PatchMapping
     public MyProfileResponse updateMyProfile(
             @AuthenticationPrincipal JwtPrincipal principal,
             @RequestBody @Valid UpdateMyProfileRequest request
     ) {
+        validatePrincipal(principal);
         return mypageService.updateMyProfile(principal.userId(), request);
+    }
+
+    private void validatePrincipal(JwtPrincipal principal) {
+        if (principal == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
     }
 }
