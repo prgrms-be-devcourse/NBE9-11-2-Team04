@@ -38,7 +38,7 @@ public class OAuth2MemberService {
             return buildKakaoPendingSignup(oauth2User);
         }
 
-        throw new ApiException(ErrorCode.UNAUTHORIZED);
+        throw new ApiException(ErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
     }
 
     public Optional<Member> findMemberByProviderUserId(String provider, String providerUserId) {
@@ -49,7 +49,7 @@ public class OAuth2MemberService {
     public OAuthPendingSignup buildGithubPendingSignup(OAuth2User oauth2User) {
         String providerUserId = valueAsString(oauth2User.getAttribute("id")).trim();
         if (providerUserId.isBlank()) {
-            throw new IllegalStateException("GitHub 사용자 id를 찾을 수 없습니다.");
+            throw new ApiException(ErrorCode.OAUTH2_PROVIDER_USER_ID_MISSING);
         }
 
         String login = valueAsString(oauth2User.getAttribute("login")).trim();
@@ -61,7 +61,7 @@ public class OAuth2MemberService {
     public OAuthPendingSignup buildKakaoPendingSignup(OAuth2User oauth2User) {
         String providerUserId = valueAsString(oauth2User.getAttribute("id")).trim();
         if (providerUserId.isBlank()) {
-            throw new IllegalStateException("Kakao 사용자 id를 찾을 수 없습니다.");
+            throw new ApiException(ErrorCode.OAUTH2_PROVIDER_USER_ID_MISSING);
         }
 
         String email = "";
@@ -95,10 +95,10 @@ public class OAuth2MemberService {
             OAuthPendingSignup pending,
             String nickname,
             String fallbackEmailDomain,
-            String emailLocalPrefix
+            String localPrefix
     ) {
         if (pending == null || pending.providerUserId() == null || pending.providerUserId().isBlank()) {
-            throw new ApiException(ErrorCode.UNAUTHORIZED);
+            throw new ApiException(ErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED);
         }
 
         Optional<Member> existing = memberRepository.findByProviderAndProviderUserId(
@@ -121,7 +121,7 @@ public class OAuth2MemberService {
                 pending.emailFromProvider(),
                 pending.providerUserId(),
                 fallbackEmailDomain,
-                emailLocalPrefix
+                localPrefix
         );
         String encodedPassword = passwordEncoder.encode(UUID.randomUUID().toString());
 
@@ -147,7 +147,7 @@ public class OAuth2MemberService {
             return AuthProvider.KAKAO;
         }
 
-        throw new ApiException(ErrorCode.UNAUTHORIZED);
+        throw new ApiException(ErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
     }
 
     private String normalizeProvider(String provider) {

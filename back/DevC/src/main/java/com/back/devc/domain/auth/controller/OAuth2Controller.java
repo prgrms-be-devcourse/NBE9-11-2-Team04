@@ -133,7 +133,6 @@ public class OAuth2Controller {
             return oAuth2MemberService.completeKakaoSignup(pending, nickname);
         }
 
-        throw new ApiException(ErrorCode.BAD_REQUEST);
+        throw new ApiException(ErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
     }
-
 }

@@ -22,12 +22,22 @@ public enum ErrorCode {
     OAUTH2_PENDING_SIGNUP_REQUIRED(
             HttpStatus.UNAUTHORIZED,
             "AUTH_401_OAUTH2_PENDING_SIGNUP_REQUIRED",
-            "OAuth 회원가입 정보가 없습니다. 다시 GitHub 로그인을 진행해주세요."
+            "OAuth 회원가입 정보가 없습니다. 다시 로그인해주세요."
     ),
     OAUTH2_PENDING_SIGNUP_EXPIRED(
             HttpStatus.UNAUTHORIZED,
             "AUTH_401_OAUTH2_PENDING_SIGNUP_EXPIRED",
-            "OAuth 회원가입 세션이 만료되었습니다. 다시 GitHub 로그인을 진행해주세요."
+            "OAuth 회원가입 세션이 만료되었습니다. 다시 로그인해주세요."
+    ),
+    OAUTH2_UNSUPPORTED_PROVIDER(
+            HttpStatus.BAD_REQUEST,
+            "AUTH_400_OAUTH2_UNSUPPORTED_PROVIDER",
+            "지원하지 않는 OAuth 제공자입니다."
+    ),
+    OAUTH2_PROVIDER_USER_ID_MISSING(
+            HttpStatus.BAD_REQUEST,
+            "AUTH_400_OAUTH2_PROVIDER_USER_ID_MISSING",
+            "OAuth 제공자 사용자 식별값을 찾을 수 없습니다."
     ),
 
     REPORT_ALREADY_EXISTS(HttpStatus.CONFLICT, "REPORT_409", "이미 신고 처리된 요청입니다."),
