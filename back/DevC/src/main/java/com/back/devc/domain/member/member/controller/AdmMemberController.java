@@ -3,6 +3,7 @@ package com.back.devc.domain.member.member.controller;
 import com.back.devc.domain.member.member.dto.AdmMemberDetailResponse;
 import com.back.devc.domain.member.member.dto.AdmMemberListResponse;
 import com.back.devc.domain.member.member.dto.AdmMemberStatusUpdateRequest;
+import com.back.devc.domain.member.member.entity.MemberStatus;
 import com.back.devc.domain.member.member.service.AdmMemberService;
 import com.back.devc.global.response.SuccessCode;
 import com.back.devc.global.response.SuccessResponse;
@@ -23,10 +24,15 @@ public class AdmMemberController {
     @GetMapping
     public ResponseEntity<SuccessResponse<Page<AdmMemberListResponse>>> getMembers(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) MemberStatus status
     ) {
-        Page<AdmMemberListResponse> response = adminMemberService.getMembers(page, size);
+        Page<AdmMemberListResponse> response =
+                adminMemberService.getMembers(page, size, keyword, status);
+
         SuccessCode successCode = SuccessCode.MEMBER_LIST_SUCCESS;
+
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, response));
@@ -52,20 +58,6 @@ public class AdmMemberController {
     ) {
         AdmMemberDetailResponse response = adminMemberService.updateMemberStatus(userId, request);
         SuccessCode successCode = SuccessCode.MEMBER_STATUS_UPDATE_SUCCESS;
-        return ResponseEntity
-                .status(successCode.getStatus())
-                .body(SuccessResponse.of(successCode, response));
-    }
-
-    // 4. 회원 검색
-    @GetMapping("/search")
-    public ResponseEntity<SuccessResponse<Page<AdmMemberListResponse>>> searchMembers(
-            @RequestParam String keyword,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
-    ) {
-        Page<AdmMemberListResponse> response = adminMemberService.searchMembers(keyword, page, size);
-        SuccessCode successCode = SuccessCode.MEMBER_SEARCH_SUCCESS;
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, response));
