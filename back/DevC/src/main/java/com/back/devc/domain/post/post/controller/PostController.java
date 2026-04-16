@@ -3,6 +3,7 @@ package com.back.devc.domain.post.post.controller;
 import com.back.devc.domain.post.post.dto.*;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.service.PostService;
+import com.back.devc.domain.post.post.type.PostSearchType;
 import com.back.devc.domain.post.post.type.PostSortType;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 
@@ -67,15 +68,18 @@ public class PostController {
 
     //게시글 조회 (좋아요,최신순,조회수)
     //카테고리 파라미터를 넣으면 -> 카테고리 + (좋아요,최신순,조회수) 정렬가능하다
+    //게시글 검색기능 추가 (검색어, searchType : title, content, title_or_content )
     @GetMapping
     public ResponseEntity<Page<PostListResponse>> list(
             @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) PostSearchType searchType,
             @RequestParam(defaultValue = "latest") PostSortType sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
 
-        Page<Post> result = postService.getPosts(categoryId,sort, page, size);
+        Page<Post> result = postService.getPosts(categoryId,keyword,searchType,sort, page, size);
 
         return ResponseEntity.ok(
                 result.map(PostListResponse::new)
