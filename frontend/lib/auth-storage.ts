@@ -50,22 +50,15 @@ export function getAccessToken(): string | null {
 }
 
 function notifyAuthChanged() {
-  if (typeof window === "undefined") {
-    return
-  }
-
+  if (typeof window === "undefined") return
   window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT))
 }
 
 function readProfileMap(): UserProfileMap {
-  if (typeof window === "undefined") {
-    return {}
-  }
+  if (typeof window === "undefined") return {}
 
   const raw = localStorage.getItem(AUTH_PROFILES_KEY)
-  if (!raw) {
-    return {}
-  }
+  if (!raw) return {}
 
   try {
     return JSON.parse(raw) as UserProfileMap
@@ -75,34 +68,45 @@ function readProfileMap(): UserProfileMap {
 }
 
 function writeProfileMap(profileMap: UserProfileMap) {
-  if (typeof window === "undefined") {
-    return
-  }
-
+  if (typeof window === "undefined") return
   localStorage.setItem(AUTH_PROFILES_KEY, JSON.stringify(profileMap))
 }
 
+/**
+ * accessToken:
+ * - string 전달: 그 값으로 갱신
+ * - null 전달: 토큰 삭제
+ * - undefined 전달: 기존 토큰 유지
+ */
 export function persistLoginSession(
-  accessToken: string,
+  accessToken?: string | null,
   nickname?: string | null,
   email?: string | null
 ) {
-  if (typeof window === "undefined") {
-    return
+  if (typeof window === "undefined") return
+
+  if (accessToken !== undefined) {
+    if (accessToken && accessToken.trim().length > 0) {
+      localStorage.setItem(AUTH_TOKEN_KEY, accessToken)
+    } else {
+      localStorage.removeItem(AUTH_TOKEN_KEY)
+    }
   }
 
-  localStorage.setItem(AUTH_TOKEN_KEY, accessToken)
-
-  if (nickname && nickname.trim().length > 0) {
-    localStorage.setItem(AUTH_NICKNAME_KEY, nickname)
-  } else {
-    localStorage.removeItem(AUTH_NICKNAME_KEY)
+  if (nickname !== undefined) {
+    if (nickname && nickname.trim().length > 0) {
+      localStorage.setItem(AUTH_NICKNAME_KEY, nickname.trim())
+    } else {
+      localStorage.removeItem(AUTH_NICKNAME_KEY)
+    }
   }
 
-  if (email && email.trim().length > 0) {
-    localStorage.setItem(AUTH_EMAIL_KEY, email)
-  } else {
-    localStorage.removeItem(AUTH_EMAIL_KEY)
+  if (email !== undefined) {
+    if (email && email.trim().length > 0) {
+      localStorage.setItem(AUTH_EMAIL_KEY, email.trim())
+    } else {
+      localStorage.removeItem(AUTH_EMAIL_KEY)
+    }
   }
 
   const normalizedEmail = email?.trim()
@@ -111,12 +115,12 @@ export function persistLoginSession(
   if (normalizedEmail && normalizedNickname) {
     const profileMap = readProfileMap()
     const prev = profileMap[normalizedEmail]
-    const username = normalizedEmail.split("@")[0] ?? normalizedNickname
+    const username = prev?.username || normalizedEmail.split("@")[0] || normalizedNickname
 
     profileMap[normalizedEmail] = {
       email: normalizedEmail,
       nickname: normalizedNickname,
-      username: prev?.username || username,
+      username,
       bio: prev?.bio || "",
       location: prev?.location || "",
       website: prev?.website || "",
@@ -133,41 +137,12 @@ export function persistLoginSession(
 export function getCurrentUserProfile(): UserProfile | null {
   const auth = getAuthSnapshot()
   const email = auth.email?.trim()
-
-  if (!email) {
-    return null
-  }
-
+  if (!email) return null
   return readProfileMap()[email] ?? null
 }
 
-export function isNicknameTaken(
-  nickname: string,
-  currentEmail?: string | null
-): boolean {
-  const target = nickname.trim().toLowerCase()
-  if (!target) {
-    return false
-  }
-
-  const normalizedCurrentEmail = currentEmail?.trim().toLowerCase()
-  const profileMap = readProfileMap()
-
-  return Object.values(profileMap).some((profile) => {
-    const email = profile.email.trim().toLowerCase()
-
-    if (normalizedCurrentEmail && email === normalizedCurrentEmail) {
-      return false
-    }
-
-    return profile.nickname.trim().toLowerCase() === target
-  })
-}
-
 export function saveCurrentUserProfile(nextProfile: UserProfile): void {
-  if (typeof window === "undefined") {
-    return
-  }
+  if (typeof window === "undefined") return
 
   const auth = getAuthSnapshot()
   const prevEmail = auth.email?.trim()
@@ -192,21 +167,11 @@ export function saveCurrentUserProfile(nextProfile: UserProfile): void {
 
   writeProfileMap(profileMap)
 
-  if (auth.token) {
-    persistLoginSession(auth.token, nextProfile.nickname, nextEmail)
-  } else {
-    if (nextProfile.nickname.trim()) {
-      localStorage.setItem(AUTH_NICKNAME_KEY, nextProfile.nickname.trim())
-    }
-    localStorage.setItem(AUTH_EMAIL_KEY, nextEmail)
-    notifyAuthChanged()
-  }
+  persistLoginSession(undefined, nextProfile.nickname, nextEmail)
 }
 
 export function clearLoginSession() {
-  if (typeof window === "undefined") {
-    return
-  }
+  if (typeof window === "undefined") return
 
   localStorage.removeItem(AUTH_TOKEN_KEY)
   localStorage.removeItem(AUTH_NICKNAME_KEY)

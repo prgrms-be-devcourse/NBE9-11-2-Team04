@@ -23,6 +23,7 @@ import {
   AUTH_CHANGED_EVENT,
   getAuthSnapshot,
   getCurrentUserProfile,
+  persistLoginSession,
 } from "@/lib/auth-storage"
 import { apiFetch } from "@/lib/api"
 
@@ -261,20 +262,37 @@ export default function MyPage() {
         const [profileRes, postsRes] = await Promise.all([
           apiFetch<MyProfileResponse>("/api/mypage", {
             method: "GET",
+            auth: true,
           }),
           apiFetch<MyPostResponse[]>("/api/mypage/posts", {
             method: "GET",
+            auth: true,
           }),
         ])
 
         const nextName = profileRes.nickname?.trim() || "김개발"
         const nextEmail = profileRes.email?.trim() || ""
-        const nextUsername = nextEmail ? nextEmail.split("@")[0] : nextName.replace(/\s+/g, "")
+        const nextUsername = nextEmail
+          ? nextEmail.split("@")[0]
+          : nextName.replace(/\s+/g, "")
 
         setDisplayName(nextName)
         setDisplayEmail(nextEmail)
         setDisplayUsername(nextUsername)
         setMyPosts(postsRes ?? [])
+
+        persistLoginSession(undefined, nextName, nextEmail)
+
+        const savedProfile = getCurrentUserProfile()
+
+        setProfileData({
+          bio: savedProfile?.bio?.trim() || defaultUserData.bio,
+          location: savedProfile?.location?.trim() || defaultUserData.location,
+          website: savedProfile?.website?.trim() || defaultUserData.website,
+          github: savedProfile?.github?.trim() || defaultUserData.github,
+          twitter: savedProfile?.twitter?.trim() || defaultUserData.twitter,
+        })
+
         setIsAuthReady(true)
       } catch (err) {
         console.error(err)
@@ -289,29 +307,23 @@ export default function MyPage() {
 
   useEffect(() => {
     if (!isAuthReady) return
-  
+
     const syncProfile = () => {
       const auth = getAuthSnapshot()
       const profile = getCurrentUserProfile()
-  
-      const rawUserProfile =
-        typeof window !== "undefined" ? localStorage.getItem("userProfile") : null
-      const savedProfile = rawUserProfile ? JSON.parse(rawUserProfile) : {}
-  
+
       const nickname =
         profile?.nickname?.trim() ||
         auth.nickname?.trim() ||
-        savedProfile?.nickname?.trim() ||
         displayName ||
         "김개발"
-  
+
       const email =
-        auth.email?.trim() ||
         profile?.email?.trim() ||
-        savedProfile?.email?.trim() ||
+        auth.email?.trim() ||
         displayEmail ||
         ""
-  
+
       const usernameFromProfile = profile?.username?.trim()
       const usernameFromEmail = email ? email.split("@")[0] : ""
       const usernameFromName = nickname.trim().replace(/\s+/g, "")
@@ -320,23 +332,23 @@ export default function MyPage() {
         usernameFromEmail ||
         usernameFromName ||
         "kimdev"
-  
+
       setDisplayName(nickname)
       setDisplayEmail(email)
       setDisplayUsername(username)
       setProfileData({
-        bio: savedProfile?.bio?.trim() || defaultUserData.bio,
-        location: savedProfile?.location?.trim() || defaultUserData.location,
-        website: savedProfile?.website?.trim() || defaultUserData.website,
-        github: savedProfile?.github?.trim() || defaultUserData.github,
-        twitter: savedProfile?.twitter?.trim() || defaultUserData.twitter,
+        bio: profile?.bio?.trim() || defaultUserData.bio,
+        location: profile?.location?.trim() || defaultUserData.location,
+        website: profile?.website?.trim() || defaultUserData.website,
+        github: profile?.github?.trim() || defaultUserData.github,
+        twitter: profile?.twitter?.trim() || defaultUserData.twitter,
       })
     }
-  
+
     syncProfile()
     window.addEventListener(AUTH_CHANGED_EVENT, syncProfile as EventListener)
     window.addEventListener("storage", syncProfile)
-  
+
     return () => {
       window.removeEventListener(AUTH_CHANGED_EVENT, syncProfile as EventListener)
       window.removeEventListener("storage", syncProfile)
@@ -350,9 +362,13 @@ export default function MyPage() {
     const fetchBookmarks = async () => {
       try {
         setTabLoading(true)
+        setError("")
+
         const res = await apiFetch<BookmarkedPostResponse[]>("/api/mypage/bookmarks", {
           method: "GET",
+          auth: true,
         })
+
         setBookmarkedPosts(res ?? [])
       } catch (err) {
         console.error(err)
@@ -372,9 +388,13 @@ export default function MyPage() {
     const fetchLikes = async () => {
       try {
         setTabLoading(true)
+        setError("")
+
         const res = await apiFetch<LikedPostResponse[]>("/api/mypage/likes", {
           method: "GET",
+          auth: true,
         })
+
         setLikedPosts(res ?? [])
       } catch (err) {
         console.error(err)
@@ -394,9 +414,13 @@ export default function MyPage() {
     const fetchComments = async () => {
       try {
         setTabLoading(true)
+        setError("")
+
         const res = await apiFetch<MyCommentResponse[]>("/api/mypage/comments", {
           method: "GET",
+          auth: true,
         })
+
         setMyComments(res ?? [])
       } catch (err) {
         console.error(err)
@@ -523,25 +547,29 @@ export default function MyPage() {
             value="posts"
             className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
           >
-            <FileText className="h-4 w-4" />내 글
+            <FileText className="h-4 w-4" />
+            내 글
           </TabsTrigger>
           <TabsTrigger
             value="bookmarks"
             className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
           >
-            <Bookmark className="h-4 w-4" />북마크
+            <Bookmark className="h-4 w-4" />
+            북마크
           </TabsTrigger>
           <TabsTrigger
             value="likes"
             className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
           >
-            <Heart className="h-4 w-4" />좋아요
+            <Heart className="h-4 w-4" />
+            좋아요
           </TabsTrigger>
           <TabsTrigger
             value="comments"
             className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
           >
-            <MessageCircle className="h-4 w-4" />댓글
+            <MessageCircle className="h-4 w-4" />
+            댓글
           </TabsTrigger>
         </TabsList>
 
@@ -608,7 +636,9 @@ export default function MyPage() {
                       {formatRelativeDate(comment.createdAt)}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">게시글 ID: {comment.postId}</p>
+                  <p className="text-xs text-muted-foreground">
+                    게시글 ID: {comment.postId}
+                  </p>
                 </div>
               ))}
             </div>

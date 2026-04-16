@@ -1,56 +1,57 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Code2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { completeOAuthSignup } from "@/lib/interaction";
+import { useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { Code2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { completeOAuthSignup } from "@/lib/interaction"
+import { persistLoginSession, saveCurrentUserProfile } from "@/lib/auth-storage"
 
 export default function OAuthSignupPage() {
-  const router = useRouter();
-  const [nickname, setNickname] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const router = useRouter()
+  const [nickname, setNickname] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError("");
+    e.preventDefault()
+    setError("")
 
-    const trimmed = nickname.trim();
+    const trimmed = nickname.trim()
     if (trimmed.length < 2 || trimmed.length > 50) {
-      setError("닉네임은 2자 이상 50자 이하로 입력해주세요.");
-      return;
+      setError("닉네임은 2자 이상 50자 이하로 입력해주세요.")
+      return
     }
 
-    setIsLoading(true);
+    setIsLoading(true)
+
     try {
-      const data = await completeOAuthSignup({ nickname: trimmed });
+      const data = await completeOAuthSignup({ nickname: trimmed })
 
-      if (typeof window !== "undefined") {
-        const rawUserProfile = localStorage.getItem("userProfile");
-        const existingUserProfile = rawUserProfile ? JSON.parse(rawUserProfile) : {};
+      persistLoginSession(undefined, data.nickname, data.email)
 
-        localStorage.setItem(
-          "userProfile",
-          JSON.stringify({
-            ...existingUserProfile,
-            email: data.email,
-            nickname: data.nickname,
-          })
-        );
-      }
+      saveCurrentUserProfile({
+        email: data.email,
+        nickname: data.nickname,
+        username: data.email?.split("@")[0] || data.nickname,
+        bio: "",
+        location: "",
+        website: "",
+        github: "",
+        twitter: "",
+      })
 
-      router.replace("/");
-      router.refresh();
+      router.replace("/mypage")
+      router.refresh()
     } catch (e) {
-      setError(e instanceof Error ? e.message : "닉네임 저장에 실패했습니다.");
+      setError(e instanceof Error ? e.message : "닉네임 저장에 실패했습니다.")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
@@ -95,5 +96,5 @@ export default function OAuthSignupPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

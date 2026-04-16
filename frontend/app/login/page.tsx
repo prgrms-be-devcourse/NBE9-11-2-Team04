@@ -11,7 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { login } from "@/lib/auth";
 import { persistLoginSession } from "@/lib/auth-storage";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
 function getOauthErrorMessage(errorCode: string | null) {
   switch (errorCode) {
@@ -49,23 +50,11 @@ export default function LoginPage() {
     const oauth = searchParams.get("oauth");
     if (!oauth) return;
 
-    if (oauth === "success") {
-      const nickname = searchParams.get("nickname");
-      const email = searchParams.get("email");
-
-      // 현재 앱의 로그인 상태 판단이 localStorage token 기반이라 임시 세션값 저장
-      // (추후 /api/users/me 기반 인증 동기화로 교체 권장)
-      persistLoginSession("oauth-cookie-session", nickname, email);
-
-      router.replace("/");
-      return;
-    }
-
     if (oauth === "error") {
       const errorCode = searchParams.get("errorCode");
       setError(getOauthErrorMessage(errorCode));
     }
-  }, [searchParams, router]);
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,6 +192,7 @@ export default function LoginPage() {
               <Github className="h-4 w-4" />
               GitHub으로 로그인
             </Button>
+
             <Button variant="outline" className="w-full gap-2" type="button">
               <svg className="h-4 w-4" viewBox="0 0 24 24">
                 <path
@@ -224,6 +214,7 @@ export default function LoginPage() {
               </svg>
               Google로 로그인
             </Button>
+
             <Button
               variant="outline"
               className="w-full gap-2 bg-[#FEE500] text-[#000000] hover:bg-[#FEE500]/90 border-[#FEE500]"
