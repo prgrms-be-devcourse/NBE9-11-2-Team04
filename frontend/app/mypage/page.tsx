@@ -1,9 +1,8 @@
-﻿"use client"
+"use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { PostCard, type Post } from "@/components/post-card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -19,95 +18,84 @@ import {
   Github,
   Twitter,
 } from "lucide-react"
-import {
-  AUTH_CHANGED_EVENT,
-  getAuthSnapshot,
-  getCurrentUserProfile,
-} from "@/lib/auth-storage"
+import { AUTH_CHANGED_EVENT, getAuthSnapshot } from "@/lib/auth-storage"
+import { apiFetch } from "@/lib/api"
+
+type MyProfileResponse = {
+  userId: number
+  email: string
+  nickname: string
+}
+
+type MyPostResponse = {
+  postId: number
+  title: string
+  likeCount: number
+  commentCount: number
+  createdAt: string
+}
+
+type MyCommentResponse = {
+  commentId: number
+  postId: number
+  content: string
+  createdAt: string
+}
+
+type LikedPostResponse = {
+  postId: number
+  title: string
+  authorNickname: string
+  likeCount: number
+  commentCount: number
+  createdAt: string
+}
+
+type BookmarkedPostResponse = {
+  postId: number
+  title: string
+  authorNickname: string
+  likeCount: number
+  commentCount: number
+  createdAt: string
+}
 
 const defaultUserData = {
   avatar: "",
-  bio: "10년차 풀스택 개발자. React, TypeScript, Node.js를 주로 사용합니다.",
+  bio: "개발과 기록을 좋아하는 사용자입니다.",
   location: "서울, 대한민국",
-  website: "https://kimdev.blog",
-  github: "kimdev",
-  twitter: "kimdev",
-  joinedAt: "2024년 1월",
-  stats: {
-    posts: 42,
-    followers: 1234,
-    following: 89,
-    likes: 5678,
-  },
+  website: "https://myprofile.com",
+  github: "github",
+  twitter: "twitter",
+  joinedAt: "최근",
 }
 
-const myPosts: Post[] = [
-  {
-    id: "1",
-    title: "개발자의 번아웃 예방: 나만의 루틴 만들기",
-    excerpt:
-      "10년차 개발자가 알려주는 번아웃 예방법. 지속 가능한 개발자 생활을 위한 팁들을 공유합니다.",
-    author: { name: "김개발" },
-    category: "자유 주제",
-    createdAt: "4시간 전",
-    likes: 234,
-    comments: 67,
-    views: 2890,
-    tags: ["번아웃", "루틴", "개발자생활"],
-  },
-  {
-    id: "2",
-    title: "2026년 프론트엔드 개발자 로드맵",
-    excerpt:
-      "React, Next.js, TypeScript 중심으로 프론트엔드 개발자가 알아야 할 기술들을 정리했습니다.",
-    author: { name: "김개발" },
-    category: "IT 기술 정보",
-    createdAt: "2일 전",
-    likes: 128,
-    comments: 24,
-    views: 1520,
-    tags: ["frontend", "react", "로드맵"],
-  },
-]
-
-const bookmarkedPosts: Post[] = [
-  {
-    id: "3",
-    title: "AI 코딩 어시스턴트 비교: Copilot vs Cursor vs Claude",
-    excerpt:
-      "개발 생산성을 높여주는 AI 도구들을 실제 사용 경험을 바탕으로 비교 분석합니다.",
-    author: { name: "이트렌드" },
-    category: "개발자 트렌드",
-    createdAt: "1일 전",
-    likes: 256,
-    comments: 42,
-    views: 3240,
-    tags: ["ai", "copilot", "개발도구"],
-  },
-]
-
-const likedPosts: Post[] = [
-  {
-    id: "4",
-    title: "신입 개발자 채용 트렌드 분석",
-    excerpt:
-      "상반기 IT 기업들의 신입 개발자 채용 동향과 필요한 역량을 분석합니다.",
-    author: { name: "박취준" },
-    category: "취업 시장 정보",
-    createdAt: "5시간 전",
-    likes: 89,
-    comments: 15,
-    views: 892,
-    tags: ["취업", "신입채용", "대기업"],
-  },
-]
+function formatDate(value: string) {
+  if (!value) return "-"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })
+}
 
 export default function MyPage() {
   const router = useRouter()
+
   const [activeTab, setActiveTab] = useState("posts")
-  const [displayName, setDisplayName] = useState("김개발")
-  const [displayUsername, setDisplayUsername] = useState("kimdev")
   const [isAuthReady, setIsAuthReady] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [tabLoading, setTabLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  const [profile, setProfile] = useState<MyProfileResponse | null>(null)
+  const [posts, setPosts] = useState<MyPostResponse[]>([])
+  const [comments, setComments] = useState<MyCommentResponse[]>([])
+  const [likes, setLikes] = useState<LikedPostResponse[]>([])
+  const [bookmarks, setBookmarks] = useState<BookmarkedPostResponse[]>([])
+
   const [profileData, setProfileData] = useState({
     bio: defaultUserData.bio,
     location: defaultUserData.location,
@@ -116,36 +104,36 @@ export default function MyPage() {
     twitter: defaultUserData.twitter,
   })
 
+  const displayName = profile?.nickname?.trim() || "사용자"
+  const displayUsername = useMemo(() => {
+    if (profile?.email) {
+      return profile.email.split("@")[0]
+    }
+    return "user"
+  }, [profile])
+
   useEffect(() => {
     const auth = getAuthSnapshot()
-    if (!auth.isLoggedIn) {
+    if (!auth.token) {
       router.replace("/login")
       return
     }
-
     setIsAuthReady(true)
   }, [router])
 
   useEffect(() => {
+    if (!isAuthReady) return
+
     const syncProfile = () => {
       const auth = getAuthSnapshot()
-      const profile = getCurrentUserProfile()
-      const fallbackName = "김개발"
-      const name = profile?.nickname?.trim() || auth.nickname?.trim() || fallbackName
-      const usernameFromEmail = auth.email?.split("@")[0]?.trim()
-      const usernameFromProfile = profile?.username?.trim()
-      const usernameFromName = name.trim().replace(/\s+/g, "")
-      const username = usernameFromProfile || usernameFromEmail || usernameFromName || "kimdev"
-
-      setDisplayName(name)
-      setDisplayUsername(username)
-      setProfileData({
-        bio: profile?.bio || defaultUserData.bio,
-        location: profile?.location || defaultUserData.location,
-        website: profile?.website || defaultUserData.website,
-        github: profile?.github || defaultUserData.github,
-        twitter: profile?.twitter || defaultUserData.twitter,
-      })
+      setProfileData((prev) => ({
+        ...prev,
+        bio: prev.bio || defaultUserData.bio,
+        location: prev.location || defaultUserData.location,
+        website: prev.website || defaultUserData.website,
+        github: prev.github || auth.nickname?.trim() || defaultUserData.github,
+        twitter: prev.twitter || defaultUserData.twitter,
+      }))
     }
 
     syncProfile()
@@ -156,10 +144,141 @@ export default function MyPage() {
       window.removeEventListener(AUTH_CHANGED_EVENT, syncProfile as EventListener)
       window.removeEventListener("storage", syncProfile)
     }
-  }, [])
+  }, [isAuthReady])
 
-  if (!isAuthReady) {
-    return null
+  useEffect(() => {
+    if (!isAuthReady) return
+
+    const fetchInitialData = async () => {
+      try {
+        setLoading(true)
+        setError("")
+
+        const [profileRes, postsRes] = await Promise.all([
+          apiFetch<MyProfileResponse>("/api/mypage", {
+            method: "GET",
+            auth: true,
+          }),
+          apiFetch<MyPostResponse[]>("/api/mypage/posts", {
+            method: "GET",
+            auth: true,
+          }),
+        ])
+
+        setProfile(profileRes)
+        setPosts(postsRes ?? [])
+      } catch (err) {
+        if (err instanceof Error && err.message === "UNAUTHORIZED") {
+          router.replace("/login")
+          return
+        }
+
+        console.error(err)
+        setError("마이페이지 정보를 불러오지 못했습니다.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchInitialData()
+  }, [isAuthReady, router])
+
+  useEffect(() => {
+    if (!isAuthReady || activeTab !== "comments" || comments.length > 0) return
+
+    const fetchComments = async () => {
+      try {
+        setTabLoading(true)
+        const res = await apiFetch<MyCommentResponse[]>("/api/mypage/comments", {
+          method: "GET",
+          auth: true,
+        })
+        setComments(res ?? [])
+      } catch (err) {
+        if (err instanceof Error && err.message === "UNAUTHORIZED") {
+          router.replace("/login")
+          return
+        }
+        console.error(err)
+        setError("내 댓글을 불러오지 못했습니다.")
+      } finally {
+        setTabLoading(false)
+      }
+    }
+
+    fetchComments()
+  }, [activeTab, comments.length, isAuthReady, router])
+
+  useEffect(() => {
+    if (!isAuthReady || activeTab !== "likes" || likes.length > 0) return
+
+    const fetchLikes = async () => {
+      try {
+        setTabLoading(true)
+        const res = await apiFetch<LikedPostResponse[]>("/api/mypage/likes", {
+          method: "GET",
+          auth: true,
+        })
+        setLikes(res ?? [])
+      } catch (err) {
+        if (err instanceof Error && err.message === "UNAUTHORIZED") {
+          router.replace("/login")
+          return
+        }
+        console.error(err)
+        setError("좋아요 목록을 불러오지 못했습니다.")
+      } finally {
+        setTabLoading(false)
+      }
+    }
+
+    fetchLikes()
+  }, [activeTab, isAuthReady, likes.length, router])
+
+  useEffect(() => {
+    if (!isAuthReady || activeTab !== "bookmarks" || bookmarks.length > 0) return
+
+    const fetchBookmarks = async () => {
+      try {
+        setTabLoading(true)
+        const res = await apiFetch<BookmarkedPostResponse[]>("/api/mypage/bookmarks", {
+          method: "GET",
+          auth: true,
+        })
+        setBookmarks(res ?? [])
+      } catch (err) {
+        if (err instanceof Error && err.message === "UNAUTHORIZED") {
+          router.replace("/login")
+          return
+        }
+        console.error(err)
+        setError("북마크 목록을 불러오지 못했습니다.")
+      } finally {
+        setTabLoading(false)
+      }
+    }
+
+    fetchBookmarks()
+  }, [activeTab, bookmarks.length, isAuthReady, router])
+
+  if (!isAuthReady || loading) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
+          <p className="text-sm text-muted-foreground">로딩 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error && !profile) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
+          <p className="text-sm text-red-500">{error}</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -177,7 +296,9 @@ export default function MyPage() {
             <div className="mb-4 flex flex-wrap items-center gap-4">
               <div>
                 <h1 className="text-2xl font-bold text-foreground">{displayName}</h1>
+                <p className="text-sm text-muted-foreground">@{displayUsername}</p>
               </div>
+
               <Link href="/mypage/edit">
                 <Button variant="outline" className="gap-2">
                   <Settings className="h-4 w-4" />
@@ -193,6 +314,7 @@ export default function MyPage() {
                 <MapPin className="h-4 w-4" />
                 {profileData.location}
               </div>
+
               <a
                 href={profileData.website}
                 target="_blank"
@@ -202,6 +324,7 @@ export default function MyPage() {
                 <LinkIcon className="h-4 w-4" />
                 {profileData.website.replace("https://", "")}
               </a>
+
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
                 {defaultUserData.joinedAt} 가입
@@ -217,6 +340,7 @@ export default function MyPage() {
               >
                 <Github className="h-5 w-5" />
               </a>
+
               <a
                 href={`https://twitter.com/${profileData.twitter}`}
                 target="_blank"
@@ -231,20 +355,20 @@ export default function MyPage() {
 
         <div className="mt-6 grid grid-cols-4 gap-4 border-t border-border pt-6">
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{defaultUserData.stats.posts}</p>
+            <p className="text-2xl font-bold text-foreground">{posts.length}</p>
             <p className="text-sm text-muted-foreground">글</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{defaultUserData.stats.followers.toLocaleString()}</p>
-            <p className="text-sm text-muted-foreground">팔로워</p>
+            <p className="text-2xl font-bold text-foreground">{bookmarks.length}</p>
+            <p className="text-sm text-muted-foreground">북마크</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{defaultUserData.stats.following}</p>
-            <p className="text-sm text-muted-foreground">팔로잉</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{defaultUserData.stats.likes.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-foreground">{likes.length}</p>
             <p className="text-sm text-muted-foreground">좋아요</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-foreground">{comments.length}</p>
+            <p className="text-sm text-muted-foreground">댓글</p>
           </div>
         </div>
       </div>
@@ -252,24 +376,48 @@ export default function MyPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6 w-full justify-start bg-secondary">
           <TabsTrigger value="posts" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <FileText className="h-4 w-4" />내 글
+            <FileText className="h-4 w-4" />
+            내 글
           </TabsTrigger>
           <TabsTrigger value="bookmarks" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Bookmark className="h-4 w-4" />북마크
+            <Bookmark className="h-4 w-4" />
+            북마크
           </TabsTrigger>
           <TabsTrigger value="likes" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Heart className="h-4 w-4" />좋아요
+            <Heart className="h-4 w-4" />
+            좋아요
           </TabsTrigger>
           <TabsTrigger value="comments" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <MessageCircle className="h-4 w-4" />댓글
+            <MessageCircle className="h-4 w-4" />
+            댓글
           </TabsTrigger>
         </TabsList>
 
+        {tabLoading && (
+          <div className="mb-6 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+            불러오는 중...
+          </div>
+        )}
+
         <TabsContent value="posts">
-          {myPosts.length > 0 ? (
+          {posts.length > 0 ? (
             <div className="grid gap-6">
-              {myPosts.map((post) => (
-                <PostCard key={post.id} post={{ ...post, author: { ...post.author, name: displayName } }} />
+              {posts.map((post) => (
+                <div key={post.postId} className="rounded-lg border border-border bg-card p-6">
+                  <div className="mb-3 flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground">{post.title}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        작성일 {formatDate(post.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 text-sm text-muted-foreground">
+                    <span>좋아요 {post.likeCount}</span>
+                    <span>댓글 {post.commentCount}</span>
+                  </div>
+                </div>
               ))}
             </div>
           ) : (
@@ -283,10 +431,24 @@ export default function MyPage() {
         </TabsContent>
 
         <TabsContent value="bookmarks">
-          {bookmarkedPosts.length > 0 ? (
+          {bookmarks.length > 0 ? (
             <div className="grid gap-6">
-              {bookmarkedPosts.map((post) => (
-                <PostCard key={post.id} post={post} />
+              {bookmarks.map((post) => (
+                <div key={post.postId} className="rounded-lg border border-border bg-card p-6">
+                  <div className="mb-3 flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground">{post.title}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        작성자 {post.authorNickname} · {formatDate(post.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 text-sm text-muted-foreground">
+                    <span>좋아요 {post.likeCount}</span>
+                    <span>댓글 {post.commentCount}</span>
+                  </div>
+                </div>
               ))}
             </div>
           ) : (
@@ -299,10 +461,24 @@ export default function MyPage() {
         </TabsContent>
 
         <TabsContent value="likes">
-          {likedPosts.length > 0 ? (
+          {likes.length > 0 ? (
             <div className="grid gap-6">
-              {likedPosts.map((post) => (
-                <PostCard key={post.id} post={post} />
+              {likes.map((post) => (
+                <div key={post.postId} className="rounded-lg border border-border bg-card p-6">
+                  <div className="mb-3 flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground">{post.title}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        작성자 {post.authorNickname} · {formatDate(post.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 text-sm text-muted-foreground">
+                    <span>좋아요 {post.likeCount}</span>
+                    <span>댓글 {post.commentCount}</span>
+                  </div>
+                </div>
               ))}
             </div>
           ) : (
@@ -315,11 +491,32 @@ export default function MyPage() {
         </TabsContent>
 
         <TabsContent value="comments">
-          <EmptyState
-            icon={<MessageCircle className="h-12 w-12" />}
-            title="작성한 댓글이 없습니다"
-            description="글에 댓글을 남겨 소통해보세요"
-          />
+          {comments.length > 0 ? (
+            <div className="grid gap-6">
+              {comments.map((comment) => (
+                <div key={comment.commentId} className="rounded-lg border border-border bg-card p-6">
+                  <div className="mb-3 flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-base font-semibold text-foreground">
+                        게시글 ID {comment.postId}
+                      </h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        작성일 {formatDate(comment.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="text-sm leading-6 text-foreground">{comment.content}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={<MessageCircle className="h-12 w-12" />}
+              title="작성한 댓글이 없습니다"
+              description="글에 댓글을 남겨 소통해보세요"
+            />
+          )}
         </TabsContent>
       </Tabs>
     </div>
@@ -344,7 +541,9 @@ function EmptyState({
       <p className="text-sm text-muted-foreground">{description}</p>
       {action ? (
         <Link href={action.href}>
-          <Button className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90">{action.label}</Button>
+          <Button className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90">
+            {action.label}
+          </Button>
         </Link>
       ) : null}
     </div>

@@ -1,262 +1,270 @@
-﻿"use client"
+"use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { ChangeEvent, FormEvent, useEffect, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Camera, Save } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  getAuthSnapshot,
-  getCurrentUserProfile,
-  isNicknameTaken,
-  saveCurrentUserProfile,
-} from "@/lib/auth-storage"
+import { Button } from "@/components/ui/button"
+import { Settings, Mail, User, ArrowLeft } from "lucide-react"
+import { apiFetch } from "@/lib/api"
+import { AUTH_CHANGED_EVENT, getAuthSnapshot } from "@/lib/auth-storage"
 
-export default function EditProfilePage() {
+type MyProfileResponse = {
+  userId: number
+  email: string
+  nickname: string
+  role?: string
+  status?: string
+}
+
+type UpdateMyProfileRequest = {
+  email: string
+  nickname: string
+}
+
+export default function MyPageEditPage() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [isAuthReady, setIsAuthReady] = useState(false)
-  const [error, setError] = useState("")
-  const [formData, setFormData] = useState({
-    name: "김개발",
-    username: "kimdev",
-    email: "kimdev@example.com",
-    bio: "10년차 풀스택 개발자입니다. React, TypeScript, Node.js를 주로 사용합니다.",
-    location: "서울, 대한민국",
-    website: "https://kimdev.blog",
-    github: "kimdev",
-    twitter: "kimdev",
+
+  const [form, setForm] = useState<UpdateMyProfileRequest>({
+    email: "",
+    nickname: "",
   })
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState("")
 
   useEffect(() => {
     const auth = getAuthSnapshot()
-    if (!auth.isLoggedIn) {
+
+    if (!auth.token) {
       router.replace("/login")
       return
     }
 
-    const profile = getCurrentUserProfile()
-    const nickname = profile?.nickname?.trim() || auth.nickname?.trim() || "김개발"
-    const email = profile?.email?.trim() || auth.email?.trim() || "kimdev@example.com"
-    const username =
-      profile?.username?.trim() ||
-      email.split("@")[0]?.trim() ||
-      nickname.replace(/\s+/g, "") ||
-      "kimdev"
+    const fetchMyProfile = async () => {
+      try {
+        setLoading(true)
+        setError("")
 
-    setFormData((prev) => ({
-      ...prev,
-      name: nickname,
-      username,
-      email,
-      bio: profile?.bio ?? prev.bio,
-      location: profile?.location ?? prev.location,
-      website: profile?.website ?? prev.website,
-      github: profile?.github ?? prev.github,
-      twitter: profile?.twitter ?? prev.twitter,
-    }))
+        const profile = await apiFetch<MyProfileResponse>("/api/mypage", {
+          method: "GET",
+          auth: true,
+        })
 
-    setIsAuthReady(true)
+        setForm({
+          email: profile.email ?? "",
+          nickname: profile.nickname ?? "",
+        })
+      } catch (err) {
+        if (err instanceof Error && err.message === "UNAUTHORIZED") {
+          router.replace("/login")
+          return
+        }
+
+        console.error(err)
+        setError("프로필 정보를 불러오지 못했습니다.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchMyProfile()
   }, [router])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setError("")
-    setIsLoading(true)
+
+    if (!form.email.trim()) {
+      alert("이메일을 입력해주세요.")
+      return
+    }
+
+    if (!form.nickname.trim()) {
+      alert("닉네임을 입력해주세요.")
+      return
+    }
 
     try {
-      const nickname = formData.name.trim()
-      const email = formData.email.trim()
-      const username = formData.username.trim()
+      setSubmitting(true)
 
-      if (!nickname) {
-        throw new Error("닉네임을 입력해주세요.")
-      }
-
-      if (!email) {
-        throw new Error("이메일을 입력해주세요.")
-      }
-
-      const currentEmail = getAuthSnapshot().email
-      if (isNicknameTaken(nickname, currentEmail)) {
-        throw new Error("이미 사용 중인 닉네임입니다.")
-      }
-
-      saveCurrentUserProfile({
-        email,
-        nickname,
-        username: username || email.split("@")[0] || nickname.replace(/\s+/g, ""),
-        bio: formData.bio,
-        location: formData.location,
-        website: formData.website,
-        github: formData.github,
-        twitter: formData.twitter,
+      const updatedProfile = await apiFetch<MyProfileResponse>("/api/mypage", {
+        method: "PATCH",
+        auth: true,
+        body: JSON.stringify({
+          email: form.email.trim(),
+          nickname: form.nickname.trim(),
+        }),
       })
 
+      if (typeof window !== "undefined") {
+        const rawAuth = localStorage.getItem("auth")
+
+        if (rawAuth) {
+          const auth = JSON.parse(rawAuth)
+          localStorage.setItem(
+            "auth",
+            JSON.stringify({
+              ...auth,
+              email: updatedProfile.email,
+              nickname: updatedProfile.nickname,
+            })
+          )
+        }
+
+        window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
+      }
+
+      alert("프로필 수정이 완료되었습니다.")
       router.push("/mypage")
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "저장 중 오류가 발생했습니다.")
+      router.refresh()
+    } catch (err) {
+      if (err instanceof Error && err.message === "UNAUTHORIZED") {
+        router.replace("/login")
+        return
+      }
+
+      console.error(err)
+      alert(err instanceof Error ? err.message : "프로필 수정에 실패했습니다.")
     } finally {
-      setIsLoading(false)
+      setSubmitting(false)
     }
   }
 
-  if (!isAuthReady) {
-    return null
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
+          <p className="text-sm text-muted-foreground">로딩 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
+          <p className="text-sm text-red-500">{error}</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8 flex items-center gap-4">
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">프로필 수정</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            내 정보를 수정할 수 있습니다.
+          </p>
+        </div>
+
         <Link href="/mypage">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-5 w-5" />
+          <Button variant="outline" className="gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            마이페이지로
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold text-foreground">프로필 수정</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="flex items-center gap-6">
-          <div className="relative">
-            <Avatar className="h-24 w-24 border-4 border-primary/20">
-              <AvatarImage src="" alt={formData.name} />
-              <AvatarFallback className="bg-primary text-2xl text-primary-foreground">
-                {formData.name.slice(0, 2)}
-              </AvatarFallback>
-            </Avatar>
-            <button
-              type="button"
-              className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
-            >
-              <Camera className="h-4 w-4" />
-            </button>
-          </div>
-          <div>
-            <h3 className="font-semibold text-foreground">프로필 사진</h3>
-            <p className="text-sm text-muted-foreground">JPG, PNG 파일을 업로드하세요</p>
+      <div className="rounded-lg border border-border bg-card p-6">
+        <div className="flex flex-col items-start gap-6 sm:flex-row">
+          <Avatar className="h-24 w-24 border-4 border-primary/20">
+            <AvatarImage src="" alt={form.nickname || "사용자"} />
+            <AvatarFallback className="bg-primary text-2xl text-primary-foreground">
+              {(form.nickname || "사용자").slice(0, 2)}
+            </AvatarFallback>
+          </Avatar>
+
+          <div className="flex-1">
+            <div className="mb-4 flex flex-wrap items-center gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">
+                  {form.nickname || "사용자"}
+                </h2>
+              </div>
+              <Button variant="outline" className="gap-2" disabled>
+                <Settings className="h-4 w-4" />
+                프로필 편집 중
+              </Button>
+            </div>
+
+            <p className="leading-relaxed text-muted-foreground">
+              이메일과 닉네임을 수정한 뒤 저장 버튼을 누르면 마이페이지와 DB에 함께 반영됩니다.
+            </p>
           </div>
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="mb-6 text-lg font-semibold text-foreground">기본 정보</h2>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">닉네임</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="bg-secondary"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">이메일</Label>
-              <Input
+        <form onSubmit={handleSubmit} className="mt-8 space-y-6 border-t border-border pt-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <label
+                htmlFor="email"
+                className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground"
+              >
+                <Mail className="h-4 w-4" />
+                이메일
+              </label>
+              <input
                 id="email"
+                name="email"
                 type="email"
-                value={formData.email}
-                readOnly
-                disabled
-                className="bg-secondary"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="이메일을 입력하세요"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="bio">자기소개</Label>
-              <Textarea
-                id="bio"
-                rows={4}
-                value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                className="resize-none bg-secondary"
-                placeholder="자신을 소개해주세요"
-              />
-              <p className="text-xs text-muted-foreground">{formData.bio.length}/200자</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="location">위치</Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                className="bg-secondary"
-                placeholder="서울, 대한민국"
+            <div>
+              <label
+                htmlFor="nickname"
+                className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground"
+              >
+                <User className="h-4 w-4" />
+                닉네임
+              </label>
+              <input
+                id="nickname"
+                name="nickname"
+                type="text"
+                value={form.nickname}
+                onChange={handleChange}
+                placeholder="닉네임을 입력하세요"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary"
               />
             </div>
           </div>
-        </div>
 
-        <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="mb-6 text-lg font-semibold text-foreground">링크</h2>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="website">웹사이트</Label>
-              <Input
-                id="website"
-                type="url"
-                value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                className="bg-secondary"
-                placeholder="https://example.com"
-              />
-            </div>
+          <div className="flex gap-3 pt-2">
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {submitting ? "수정 중..." : "저장"}
+            </Button>
 
-            <div className="space-y-2">
-              <Label htmlFor="github">GitHub</Label>
-              <div className="flex items-center">
-                <span className="flex h-10 items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-sm text-muted-foreground">
-                  github.com/
-                </span>
-                <Input
-                  id="github"
-                  value={formData.github}
-                  onChange={(e) => setFormData({ ...formData, github: e.target.value })}
-                  className="rounded-l-none bg-secondary"
-                  placeholder="username"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="twitter">Twitter</Label>
-              <div className="flex items-center">
-                <span className="flex h-10 items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-sm text-muted-foreground">
-                  twitter.com/
-                </span>
-                <Input
-                  id="twitter"
-                  value={formData.twitter}
-                  onChange={(e) => setFormData({ ...formData, twitter: e.target.value })}
-                  className="rounded-l-none bg-secondary"
-                  placeholder="username"
-                />
-              </div>
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push("/mypage")}
+            >
+              취소
+            </Button>
           </div>
-        </div>
-
-        <div className="flex justify-end gap-4">
-          <Link href="/mypage">
-            <Button variant="outline">취소</Button>
-          </Link>
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <Save className="h-4 w-4" />
-            {isLoading ? "저장 중..." : "저장하기"}
-          </Button>
-        </div>
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      </form>
+        </form>
+      </div>
     </div>
   )
 }
