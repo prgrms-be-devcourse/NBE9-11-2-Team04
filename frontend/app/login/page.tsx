@@ -11,6 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { login } from "@/lib/interaction";
 import { persistLoginSession } from "@/lib/auth-storage";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+
 export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -34,7 +36,7 @@ export default function LoginPage() {
       });
 
       if (!data.accessToken) {
-        throw new Error("토큰이 응답에 없습니다.");
+        throw new Error("토큰 응답이 없습니다.");
       }
 
       persistLoginSession(data.accessToken, data.nickname, data.email);
@@ -44,6 +46,11 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGithubLogin = () => {
+    setError("");
+    window.location.href = `${API_BASE_URL}/oauth2/authorization/github`;
   };
 
   return (
@@ -144,7 +151,12 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-3">
-            <Button variant="outline" className="w-full gap-2" type="button">
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              type="button"
+              onClick={handleGithubLogin}
+            >
               <Github className="h-4 w-4" />
               GitHub으로 로그인
             </Button>
