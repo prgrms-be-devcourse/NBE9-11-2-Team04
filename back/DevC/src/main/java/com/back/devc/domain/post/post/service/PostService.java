@@ -6,8 +6,10 @@ import com.back.devc.domain.post.category.entity.Category;
 import com.back.devc.domain.post.category.repository.CategoryRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
+import com.back.devc.domain.post.post.type.PostSortType;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,7 @@ public class PostService {
     private final MemberRepository memberRepository;
     private final CategoryRepository categoryRepository;
 
+    // 게시글 작성
     public Post write(Long userId, Long categoryId, String title, String content) {
         Member member = memberRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
@@ -39,32 +42,102 @@ public class PostService {
         return postRepository.save(post);
     }
 
+    // 전체 조회 (최신순)
     @Transactional(readOnly = true)
     public List<Post> findAll() {
-        return postRepository.findAll();
+        return postRepository.findAllByOrderByCreatedAtDesc();
     }
 
+    // 단건 조회
     @Transactional(readOnly = true)
     public Post findById(Long postId) {
         return postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
     }
 
-    public Post update(Long postId, String title, String content, Long categoryId) {
+    // 게시글 목록 조회 (페이징 + 정렬 + 카테고리 필터)
+    @Transactional(readOnly = true)
+    public Page<Post> getPosts(Long categoryId, PostSortType sort, int page, int size) {
+
+        Sort jpaSort = switch (sort) {
+            case views -> Sort.by(
+                    Sort.Order.desc("viewCount"),
+                    Sort.Order.desc("createdAt")
+            );
+            case likes -> Sort.by(
+                    Sort.Order.desc("likeCount"),
+                    Sort.Order.desc("createdAt")
+            );
+            default -> Sort.by(Sort.Order.desc("createdAt"));
+        };
+
+        Pageable pageable = PageRequest.of(page, size, jpaSort);
+
+        if (categoryId != null) {
+            if (!categoryRepository.existsById(categoryId)) {
+                throw new EntityNotFoundException("존재하지 않는 카테고리입니다.");
+            }
+            return postRepository.findByCategoryCategoryIdAndIsDeletedFalse(categoryId, pageable);
+        }
+
+        return postRepository.findByIsDeletedFalse(pageable);
+    }
+
+    // 조회수 증가
+    @Transactional
+    public void increaseViewCount(Long postId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
+                .orElseThrow(() -> new EntityNotFoundException("게시글이 존재하지 않습니다."));
+
+        post.increaseViewCount();
+    }
+
+    // 댓글 수 증가
+    @Transactional
+    public void increaseCommentCount(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("게시글이 존재하지 않습니다."));
+
+        post.increaseCommentCount();
+    }
+
+    // 수정
+    public Post update(Long memberId, Long postId, String title, String content, Long categoryId) {
+
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다."));
+
+        if (!post.getMember().getUserId().equals(memberId)) {
+            throw new RuntimeException("수정 권한이 없습니다.");
+        }
+
+        if (post.isDeleted()) {
+            throw new EntityNotFoundException("삭제된 게시글입니다.");
+        }
 
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new EntityNotFoundException("카테고리를 찾을 수 없습니다. id=" + categoryId));
+                .orElseThrow(() -> new EntityNotFoundException("카테고리를 찾을 수 없습니다."));
 
         post.update(title, content, category);
         return post;
     }
 
-    public void delete(Long postId) {
+    // 삭제 (soft delete)
+    public void delete(Long memberId, Long postId) {
+
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
+                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다."));
+
+        if (!post.getMember().getUserId().equals(memberId)) {
+            throw new RuntimeException("삭제 권한이 없습니다.");
+        }
+
+        if (post.isDeleted()) {
+            throw new EntityNotFoundException("삭제된 게시글입니다.");
+        }
 
         post.delete();
     }
+
+
 }
