@@ -35,6 +35,10 @@ export type SignUpData = {
   status: string;
 };
 
+export type OAuthSignupCompleteRequest = {
+  nickname: string;
+};
+
 export async function login(body: LoginRequest): Promise<LoginData> {
   const res = await apiFetch<SuccessResponse<LoginData>>("/api/auth/login", {
     method: "POST",
@@ -49,6 +53,20 @@ export async function signup(body: SignUpRequest): Promise<SignUpData> {
     method: "POST",
     body: JSON.stringify(body),
   });
+
+  return res.data;
+}
+
+export async function completeOAuthSignup(
+  body: OAuthSignupCompleteRequest
+): Promise<SignUpData> {
+  const res = await apiFetch<SuccessResponse<SignUpData>>(
+    "/api/auth/oauth/signup/complete",
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    }
+  );
 
   return res.data;
 }
