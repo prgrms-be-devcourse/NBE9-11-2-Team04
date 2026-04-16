@@ -52,7 +52,7 @@ class MypageControllerTest {
         String accessToken = createAccessToken(member);
 
         mockMvc.perform(
-                        get("/users/me")
+                        get("/api/mypage")
                                 .header("Authorization", "Bearer " + accessToken)
                 )
                 .andDo(print())
@@ -75,7 +75,7 @@ class MypageControllerTest {
                 """;
 
         mockMvc.perform(
-                        patch("/users/me")
+                        patch("/api/mypage")
                                 .header("Authorization", "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestBody)
@@ -100,7 +100,7 @@ class MypageControllerTest {
                 """;
 
         mockMvc.perform(
-                        patch("/users/me")
+                        patch("/api/mypage")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestBody)
                 )
@@ -118,7 +118,7 @@ class MypageControllerTest {
                 """;
 
         mockMvc.perform(
-                        patch("/users/me")
+                        patch("/api/mypage")
                                 .header("Authorization", "Bearer invalid.jwt.token")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestBody)
@@ -140,7 +140,7 @@ class MypageControllerTest {
                 """;
 
         mockMvc.perform(
-                        patch("/users/me")
+                        patch("/api/mypage")
                                 .header("Authorization", "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestBody)
