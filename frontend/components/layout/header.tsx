@@ -1,6 +1,7 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Bell, Search, User, Menu, X, PenSquare, Code2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,15 +12,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { AUTH_CHANGED_EVENT, clearLoginSession, getAuthSnapshot } from "@/lib/auth-storage"
 
 const categories = [
   { name: "IT 기술 정보", href: "/category/tech" },
   { name: "취업 시장 정보", href: "/category/job-market" },
-  { name: "개발자 트렌드", href: "/category/trend" },
+  { name: "개발 트렌드", href: "/category/trend" },
   { name: "자유 주제", href: "/category/free" },
 ]
 
-const API_BASE_URL = "http://localhost:8080"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
 
 type HeaderNotificationItem = {
   notificationId: number
@@ -35,17 +37,41 @@ function isNotificationUnread(notification: HeaderNotificationItem) {
   return !(notification.isRead ?? notification.read ?? false)
 }
 
-function dispatchNotificationsUpdated() {
-  if (typeof window === "undefined") {
-    return
-  }
-
-  window.dispatchEvent(new CustomEvent("notifications-updated"))
-}
-
 export function Header() {
+  const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [nickname, setNickname] = useState("")
+
+  useEffect(() => {
+    const syncAuthState = () => {
+      const auth = getAuthSnapshot()
+      setIsLoggedIn(auth.isLoggedIn)
+      setNickname(auth.nickname ?? "")
+    }
+
+    syncAuthState()
+
+    const handleStorage = () => {
+      syncAuthState()
+    }
+
+    window.addEventListener("storage", handleStorage)
+    window.addEventListener(AUTH_CHANGED_EVENT, handleStorage as EventListener)
+
+    return () => {
+      window.removeEventListener("storage", handleStorage)
+      window.removeEventListener(AUTH_CHANGED_EVENT, handleStorage as EventListener)
+    }
+  }, [])
+
+  const handleLogout = () => {
+    clearLoginSession()
+    setMobileMenuOpen(false)
+    router.push("/")
+    router.refresh()
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -71,11 +97,9 @@ export function Header() {
 
         setHasUnreadNotifications(data.notifications.some(isNotificationUnread))
       } catch {
-        if (!isMounted) {
-          return
+        if (isMounted) {
+          setHasUnreadNotifications(false)
         }
-
-        setHasUnreadNotifications(false)
       }
     }
 
@@ -95,15 +119,12 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <Code2 className="h-7 w-7 text-primary" />
           <span className="text-xl font-bold text-foreground">DevConnect</span>
         </Link>
 
-        {/* Desktop Navigation */}
         <nav className="hidden items-center gap-6 md:flex">
-          {/* Categories Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
@@ -119,29 +140,18 @@ export function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Link
-            href="/popular"
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
+          <Link href="/popular" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
             인기글
           </Link>
-          <Link
-            href="/latest"
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
+          <Link href="/latest" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
             최신글
           </Link>
-          <Link
-            href="/feed"
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
+          <Link href="/feed" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
             피드
           </Link>
         </nav>
 
-        {/* Actions */}
         <div className="flex items-center gap-2">
-          {/* Search */}
           <Link href="/search">
             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
               <Search className="h-5 w-5" />
@@ -149,8 +159,7 @@ export function Header() {
             </Button>
           </Link>
 
-          {/* Notifications */}
-          <Link href="/notifications">
+          <Link href={isLoggedIn ? "/notifications" : "/login"}>
             <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
               <Bell className="h-5 w-5" />
               {hasUnreadNotifications ? (
@@ -160,43 +169,59 @@ export function Header() {
             </Button>
           </Link>
 
-          {/* Write Post Button */}
-          <Link href="/write" className="hidden sm:block">
+          <Link href={isLoggedIn ? "/write" : "/login"} className="hidden sm:block">
             <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
               <PenSquare className="h-4 w-4" />
               글 쓰기
             </Button>
           </Link>
 
-          {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+              <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground">
                 <User className="h-5 w-5" />
+                {isLoggedIn ? (
+                  <span className="max-w-24 truncate text-sm">{nickname || "사용자"}</span>
+                ) : null}
                 <span className="sr-only">마이페이지</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
+              {isLoggedIn ? (
+                <>
+                  <DropdownMenuItem disabled className="font-medium">
+                    {nickname || "사용자"}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              ) : null}
+
               <DropdownMenuItem asChild>
-                <Link href="/mypage">마이페이지</Link>
+                <Link href={isLoggedIn ? "/mypage" : "/login"}>마이페이지</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/mypage/posts">내 글 보기</Link>
+                <Link href={isLoggedIn ? "/mypage/posts" : "/login"}>내 글 보기</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/mypage/edit">프로필 수정</Link>
+                <Link href={isLoggedIn ? "/mypage/edit" : "/login"}>프로필 수정</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/login">로그인</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/signup">회원가입</Link>
-              </DropdownMenuItem>
+
+              {isLoggedIn ? (
+                <DropdownMenuItem onSelect={handleLogout}>로그아웃</DropdownMenuItem>
+              ) : (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href="/login">로그인</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/signup">회원가입</Link>
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Mobile Menu Button */}
           <Button
             variant="ghost"
             size="icon"
@@ -209,7 +234,6 @@ export function Header() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="border-t border-border bg-background md:hidden">
           <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
@@ -235,10 +259,9 @@ export function Header() {
               >
                 피드
               </Link>
+
               <div className="border-t border-border pt-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  카테고리
-                </p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">카테고리</p>
                 <div className="flex flex-wrap gap-2">
                   {categories.map((category) => (
                     <Link
@@ -252,12 +275,37 @@ export function Header() {
                   ))}
                 </div>
               </div>
-              <Link href="/write" onClick={() => setMobileMenuOpen(false)}>
+
+              <Link href={isLoggedIn ? "/write" : "/login"} onClick={() => setMobileMenuOpen(false)}>
                 <Button className="w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
                   <PenSquare className="h-4 w-4" />
                   글 쓰기
                 </Button>
               </Link>
+
+              <div className="border-t border-border pt-4">
+                {isLoggedIn ? (
+                  <>
+                    <p className="mb-3 text-sm text-foreground">{nickname || "사용자"}님</p>
+                    <Button type="button" variant="outline" className="w-full" onClick={handleLogout}>
+                      로그아웃
+                    </Button>
+                  </>
+                ) : (
+                  <div className="flex gap-2">
+                    <Link href="/login" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
+                      <Button type="button" variant="outline" className="w-full">
+                        로그인
+                      </Button>
+                    </Link>
+                    <Link href="/signup" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
+                      <Button type="button" className="w-full">
+                        회원가입
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
             </nav>
           </div>
         </div>

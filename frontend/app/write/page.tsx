@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Save, Eye, ImagePlus, Code, Link2, Bold, Italic, List, ListOrdered, Quote } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import Link from "next/link"
+import { getAuthSnapshot } from "@/lib/auth-storage"
 
 const categories = [
   "IT 기술 정보",
@@ -27,12 +28,23 @@ export default function WritePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [isPreview, setIsPreview] = useState(false)
+  const [isAuthReady, setIsAuthReady] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
     category: "",
     tags: "",
     content: "",
   })
+
+  useEffect(() => {
+    const auth = getAuthSnapshot()
+    if (!auth.isLoggedIn) {
+      router.replace("/login")
+      return
+    }
+
+    setIsAuthReady(true)
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -86,6 +98,10 @@ export default function WritePage() {
       insertion +
       formData.content.substring(end)
     setFormData({ ...formData, content: newContent })
+  }
+
+  if (!isAuthReady) {
+    return null
   }
 
   return (
