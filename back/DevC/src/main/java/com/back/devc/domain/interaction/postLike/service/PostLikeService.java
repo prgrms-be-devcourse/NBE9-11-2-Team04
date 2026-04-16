@@ -8,6 +8,7 @@ import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
+import com.back.devc.domain.interaction.notification.service.NotificationService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ public class PostLikeService {
     private final PostLikeRepository postLikeRepository;
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public PostLikeResponse createLike(Long userId, Long postId) {
@@ -40,6 +42,7 @@ public class PostLikeService {
         postLikeRepository.save(postLike);
 
         post.increaseLikeCount();
+        notificationService.createPostLikeNotification(postId, userId);
 
         return new PostLikeResponse(post.getPostId(), true, post.getLikeCount());
     }
