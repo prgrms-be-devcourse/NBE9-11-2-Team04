@@ -37,7 +37,7 @@ export function getAuthSnapshot(): AuthSnapshot {
     token,
     nickname,
     email,
-    isLoggedIn: Boolean(token),
+    isLoggedIn: Boolean(token || email),
   }
 }
 
@@ -195,6 +195,10 @@ export function saveCurrentUserProfile(nextProfile: UserProfile): void {
   if (auth.token) {
     persistLoginSession(auth.token, nextProfile.nickname, nextEmail)
   } else {
+    if (nextProfile.nickname.trim()) {
+      localStorage.setItem(AUTH_NICKNAME_KEY, nextProfile.nickname.trim())
+    }
+    localStorage.setItem(AUTH_EMAIL_KEY, nextEmail)
     notifyAuthChanged()
   }
 }

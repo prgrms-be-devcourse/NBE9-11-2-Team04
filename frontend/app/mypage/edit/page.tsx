@@ -51,13 +51,6 @@ export default function MyPageEditPage() {
   const [error, setError] = useState("")
 
   useEffect(() => {
-    const auth = getAuthSnapshot()
-
-    if (!auth.token) {
-      router.replace("/login")
-      return
-    }
-
     const fetchMyProfile = async () => {
       try {
         setLoading(true)

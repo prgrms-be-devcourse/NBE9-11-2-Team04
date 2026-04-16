@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { completeOAuthSignup } from "@/lib/interaction";
-import { persistLoginSession } from "@/lib/auth-storage";
 
 export default function OAuthSignupPage() {
   const router = useRouter();
@@ -30,10 +29,22 @@ export default function OAuthSignupPage() {
     try {
       const data = await completeOAuthSignup({ nickname: trimmed });
 
-      // 현재 UI 로그인 상태 로직과 맞추기 위한 임시 세션 값
-      persistLoginSession("oauth-cookie-session", data.nickname, data.email);
+      if (typeof window !== "undefined") {
+        const rawUserProfile = localStorage.getItem("userProfile");
+        const existingUserProfile = rawUserProfile ? JSON.parse(rawUserProfile) : {};
+
+        localStorage.setItem(
+          "userProfile",
+          JSON.stringify({
+            ...existingUserProfile,
+            email: data.email,
+            nickname: data.nickname,
+          })
+        );
+      }
 
       router.replace("/");
+      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "닉네임 저장에 실패했습니다.");
     } finally {
