@@ -30,6 +30,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private static final String ERROR_INVALID_PRINCIPAL = "OAUTH2_INVALID_PRINCIPAL";
     private static final String ERROR_MEMBER_BLACKLISTED = "OAUTH2_MEMBER_BLACKLISTED";
+    private static final String ERROR_UNSUPPORTED_PROVIDER = "OAUTH2_UNSUPPORTED_PROVIDER";
     private static final String ERROR_TOKEN_ISSUE = "OAUTH2_TOKEN_ISSUE";
 
     private final OAuth2MemberService oAuth2MemberService;
@@ -64,10 +65,15 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             provider = oauth2Token.getAuthorizedClientRegistrationId();
         }
 
-        try {
-            OAuthPendingSignup pending = oAuth2MemberService.buildGithubPendingSignup(oauth2User);
+        if (!isSupportedProvider(provider)) {
+            response.sendRedirect(redirectUrlResolver.buildFailureUrl(ERROR_UNSUPPORTED_PROVIDER));
+            return;
+        }
 
-            Optional<Member> existing = oAuth2MemberService.findGithubMemberByProviderUserId(pending.providerUserId());
+        try {
+            OAuthPendingSignup pending = oAuth2MemberService.buildPendingSignup(provider, oauth2User);
+
+            Optional<Member> existing = oAuth2MemberService.findMemberByProviderUserId(provider, pending.providerUserId());
             if (existing.isPresent()) {
                 Member member = existing.get();
 
@@ -97,5 +103,9 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         } catch (Exception e) {
             response.sendRedirect(redirectUrlResolver.buildFailureUrl(ERROR_TOKEN_ISSUE));
         }
+    }
+
+    private boolean isSupportedProvider(String provider) {
+        return "github".equalsIgnoreCase(provider) || "kakao".equalsIgnoreCase(provider);
     }
 }
