@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -27,6 +29,18 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     @Value("${custom.oauth2.frontend-success-url:http://localhost:3000/login}")
     private String frontendSuccessUrl;
+
+    @Value("${custom.jwt.access-token-expiration-seconds:3600}")
+    private long accessTokenExpirationSeconds;
+
+    @Value("${custom.jwt.access-cookie-name:access_token}")
+    private String accessCookieName;
+
+    @Value("${custom.jwt.access-cookie-secure:false}")
+    private boolean accessCookieSecure;
+
+    @Value("${custom.jwt.access-cookie-same-site:Lax}")
+    private String accessCookieSameSite;
 
     @Override
     public void onAuthenticationSuccess(
@@ -54,13 +68,22 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
             String accessToken = jwtProvider.createAccessToken(member);
 
+            ResponseCookie accessCookie = ResponseCookie.from(accessCookieName, accessToken)
+                    .httpOnly(true)
+                    .secure(accessCookieSecure)
+                    .path("/")
+                    .maxAge(accessTokenExpirationSeconds)
+                    .sameSite(accessCookieSameSite)
+                    .build();
+
+            response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+
             String redirectUrl = UriComponentsBuilder.fromUriString(frontendSuccessUrl)
                     .queryParam("oauth", "success")
                     .queryParam("provider", provider)
                     .queryParam("userId", member.getUserId())
                     .queryParam("email", member.getEmail())
                     .queryParam("nickname", member.getNickname())
-                    .queryParam("accessToken", accessToken)
                     .build(true)
                     .toUriString();
 
