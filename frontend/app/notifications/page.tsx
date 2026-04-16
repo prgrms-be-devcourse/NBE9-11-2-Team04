@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Bell, MessageCircle, Heart, UserPlus, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { getAuthSnapshot } from "@/lib/auth-storage"
 
 const API_BASE_URL = "http://localhost:8080"
 
@@ -109,10 +111,22 @@ function formatRelativeDate(createdAt: string) {
 }
 
 export default function NotificationsPage() {
+  const router = useRouter()
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [activeTab, setActiveTab] = useState("all")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isAuthReady, setIsAuthReady] = useState(false)
+
+  useEffect(() => {
+    const auth = getAuthSnapshot()
+    if (!auth.isLoggedIn) {
+      router.replace("/login")
+      return
+    }
+
+    setIsAuthReady(true)
+  }, [router])
 
   const loadNotifications = async () => {
     try {
@@ -139,8 +153,12 @@ export default function NotificationsPage() {
   }
 
   useEffect(() => {
+    if (!isAuthReady) {
+      return
+    }
+
     void loadNotifications()
-  }, [])
+  }, [isAuthReady])
 
   const markAllAsRead = async () => {
     const unreadNotifications = notifications.filter((notification) => !notification.isRead)
@@ -220,6 +238,10 @@ export default function NotificationsPage() {
       default:
         return notifications
     }
+  }
+
+  if (!isAuthReady) {
+    return null
   }
 
   return (

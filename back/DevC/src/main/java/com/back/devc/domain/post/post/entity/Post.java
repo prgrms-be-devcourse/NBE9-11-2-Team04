@@ -43,8 +43,8 @@ public class Post {
     private String content;
 
     private int viewCount;
-    private long likeCount;
-    private long commentCount;
+    private int likeCount;
+    private int commentCount;
 
     private boolean isDeleted;
 

@@ -7,6 +7,7 @@ import com.back.devc.domain.post.category.repository.CategoryRepository;
 import com.back.devc.domain.post.post.dto.PostCreateRequest;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
+import com.back.devc.global.security.jwt.JwtPrincipal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,11 +15,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -33,16 +41,12 @@ class PostControllerTest {
 
     @Autowired
     private MockMvc mvc;
-
     @Autowired
     private ObjectMapper objectMapper;
-
     @Autowired
     private MemberRepository memberRepository;
-
     @Autowired
     private CategoryRepository categoryRepository;
-
     @Autowired
     private PostRepository postRepository;
 
@@ -62,11 +66,27 @@ class PostControllerTest {
                         "testUser"
                 )
         );
-        // 테스트를 위해, categoryInitData에서 생성된 카테고리 중 첫번째 카테고리 가져옴
-        category = categoryRepository.findAll()
-                .stream()
-                .findFirst()
-                .orElseThrow();
+
+        category = new Category("테스트 자유");
+        category = categoryRepository.save(category);
+    }
+
+    private void setAuthentication() {
+        JwtPrincipal principal = new JwtPrincipal(
+                member.getUserId(),
+                member.getEmail(),
+                "USER"
+        );
+
+        Authentication auth = new UsernamePasswordAuthenticationToken(
+                principal,
+                null,
+                List.of(new SimpleGrantedAuthority("ROLE_USER"))
+        );
+
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(auth);
+        SecurityContextHolder.setContext(context);
     }
 
     // =========================
@@ -76,6 +96,7 @@ class PostControllerTest {
     @DisplayName("게시글 생성")
     void t1() throws Exception {
 
+        setAuthentication();
         PostCreateRequest request = new PostCreateRequest(
                 "테스트글",
                 "테스트내용입니다.",
@@ -98,20 +119,30 @@ class PostControllerTest {
     // LIST
     // =========================
     @Test
-    @DisplayName("게시글 전체 조회")
+    @DisplayName("게시글 전체 조회 - 관리자용 (삭제 포함, 개수 유지)")
     void t2() throws Exception {
 
-        Post post = postRepository.save(
-                new Post(member, category, "테스트2", "테스트2내용")
+        Post post1 = postRepository.save(
+                new Post(member, category, "글1", "내용1")
+        );
+        Post post2 = postRepository.save(
+                new Post(member, category, "글2", "내용2")
+        );
+        Post post3 = postRepository.save(
+                new Post(member, category, "글3", "내용3")
         );
 
-        mvc.perform(get("/api/v1/posts"))
+        // post2 삭제 처리 (soft delete)
+        post2.delete();
+        postRepository.flush(); // DB 반영
+
+        // when & then
+        mvc.perform(get("/api/v1/posts/admin"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].title").value("테스트2"));
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[1].isDeleted").value(true));
     }
-
     // =========================
     // DETAIL
     // =========================
@@ -136,6 +167,7 @@ class PostControllerTest {
     @DisplayName("게시글 수정")
     void t4() throws Exception {
 
+        setAuthentication();
         Post post = postRepository.save(
                 new Post(member, category, "수정 전 제목", "수정 전 내용")
         );
@@ -163,6 +195,7 @@ class PostControllerTest {
     @DisplayName("게시글 삭제")
     void t5() throws Exception {
 
+        setAuthentication();
         Post post = postRepository.save(
                 new Post(member, category, "title", "content")
         );
@@ -176,4 +209,230 @@ class PostControllerTest {
         assertThat(deleted.isDeleted()).isTrue();
         //삭제 후 isDeleted의 값이 true로 변경됨을 보여줌
     }
+
+    // =========================
+    // 최신순, 좋아요순, 조회수순
+    // =========================
+
+
+    @Test
+    @DisplayName("게시글 최신순 조회")
+    void t6() throws Exception {
+
+        // given (게시글 2개 생성)
+        Post post1 = postRepository.save(
+                new Post(member, category, "첫번째", "내용1")
+        );
+
+        Thread.sleep(10); // 시간 차이 주기 (createdAt 다르게)
+
+        Post post2 = postRepository.save(
+                new Post(member, category, "두번째", "내용2")
+        );
+
+        // when & then (최신순 조회)
+        mvc.perform(get("/api/v1/posts")
+                        .param("sort", "latest")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                // 최신 글이 먼저 와야 함
+                .andExpect(jsonPath("$.content[0].title").value("두번째"))
+                .andExpect(jsonPath("$.content[1].title").value("첫번째"));
+    }
+
+
+    @Test
+    @DisplayName("게시글 좋아요순 조회, 만약 좋아요 개수가 같은경우 최신순으로 보여줌")
+    void t7() throws Exception {
+
+        // given
+        Post post1 = postRepository.save(new Post(member, category, "제목1", "내용1"));
+        Thread.sleep(10); // createdAt 차이
+        Post post2 = postRepository.save(new Post(member, category, "제목2", "내용2"));
+        Thread.sleep(10);
+        Post post3 = postRepository.save(new Post(member, category, "제목3", "내용3"));
+
+        // 좋아요 증가
+        for (int i = 0; i < 5; i++) post1.increaseLikeCount(); //제목1
+        for (int i = 0; i < 10; i++) post2.increaseLikeCount(); // 제목2
+        for (int i = 0; i < 5; i++) post3.increaseLikeCount(); //제목3
+
+        postRepository.flush();
+
+        // when
+        ResultActions result = mvc.perform(get("/api/v1/posts")
+                .param("sort", "likes")
+                .param("page", "0")
+                .param("size", "10")
+        );
+
+        // then
+        result.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].title").value("제목2")) // 좋아요 10
+                .andExpect(jsonPath("$.content[1].title").value("제목3")) // 좋아요 5 + 최신
+                .andExpect(jsonPath("$.content[2].title").value("제목1")); // 좋아요 5 + 오래됨
+    }
+
+
+    @Test
+    @DisplayName("게시글 조회수 순서 조회, 만약 조회수 개수가 같은경우 최신순으로 보여준다")
+    void t8() throws Exception {
+
+        // given
+        Post post1 = postRepository.save(new Post(member, category, "제목1", "내용1"));
+        Thread.sleep(10);
+        Post post2 = postRepository.save(new Post(member, category, "제목2", "내용2"));
+        Thread.sleep(10);
+        Post post3 = postRepository.save(new Post(member, category, "제목3", "내용3"));
+
+        // 조회수 증가
+        for (int i = 0; i < 5; i++) post1.increaseViewCount();
+        for (int i = 0; i < 10; i++) post2.increaseViewCount();
+        for (int i = 0; i < 5; i++) post3.increaseViewCount();
+
+        postRepository.flush();
+
+        // when
+        ResultActions result = mvc.perform(get("/api/v1/posts")
+                .param("sort", "views")
+                .param("page", "0")
+                .param("size", "10")
+        );
+
+        // then
+        result.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].title").value("제목2")) // 조회수 10
+                .andExpect(jsonPath("$.content[1].title").value("제목3")) // 조회수 5 + 최신
+                .andExpect(jsonPath("$.content[2].title").value("제목1")); // 조회수 5 + 오래됨
+    }
+
+
+    @Test
+    @DisplayName("게시글 카테고리별 조회")
+    void t9() throws Exception {
+
+        // given
+        Category category2 = categoryRepository.save(new Category("테스트 공지"));
+
+        // category1 게시글
+        postRepository.save(new Post(member, category, "자유1", "내용1"));
+        postRepository.save(new Post(member, category, "자유2", "내용2"));
+
+        // category2 게시글
+        postRepository.save(new Post(member, category2, "공지1", "내용3"));
+
+        // when & then
+        mvc.perform(get("/api/v1/posts")
+                        .param("categoryId", String.valueOf(category.getCategoryId()))
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                // category1 글만 2개 나와야 함
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].categoryId").value(category.getCategoryId()))
+                .andExpect(jsonPath("$.content[1].categoryId").value(category.getCategoryId()));
+    }
+
+    @Test
+    @DisplayName("카테고리 + 최신순 조회")
+    void t10() throws Exception {
+
+        // given
+        Category category2 = categoryRepository.save(new Category("공지"));
+
+        Post p1 = postRepository.save(new Post(member, category, "자유1", "내용1"));
+        Thread.sleep(10);
+        Post p2 = postRepository.save(new Post(member, category, "자유2", "내용2"));
+
+        // 다른 카테고리
+        postRepository.save(new Post(member, category2, "공지1", "내용3"));
+
+        // when & then
+        mvc.perform(get("/api/v1/posts")
+                        .param("categoryId", String.valueOf(category.getCategoryId()))
+                        .param("sort", "latest")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                // 최신순 → p2 먼저
+                .andExpect(jsonPath("$.content[0].title").value("자유2"))
+                .andExpect(jsonPath("$.content[1].title").value("자유1"));
+    }
+
+    @Test
+    @DisplayName("카테고리 + 좋아요순 조회")
+    void t11() throws Exception {
+
+        // given
+        Category category2 = categoryRepository.save(new Category("공지"));
+
+        Post p1 = postRepository.save(new Post(member, category, "자유1", "내용1"));
+        Post p2 = postRepository.save(new Post(member, category, "자유2", "내용2"));
+
+        // 좋아요 차이
+        for (int i = 0; i < 5; i++) p1.increaseLikeCount();
+        for (int i = 0; i < 10; i++) p2.increaseLikeCount();
+
+        // 다른 카테고리
+        Post other = postRepository.save(new Post(member, category2, "공지1", "내용3"));
+        for (int i = 0; i < 100; i++) other.increaseLikeCount();
+
+        postRepository.flush();
+
+        // when & then
+        mvc.perform(get("/api/v1/posts")
+                        .param("categoryId", String.valueOf(category.getCategoryId()))
+                        .param("sort", "likes")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                // 좋아요 많은 p2 먼저
+                .andExpect(jsonPath("$.content[0].title").value("자유2"))
+                .andExpect(jsonPath("$.content[1].title").value("자유1"));
+    }
+
+    @Test
+    @DisplayName("카테고리 + 조회수순 조회")
+    void t12() throws Exception {
+
+        // given
+        Category category2 = categoryRepository.save(new Category("공지"));
+
+        Post p1 = postRepository.save(new Post(member, category, "자유1", "내용1"));
+        Post p2 = postRepository.save(new Post(member, category, "자유2", "내용2"));
+
+        // 조회수 차이
+        for (int i = 0; i < 5; i++) p1.increaseViewCount();
+        for (int i = 0; i < 10; i++) p2.increaseViewCount();
+
+        // 다른 카테고리
+        Post other = postRepository.save(new Post(member, category2, "공지1", "내용3"));
+        for (int i = 0; i < 100; i++) other.increaseViewCount();
+
+        postRepository.flush();
+
+        // when & then
+        mvc.perform(get("/api/v1/posts")
+                        .param("categoryId", String.valueOf(category.getCategoryId()))
+                        .param("sort", "views")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                // 조회수 많은 p2 먼저
+                .andExpect(jsonPath("$.content[0].title").value("자유2"))
+                .andExpect(jsonPath("$.content[1].title").value("자유1"));
+    }
+
+
 }
