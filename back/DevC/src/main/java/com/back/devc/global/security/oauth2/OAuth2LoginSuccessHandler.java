@@ -82,6 +82,12 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                     return;
                 }
 
+                // 기존 회원 로그인 성공 시, 남아 있을 수 있는 pending signup 세션 정리
+                HttpSession session = request.getSession(false);
+                if (session != null) {
+                    session.removeAttribute(PENDING_SIGNUP_SESSION_KEY);
+                }
+
                 String accessToken = jwtProvider.createAccessToken(member);
                 ResponseCookie accessCookie = ResponseCookie.from(accessCookieName, accessToken)
                         .httpOnly(true)
