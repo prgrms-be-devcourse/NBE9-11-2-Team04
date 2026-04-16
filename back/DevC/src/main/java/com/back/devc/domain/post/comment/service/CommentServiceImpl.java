@@ -9,6 +9,8 @@ import com.back.devc.domain.post.comment.dto.CommentUpdateRequest;
 import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.repository.PostRepository;
+import com.back.devc.domain.member.member.repository.MemberRepository;
+import com.back.devc.domain.member.member.entity.Member;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ import java.util.Map;
 public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
+    private final MemberRepository memberRepository;
     private final PostRepository postRepository;
     private final NotificationService notificationService;
 
@@ -147,12 +150,18 @@ public class CommentServiceImpl implements CommentService {
         }
     }
 
+    private String findNickname(Long userId) {
+        return memberRepository.findById(userId)
+                .map(Member::getNickname)
+                .orElse(null);
+    }
+
     private CommentResponse toResponse(Comment comment) {
         return CommentResponse.of(
                 comment.getId(),
                 comment.getPostId(),
                 comment.getUserId(),
-                null,
+                findNickname(comment.getUserId()),
                 comment.getParentCommentId(),
                 comment.getContent(),
                 comment.isDeleted(),
