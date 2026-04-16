@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @RestController
@@ -98,7 +99,7 @@ public class OAuth2Controller {
             throw new ApiException(ErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED);
         }
 
-        Member member = oAuth2MemberService.completeGithubSignup(pending, request.nickname());
+        Member member = completeByProvider(pending, request.nickname());
 
         String accessToken = jwtProvider.createAccessToken(member);
         ResponseCookie accessCookie = ResponseCookie.from(accessCookieName, accessToken)
@@ -122,4 +123,17 @@ public class OAuth2Controller {
                 .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
                 .body(SuccessResponse.of(successCode, body));
     }
+
+    private Member completeByProvider(OAuthPendingSignup pending, String nickname) {
+        String provider = pending.provider() == null ? "" : pending.provider().trim().toLowerCase(Locale.ROOT);
+
+        if ("github".equals(provider)) {
+            return oAuth2MemberService.completeGithubSignup(pending, nickname);
+        } else if ("kakao".equals(provider)) {
+            return oAuth2MemberService.completeKakaoSignup(pending, nickname);
+        }
+
+        throw new ApiException(ErrorCode.BAD_REQUEST);
+    }
+
 }
