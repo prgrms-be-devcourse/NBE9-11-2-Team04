@@ -1,11 +1,11 @@
-"use client"
+﻿"use client"
 
 import { ChangeEvent, FormEvent, useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Settings, Mail, User, ArrowLeft } from "lucide-react"
+import { Settings, Mail, User, ArrowLeft, MapPin, Link as LinkIcon, Github, Twitter, FileText } from "lucide-react"
 import { apiFetch } from "@/lib/api"
 import { AUTH_CHANGED_EVENT, getAuthSnapshot } from "@/lib/auth-storage"
 
@@ -22,6 +22,14 @@ type UpdateMyProfileRequest = {
   nickname: string
 }
 
+type LocalProfileForm = {
+  bio: string
+  location: string
+  website: string
+  github: string
+  twitter: string
+}
+
 export default function MyPageEditPage() {
   const router = useRouter()
 
@@ -29,6 +37,15 @@ export default function MyPageEditPage() {
     email: "",
     nickname: "",
   })
+
+  const [localProfile, setLocalProfile] = useState<LocalProfileForm>({
+    bio: "",
+    location: "",
+    website: "",
+    github: "",
+    twitter: "",
+  })
+
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
@@ -55,6 +72,17 @@ export default function MyPageEditPage() {
           email: profile.email ?? "",
           nickname: profile.nickname ?? "",
         })
+
+        const rawProfile = typeof window !== "undefined" ? localStorage.getItem("userProfile") : null
+        const savedProfile = rawProfile ? JSON.parse(rawProfile) : {}
+
+        setLocalProfile({
+          bio: savedProfile.bio ?? "",
+          location: savedProfile.location ?? "",
+          website: savedProfile.website ?? "",
+          github: savedProfile.github ?? "",
+          twitter: savedProfile.twitter ?? "",
+        })
       } catch (err) {
         if (err instanceof Error && err.message === "UNAUTHORIZED") {
           router.replace("/login")
@@ -75,6 +103,17 @@ export default function MyPageEditPage() {
     const { name, value } = e.target
 
     setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const handleLocalProfileChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target
+
+    setLocalProfile((prev) => ({
       ...prev,
       [name]: value,
     }))
@@ -119,6 +158,23 @@ export default function MyPageEditPage() {
             })
           )
         }
+
+        const rawUserProfile = localStorage.getItem("userProfile")
+        const existingUserProfile = rawUserProfile ? JSON.parse(rawUserProfile) : {}
+
+        localStorage.setItem(
+          "userProfile",
+          JSON.stringify({
+            ...existingUserProfile,
+            email: updatedProfile.email,
+            nickname: updatedProfile.nickname,
+            bio: localProfile.bio,
+            location: localProfile.location,
+            website: localProfile.website,
+            github: localProfile.github,
+            twitter: localProfile.twitter,
+          })
+        )
 
         window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
       }
@@ -200,7 +256,7 @@ export default function MyPageEditPage() {
             </div>
 
             <p className="leading-relaxed text-muted-foreground">
-              이메일과 닉네임을 수정한 뒤 저장 버튼을 누르면 마이페이지와 DB에 함께 반영됩니다.
+              이메일과 닉네임은 DB에 저장되고, 소개/위치/링크 정보는 브라우저에 저장됩니다.
             </p>
           </div>
         </div>
@@ -241,6 +297,105 @@ export default function MyPageEditPage() {
                 value={form.nickname}
                 onChange={handleChange}
                 placeholder="닉네임을 입력하세요"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              htmlFor="bio"
+              className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground"
+            >
+              <FileText className="h-4 w-4" />
+              소개
+            </label>
+            <textarea
+              id="bio"
+              name="bio"
+              value={localProfile.bio}
+              onChange={handleLocalProfileChange}
+              placeholder="자기소개를 입력하세요"
+              rows={4}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary"
+            />
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <label
+                htmlFor="location"
+                className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground"
+              >
+                <MapPin className="h-4 w-4" />
+                위치
+              </label>
+              <input
+                id="location"
+                name="location"
+                type="text"
+                value={localProfile.location}
+                onChange={handleLocalProfileChange}
+                placeholder="위치를 입력하세요"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="website"
+                className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground"
+              >
+                <LinkIcon className="h-4 w-4" />
+                웹사이트
+              </label>
+              <input
+                id="website"
+                name="website"
+                type="text"
+                value={localProfile.website}
+                onChange={handleLocalProfileChange}
+                placeholder="웹사이트 주소를 입력하세요"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <label
+                htmlFor="github"
+                className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground"
+              >
+                <Github className="h-4 w-4" />
+                GitHub
+              </label>
+              <input
+                id="github"
+                name="github"
+                type="text"
+                value={localProfile.github}
+                onChange={handleLocalProfileChange}
+                placeholder="GitHub 아이디 또는 링크를 입력하세요"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="twitter"
+                className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground"
+              >
+                <Twitter className="h-4 w-4" />
+                Twitter / X
+              </label>
+              <input
+                id="twitter"
+                name="twitter"
+                type="text"
+                value={localProfile.twitter}
+                onChange={handleLocalProfileChange}
+                placeholder="Twitter/X 아이디 또는 링크를 입력하세요"
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary"
               />
             </div>

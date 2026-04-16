@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
@@ -81,6 +81,53 @@ function formatDate(value: string) {
   })
 }
 
+function normalizeWebsiteUrl(value: string) {
+  if (!value?.trim()) return ""
+  const trimmed = value.trim()
+
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed
+  }
+
+  return `https://${trimmed}`
+}
+
+function normalizeGithubUrl(value: string) {
+  if (!value?.trim()) return ""
+  const trimmed = value.trim()
+
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed
+  }
+
+  const normalizedId = trimmed
+    .replace(/^https?:\/\/github\.com\//, "")
+    .replace(/^github\.com\//, "")
+    .replace(/^@/, "")
+    .replace(/\/+$/, "")
+
+  return `https://github.com/${normalizedId}`
+}
+
+function normalizeTwitterUrl(value: string) {
+  if (!value?.trim()) return ""
+  const trimmed = value.trim()
+
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed
+  }
+
+  const normalizedId = trimmed
+    .replace(/^https?:\/\/twitter\.com\//, "")
+    .replace(/^https?:\/\/x\.com\//, "")
+    .replace(/^twitter\.com\//, "")
+    .replace(/^x\.com\//, "")
+    .replace(/^@/, "")
+    .replace(/\/+$/, "")
+
+  return `https://twitter.com/${normalizedId}`
+}
+
 export default function MyPage() {
   const router = useRouter()
 
@@ -112,6 +159,10 @@ export default function MyPage() {
     return "user"
   }, [profile])
 
+  const websiteHref = normalizeWebsiteUrl(profileData.website)
+  const githubHref = normalizeGithubUrl(profileData.github)
+  const twitterHref = normalizeTwitterUrl(profileData.twitter)
+
   useEffect(() => {
     const auth = getAuthSnapshot()
     if (!auth.token) {
@@ -125,15 +176,16 @@ export default function MyPage() {
     if (!isAuthReady) return
 
     const syncProfile = () => {
-      const auth = getAuthSnapshot()
-      setProfileData((prev) => ({
-        ...prev,
-        bio: prev.bio || defaultUserData.bio,
-        location: prev.location || defaultUserData.location,
-        website: prev.website || defaultUserData.website,
-        github: prev.github || auth.nickname?.trim() || defaultUserData.github,
-        twitter: prev.twitter || defaultUserData.twitter,
-      }))
+      const rawProfile = typeof window !== "undefined" ? localStorage.getItem("userProfile") : null
+      const savedProfile = rawProfile ? JSON.parse(rawProfile) : {}
+
+      setProfileData({
+        bio: savedProfile.bio || defaultUserData.bio,
+        location: savedProfile.location || defaultUserData.location,
+        website: savedProfile.website || defaultUserData.website,
+        github: savedProfile.github || defaultUserData.github,
+        twitter: savedProfile.twitter || defaultUserData.twitter,
+      })
     }
 
     syncProfile()
@@ -316,13 +368,13 @@ export default function MyPage() {
               </div>
 
               <a
-                href={profileData.website}
+                href={websiteHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 hover:text-primary"
               >
                 <LinkIcon className="h-4 w-4" />
-                {profileData.website.replace("https://", "")}
+                {profileData.website.replace(/^https?:\/\//, "")}
               </a>
 
               <div className="flex items-center gap-1">
@@ -333,7 +385,7 @@ export default function MyPage() {
 
             <div className="mt-4 flex gap-3">
               <a
-                href={`https://github.com/${profileData.github}`}
+                href={githubHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground"
@@ -342,7 +394,7 @@ export default function MyPage() {
               </a>
 
               <a
-                href={`https://twitter.com/${profileData.twitter}`}
+                href={twitterHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground"
@@ -393,24 +445,19 @@ export default function MyPage() {
           </TabsTrigger>
         </TabsList>
 
-        {tabLoading && (
-          <div className="mb-6 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-            불러오는 중...
-          </div>
-        )}
-
         <TabsContent value="posts">
           {posts.length > 0 ? (
-            <div className="grid gap-6">
+            <div className="space-y-4">
               {posts.map((post) => (
-                <div key={post.postId} className="rounded-lg border border-border bg-card p-6">
-                  <div className="mb-3 flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground">{post.title}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        작성일 {formatDate(post.createdAt)}
-                      </p>
-                    </div>
+                <div
+                  key={post.postId}
+                  className="rounded-lg border border-border bg-card p-5"
+                >
+                  <div className="mb-2 flex items-center justify-between gap-4">
+                    <h3 className="font-semibold text-foreground">{post.title}</h3>
+                    <span className="text-sm text-muted-foreground">
+                      {formatDate(post.createdAt)}
+                    </span>
                   </div>
 
                   <div className="flex gap-4 text-sm text-muted-foreground">
@@ -425,23 +472,29 @@ export default function MyPage() {
               icon={<FileText className="h-12 w-12" />}
               title="작성한 글이 없습니다"
               description="첫 번째 글을 작성해보세요"
-              action={{ label: "글 쓰기", href: "/write" }}
             />
           )}
         </TabsContent>
 
         <TabsContent value="bookmarks">
-          {bookmarks.length > 0 ? (
-            <div className="grid gap-6">
+          {tabLoading ? (
+            <LoadingState />
+          ) : bookmarks.length > 0 ? (
+            <div className="space-y-4">
               {bookmarks.map((post) => (
-                <div key={post.postId} className="rounded-lg border border-border bg-card p-6">
-                  <div className="mb-3 flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground">{post.title}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        작성자 {post.authorNickname} · {formatDate(post.createdAt)}
-                      </p>
-                    </div>
+                <div
+                  key={post.postId}
+                  className="rounded-lg border border-border bg-card p-5"
+                >
+                  <div className="mb-2 flex items-center justify-between gap-4">
+                    <h3 className="font-semibold text-foreground">{post.title}</h3>
+                    <span className="text-sm text-muted-foreground">
+                      {formatDate(post.createdAt)}
+                    </span>
+                  </div>
+
+                  <div className="mb-2 text-sm text-muted-foreground">
+                    작성자 {post.authorNickname}
                   </div>
 
                   <div className="flex gap-4 text-sm text-muted-foreground">
@@ -461,17 +514,24 @@ export default function MyPage() {
         </TabsContent>
 
         <TabsContent value="likes">
-          {likes.length > 0 ? (
-            <div className="grid gap-6">
+          {tabLoading ? (
+            <LoadingState />
+          ) : likes.length > 0 ? (
+            <div className="space-y-4">
               {likes.map((post) => (
-                <div key={post.postId} className="rounded-lg border border-border bg-card p-6">
-                  <div className="mb-3 flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground">{post.title}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        작성자 {post.authorNickname} · {formatDate(post.createdAt)}
-                      </p>
-                    </div>
+                <div
+                  key={post.postId}
+                  className="rounded-lg border border-border bg-card p-5"
+                >
+                  <div className="mb-2 flex items-center justify-between gap-4">
+                    <h3 className="font-semibold text-foreground">{post.title}</h3>
+                    <span className="text-sm text-muted-foreground">
+                      {formatDate(post.createdAt)}
+                    </span>
+                  </div>
+
+                  <div className="mb-2 text-sm text-muted-foreground">
+                    작성자 {post.authorNickname}
                   </div>
 
                   <div className="flex gap-4 text-sm text-muted-foreground">
@@ -491,22 +551,25 @@ export default function MyPage() {
         </TabsContent>
 
         <TabsContent value="comments">
-          {comments.length > 0 ? (
-            <div className="grid gap-6">
+          {tabLoading ? (
+            <LoadingState />
+          ) : comments.length > 0 ? (
+            <div className="space-y-4">
               {comments.map((comment) => (
-                <div key={comment.commentId} className="rounded-lg border border-border bg-card p-6">
-                  <div className="mb-3 flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-base font-semibold text-foreground">
-                        게시글 ID {comment.postId}
-                      </h3>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        작성일 {formatDate(comment.createdAt)}
-                      </p>
-                    </div>
+                <div
+                  key={comment.commentId}
+                  className="rounded-lg border border-border bg-card p-5"
+                >
+                  <div className="mb-2 flex items-center justify-between gap-4">
+                    <p className="text-foreground">{comment.content}</p>
+                    <span className="text-sm text-muted-foreground">
+                      {formatDate(comment.createdAt)}
+                    </span>
                   </div>
 
-                  <p className="text-sm leading-6 text-foreground">{comment.content}</p>
+                  <div className="text-sm text-muted-foreground">
+                    게시글 ID {comment.postId}
+                  </div>
                 </div>
               ))}
             </div>
@@ -523,29 +586,28 @@ export default function MyPage() {
   )
 }
 
+function LoadingState() {
+  return (
+    <div className="rounded-lg border border-border bg-card p-12 text-center">
+      <p className="text-sm text-muted-foreground">불러오는 중...</p>
+    </div>
+  )
+}
+
 function EmptyState({
   icon,
   title,
   description,
-  action,
 }: {
   icon: React.ReactNode
   title: string
   description: string
-  action?: { label: string; href: string }
 }) {
   return (
     <div className="rounded-lg border border-border bg-card p-12 text-center">
       <div className="mx-auto mb-4 text-muted-foreground">{icon}</div>
       <h3 className="mb-2 text-lg font-semibold text-foreground">{title}</h3>
       <p className="text-sm text-muted-foreground">{description}</p>
-      {action ? (
-        <Link href={action.href}>
-          <Button className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90">
-            {action.label}
-          </Button>
-        </Link>
-      ) : null}
     </div>
   )
 }

@@ -25,7 +25,6 @@ export async function apiFetch<T>(
   }
 
   const { auth = false, token, headers, ...rest } = options;
-
   const accessToken = token ?? getStoredAccessToken();
 
   const finalHeaders: HeadersInit = {
@@ -43,15 +42,11 @@ export async function apiFetch<T>(
     console.log("REQUEST URL =", `${API_BASE_URL}${path}`);
 
     res = await fetch(`${API_BASE_URL}${path}`, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...(init?.headers || {}),
-      },
-      // JWT를 body로 받는 구조라면 credentials 불필요 (CORS 이슈 줄임)
-      // credentials: "include",
+      ...rest,
+      headers: finalHeaders,
     });
-  } catch {
+  } catch (error) {
+    console.error("FETCH ERROR =", error);
     throw new Error("백엔드 서버 연결 실패 (CORS/서버실행/주소 확인)");
   }
 
