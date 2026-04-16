@@ -28,6 +28,22 @@ const categories = [
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
 
+function getAuthHeaders() {
+  if (typeof window === "undefined") {
+    return undefined
+  }
+
+  const token = window.localStorage.getItem("accessToken")
+
+  if (!token || token === "oauth-cookie-session") {
+    return undefined
+  }
+
+  return {
+    Authorization: `Bearer ${token}`,
+  }
+}
+
 type HeaderNotificationItem = {
   notificationId: number
   isRead?: boolean
@@ -125,12 +141,20 @@ export function Header() {
 
   useEffect(() => {
     let isMounted = true
-
     const loadNotifications = async () => {
+      const auth = getAuthSnapshot()
+
+      if (!auth.isLoggedIn) {
+        if (isMounted) {
+          setHasUnreadNotifications(false)
+        }
+        return
+      }
       try {
         const response = await fetch(`${API_BASE_URL}/api/notifications`, {
           cache: "no-store",
           credentials: "include",
+          headers: getAuthHeaders(),
         })
 
         if (!response.ok) {
@@ -155,17 +179,25 @@ export function Header() {
     }
 
     const handleNotificationsUpdated = () => {
-      void loadNotifications()
+      if (isLoggedIn) {
+        void loadNotifications()
+      } else {
+        setHasUnreadNotifications(false)
+      }
     }
 
-    void loadNotifications()
+    if (isLoggedIn) {
+      void loadNotifications()
+    } else {
+      setHasUnreadNotifications(false)
+    }
     window.addEventListener("notifications-updated", handleNotificationsUpdated)
 
     return () => {
       isMounted = false
       window.removeEventListener("notifications-updated", handleNotificationsUpdated)
     }
-  }, [])
+  }, [isLoggedIn])
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

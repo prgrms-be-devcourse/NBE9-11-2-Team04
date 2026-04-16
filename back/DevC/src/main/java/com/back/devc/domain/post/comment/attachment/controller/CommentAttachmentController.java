@@ -3,11 +3,15 @@ package com.back.devc.domain.post.comment.attachment.controller;
 import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentDeleteResponse;
 import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentListResponse;
 import com.back.devc.domain.post.comment.attachment.service.CommentAttachmentService;
+import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -20,10 +24,13 @@ public class CommentAttachmentController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CommentAttachmentListResponse> uploadCommentAttachments(
+            @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long commentId,
             @RequestParam("files") List<MultipartFile> files,
             @RequestParam(value = "fileOrder", required = false) List<Integer> fileOrders
     ) {
+        getAuthenticatedUserId(principal);
+
         return ResponseEntity.ok(
                 commentAttachmentService.uploadAttachments(commentId, files, fileOrders)
         );
@@ -40,11 +47,21 @@ public class CommentAttachmentController {
 
     @DeleteMapping("/{attachmentId}")
     public ResponseEntity<CommentAttachmentDeleteResponse> deleteCommentAttachment(
+            @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long commentId,
             @PathVariable Long attachmentId
     ) {
+        getAuthenticatedUserId(principal);
+
         return ResponseEntity.ok(
                 commentAttachmentService.deleteAttachment(commentId, attachmentId)
         );
+    }
+
+    private Long getAuthenticatedUserId(JwtPrincipal principal) {
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증이 필요합니다.");
+        }
+        return principal.userId();
     }
 }
