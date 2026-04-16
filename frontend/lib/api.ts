@@ -19,8 +19,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
         "Content-Type": "application/json",
         ...(init?.headers || {}),
       },
-      // JWT를 body로 받는 구조라면 credentials 불필요 (CORS 이슈 줄임)
-      // credentials: "include",
+      credentials: "include",
     });
   } catch {
     throw new Error("백엔드 서버 연결 실패 (CORS/서버실행/주소 확인)");
