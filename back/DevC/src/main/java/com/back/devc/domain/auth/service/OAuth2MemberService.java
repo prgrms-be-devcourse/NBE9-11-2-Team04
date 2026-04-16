@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,6 +24,21 @@ public class OAuth2MemberService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+
+    public OAuthPendingSignup buildPendingSignup(String provider, OAuth2User oauth2User) {
+        String normalized = normalizeProvider(provider);
+
+        if ("github".equals(normalized)) {
+            return buildGithubPendingSignup(oauth2User);
+        }
+
+        throw new ApiException(ErrorCode.UNAUTHORIZED);
+    }
+
+    public Optional<Member> findMemberByProviderUserId(String provider, String providerUserId) {
+        AuthProvider authProvider = toAuthProvider(provider);
+        return memberRepository.findByProviderAndProviderUserId(authProvider, providerUserId);
+    }
 
     public OAuthPendingSignup buildGithubPendingSignup(OAuth2User oauth2User) {
         String providerUserId = valueAsString(oauth2User.getAttribute("id")).trim();
@@ -46,7 +62,6 @@ public class OAuth2MemberService {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
-        // 1) 같은 OAuth 계정으로 이미 가입된 경우: 바로 반환 (멱등성 보장)
         Optional<Member> existing = memberRepository.findByProviderAndProviderUserId(
                 AuthProvider.GITHUB, pending.providerUserId()
         );
@@ -54,7 +69,6 @@ public class OAuth2MemberService {
             return existing.get();
         }
 
-        // 2) 신규 가입인 경우에만 닉네임 검증
         String normalizedNickname = nickname == null ? "" : nickname.trim();
         if (normalizedNickname.isBlank()) {
             throw new ApiException(ErrorCode.BAD_REQUEST);
@@ -76,6 +90,20 @@ public class OAuth2MemberService {
         );
 
         return memberRepository.save(newMember);
+    }
+
+    private AuthProvider toAuthProvider(String provider) {
+        String normalized = normalizeProvider(provider);
+
+        if ("github".equals(normalized)) {
+            return AuthProvider.GITHUB;
+        }
+
+        throw new ApiException(ErrorCode.UNAUTHORIZED);
+    }
+
+    private String normalizeProvider(String provider) {
+        return provider == null ? "" : provider.trim().toLowerCase(Locale.ROOT);
     }
 
     private String resolveUniqueEmail(String emailFromGithub, String providerUserId) {
