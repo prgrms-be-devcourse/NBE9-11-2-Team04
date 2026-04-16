@@ -1,5 +1,11 @@
 package com.back.devc.domain.post.comment.attachment.controller;
 
+import com.back.devc.global.security.jwt.JwtPrincipal;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import java.util.List;
+
 import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentDeleteResponse;
 import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentListResponse;
 import com.back.devc.domain.post.comment.attachment.service.CommentAttachmentService;
@@ -60,10 +66,15 @@ class CommentAttachmentControllerTest {
                 "dummy-image".getBytes()
         );
 
-        mockMvc.perform(multipart("/api/comments/{commentId}/attachments", 1L)
-                        .file(file)
-                        .param("fileOrder", "1"))
-                .andExpect(status().isOk());
+        SecurityContextHolder.getContext().setAuthentication(createAuthentication());
+        try {
+            mockMvc.perform(multipart("/api/comments/{commentId}/attachments", 1L)
+                            .file(file)
+                            .param("fileOrder", "1"))
+                    .andExpect(status().isOk());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
 
         verify(commentAttachmentService).uploadAttachments(eq(1L), anyList(), anyList());
     }
@@ -88,9 +99,18 @@ class CommentAttachmentControllerTest {
 
         given(commentAttachmentService.deleteAttachment(1L, 1L)).willReturn(response);
 
-        mockMvc.perform(delete("/api/comments/{commentId}/attachments/{attachmentId}", 1L, 1L))
-                .andExpect(status().isOk());
+        SecurityContextHolder.getContext().setAuthentication(createAuthentication());
+        try {
+            mockMvc.perform(delete("/api/comments/{commentId}/attachments/{attachmentId}", 1L, 1L))
+                    .andExpect(status().isOk());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
 
         verify(commentAttachmentService).deleteAttachment(1L, 1L);
+    }
+    private Authentication createAuthentication() {
+        JwtPrincipal principal = new JwtPrincipal(2L, "test@test.com", "USER");
+        return new UsernamePasswordAuthenticationToken(principal, null, List.of());
     }
 }

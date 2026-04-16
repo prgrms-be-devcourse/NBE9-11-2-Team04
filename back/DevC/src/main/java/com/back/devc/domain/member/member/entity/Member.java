@@ -95,6 +95,18 @@ public class Member {
         );
     }
 
+    public static Member createLocalAdminMember(String email, String passwordHash, String nickname) {
+        return new Member(
+                email,
+                passwordHash,
+                nickname,
+                MemberRole.ADMIN,
+                MemberStatus.ACTIVE,
+                AuthProvider.LOCAL,
+                email
+        );
+    }
+
     public static Member createOAuthMember(
             AuthProvider provider,
             String providerUserId,
@@ -115,6 +127,14 @@ public class Member {
 
     public void updateNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public void updatePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public void updateRole(MemberRole role) {
+        this.role = role;
     }
 
     @PrePersist
