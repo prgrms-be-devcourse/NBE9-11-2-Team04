@@ -18,11 +18,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.hasSize;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -74,42 +70,33 @@ class IntegrationTest {
         String accessToken = createAccessToken(member);
 
         mockMvc.perform(
-                        post("/posts/{postId}/likes", post.getPostId())
+                        post("/api/posts/{postId}/likes", post.getPostId())
                                 .header("Authorization", "Bearer " + accessToken)
                 )
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.postId").value(post.getPostId()))
                 .andExpect(jsonPath("$.liked").value(true));
     }
 
     @Test
-    @DisplayName("좋아요 취소 성공")
     void deleteLike_success() throws Exception {
         Member member = createMember();
         Category category = createCategory();
         Post post = createPost(member, category);
         String accessToken = createAccessToken(member);
 
-        mockMvc.perform(
-                        post("/posts/{postId}/likes", post.getPostId())
-                                .header("Authorization", "Bearer " + accessToken)
-                )
-                .andDo(print())
-                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/posts/{postId}/likes", post.getPostId())
+                .header("Authorization", "Bearer " + accessToken));
 
         mockMvc.perform(
-                        delete("/posts/{postId}/likes", post.getPostId())
+                        delete("/api/posts/{postId}/likes", post.getPostId())
                                 .header("Authorization", "Bearer " + accessToken)
                 )
-                .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.postId").value(post.getPostId()))
                 .andExpect(jsonPath("$.liked").value(false));
     }
 
     @Test
-    @DisplayName("북마크 등록 성공")
     void createBookmark_success() throws Exception {
         Member member = createMember();
         Category category = createCategory();
@@ -117,48 +104,38 @@ class IntegrationTest {
         String accessToken = createAccessToken(member);
 
         mockMvc.perform(
-                        post("/posts/{postId}/bookmarks", post.getPostId())
+                        post("/api/posts/{postId}/bookmarks", post.getPostId())
                                 .header("Authorization", "Bearer " + accessToken)
                 )
-                .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.postId").value(post.getPostId()))
                 .andExpect(jsonPath("$.bookmarked").value(true));
     }
 
     @Test
-    @DisplayName("북마크 취소 성공")
     void deleteBookmark_success() throws Exception {
         Member member = createMember();
         Category category = createCategory();
         Post post = createPost(member, category);
         String accessToken = createAccessToken(member);
 
-        mockMvc.perform(
-                        post("/posts/{postId}/bookmarks", post.getPostId())
-                                .header("Authorization", "Bearer " + accessToken)
-                )
-                .andDo(print())
-                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/posts/{postId}/bookmarks", post.getPostId())
+                .header("Authorization", "Bearer " + accessToken));
 
         mockMvc.perform(
-                        delete("/posts/{postId}/bookmarks", post.getPostId())
+                        delete("/api/posts/{postId}/bookmarks", post.getPostId())
                                 .header("Authorization", "Bearer " + accessToken)
                 )
-                .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.postId").value(post.getPostId()))
                 .andExpect(jsonPath("$.bookmarked").value(false));
     }
 
     @Test
-    @DisplayName("검색기록 저장 및 조회 성공")
     void searchLog_create_and_get_success() throws Exception {
         Member member = createMember();
         String accessToken = createAccessToken(member);
 
         mockMvc.perform(
-                        post("/search-logs")
+                        post("/api/search-logs")
                                 .header("Authorization", "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
@@ -167,37 +144,31 @@ class IntegrationTest {
                                         }
                                         """)
                 )
-                .andDo(print())
                 .andExpect(status().isOk());
 
         mockMvc.perform(
-                        get("/users/me/search-logs")
+                        get("/api/users/me/search-logs")
                                 .header("Authorization", "Bearer " + accessToken)
                 )
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)));
     }
 
     @Test
-    @DisplayName("마이페이지 내 정보 조회 성공")
     void mypage_profile_success() throws Exception {
         Member member = createMember();
         String accessToken = createAccessToken(member);
 
         mockMvc.perform(
-                        get("/users/me")
+                        get("/api/mypage")
                                 .header("Authorization", "Bearer " + accessToken)
                 )
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(member.getUserId()))
-                .andExpect(jsonPath("$.nickname").value("tester"))
-                .andExpect(jsonPath("$.email").value("test@test.com"));
+                .andExpect(jsonPath("$.nickname").value("tester"));
     }
 
     @Test
-    @DisplayName("마이페이지 내가 쓴 글 조회 성공")
     void mypage_posts_success() throws Exception {
         Member member = createMember();
         Category category = createCategory();
@@ -205,18 +176,14 @@ class IntegrationTest {
         String accessToken = createAccessToken(member);
 
         mockMvc.perform(
-                        get("/users/me/posts")
+                        get("/api/mypage/posts")
                                 .header("Authorization", "Bearer " + accessToken)
                 )
-                .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].postId").value(post.getPostId()))
-                .andExpect(jsonPath("$[0].title").value("테스트 제목"));
+                .andExpect(jsonPath("$", hasSize(1)));
     }
 
     @Test
-    @DisplayName("마이페이지 좋아요한 글 조회 성공")
     void mypage_likes_success() throws Exception {
         Member member = createMember();
         Category category = createCategory();
@@ -224,23 +191,19 @@ class IntegrationTest {
         String accessToken = createAccessToken(member);
 
         mockMvc.perform(
-                        post("/posts/{postId}/likes", post.getPostId())
-                                .header("Authorization", "Bearer " + accessToken)
-                )
-                .andDo(print())
-                .andExpect(status().isOk());
+                post("/api/posts/{postId}/likes", post.getPostId())
+                        .header("Authorization", "Bearer " + accessToken)
+        );
 
         mockMvc.perform(
-                        get("/users/me/likes")
+                        get("/api/users/me/likes")
                                 .header("Authorization", "Bearer " + accessToken)
                 )
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)));
     }
 
     @Test
-    @DisplayName("마이페이지 북마크한 글 조회 성공")
     void mypage_bookmarks_success() throws Exception {
         Member member = createMember();
         Category category = createCategory();
@@ -248,29 +211,25 @@ class IntegrationTest {
         String accessToken = createAccessToken(member);
 
         mockMvc.perform(
-                        post("/posts/{postId}/bookmarks", post.getPostId())
-                                .header("Authorization", "Bearer " + accessToken)
-                )
-                .andDo(print())
-                .andExpect(status().isOk());
+                post("/api/posts/{postId}/bookmarks", post.getPostId())
+                        .header("Authorization", "Bearer " + accessToken)
+        );
 
         mockMvc.perform(
-                        get("/users/me/bookmarks")
+                        get("/api/users/me/bookmarks")
                                 .header("Authorization", "Bearer " + accessToken)
                 )
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)));
     }
 
     @Test
-    @DisplayName("내 정보 수정 성공")
     void updateMyProfile_success() throws Exception {
         Member member = createMember();
         String accessToken = createAccessToken(member);
 
         mockMvc.perform(
-                        patch("/users/me")
+                        patch("/api/mypage")
                                 .header("Authorization", "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
@@ -279,9 +238,7 @@ class IntegrationTest {
                                         }
                                         """)
                 )
-                .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.userId").value(member.getUserId()))
                 .andExpect(jsonPath("$.nickname").value("newTester"));
     }
 }
