@@ -2,6 +2,8 @@ package com.back.devc.global.security.oauth2;
 
 import com.back.devc.domain.auth.service.OAuth2MemberService;
 import com.back.devc.domain.member.member.entity.Member;
+import com.back.devc.domain.member.member.entity.MemberStatus;
+import com.back.devc.global.security.jwt.JwtProvider;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,6 +23,7 @@ import java.io.IOException;
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final OAuth2MemberService oAuth2MemberService;
+    private final JwtProvider jwtProvider;
 
     @Value("${custom.oauth2.frontend-success-url:http://localhost:3000/login}")
     private String frontendSuccessUrl;
@@ -44,18 +47,26 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         try {
             Member member = oAuth2MemberService.getOrCreateGithubMember(oauth2User);
 
+            if (member.getStatus() == MemberStatus.BLACKLISTED) {
+                response.sendRedirect(errorRedirect("member_blacklisted"));
+                return;
+            }
+
+            String accessToken = jwtProvider.createAccessToken(member);
+
             String redirectUrl = UriComponentsBuilder.fromUriString(frontendSuccessUrl)
                     .queryParam("oauth", "success")
                     .queryParam("provider", provider)
                     .queryParam("userId", member.getUserId())
                     .queryParam("email", member.getEmail())
                     .queryParam("nickname", member.getNickname())
+                    .queryParam("accessToken", accessToken)
                     .build(true)
                     .toUriString();
 
             response.sendRedirect(redirectUrl);
         } catch (Exception e) {
-            response.sendRedirect(errorRedirect("member_sync_failed"));
+            response.sendRedirect(errorRedirect("token_issue"));
         }
     }
 
