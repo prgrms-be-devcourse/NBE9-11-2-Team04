@@ -1,6 +1,7 @@
 package com.back.devc.domain.post.post.service;
 
 import com.back.devc.domain.interaction.postLike.repository.PostLikeRepository;
+import com.back.devc.domain.interaction.bookmark.repository.BookmarkRepository;
 import com.back.devc.domain.post.post.dto.PostDetailResponse;
 
 import com.back.devc.domain.member.member.entity.Member;
@@ -29,6 +30,8 @@ public class PostService {
     private final CategoryRepository categoryRepository;
     // 게시글 상세 조회 시 현재 로그인 사용자의 좋아요 여부를 확인하기 위해 추가한 repository
     private final PostLikeRepository postLikeRepository;
+    // 게시글 상세 조회 시 현재 로그인 사용자의 북마크 여부와 북마크 수를 확인하기 위해 추가한 repository
+    private final BookmarkRepository bookmarkRepository;
 
     // 게시글 작성
     public Post write(Long userId, Long categoryId, String title, String content) {
@@ -54,7 +57,7 @@ public class PostService {
         return postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
     }
-    
+
     // 단건 상세 조회 (현재 로그인 사용자의 좋아요 여부 포함)
     // 게시글이 현재 isDeleted=false인 경우만 상세 조회 할 수 있도록 변경하였습니다.
 
@@ -78,8 +81,16 @@ public class PostService {
         boolean liked = loginUserId != null
                 && postLikeRepository.existsByMember_UserIdAndPost_PostId(loginUserId, postId);
 
-        // 게시글 기본 정보와 현재 로그인 사용자의 좋아요 여부를 함께 응답 DTO로 변환
-        return PostDetailResponse.from(post, liked);
+        // 비로그인 사용자는 북마크 여부를 확인할 수 없으므로 false 처리
+        // 로그인 사용자라면 bookmarks 테이블을 조회해서 현재 게시글을 북마크했는지 확인
+        boolean bookmarked = loginUserId != null
+                && bookmarkRepository.existsByMember_UserIdAndPost_PostId(loginUserId, postId);
+
+        // 상세 페이지에서 북마크 수를 바로 표시할 수 있도록 현재 게시글의 북마크 총 개수도 함께 계산
+        int bookmarkCount = Math.toIntExact(bookmarkRepository.countByPost_PostId(postId));
+
+        // 게시글 기본 정보와 현재 로그인 사용자의 좋아요/북마크 여부, 북마크 수를 함께 응답 DTO로 변환
+        return PostDetailResponse.from(post, liked, bookmarked, bookmarkCount);
     }
 
 
@@ -197,6 +208,4 @@ public class PostService {
 
         post.delete();
     }
-
-
 }
