@@ -8,11 +8,12 @@ import com.back.devc.global.response.SuccessCode;
 import com.back.devc.global.response.SuccessResponse;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,7 +26,15 @@ public class UserController {
 
     private final MemberService memberService;
 
-    // 사용자 정보 조회 API
+    @Value("${custom.jwt.access-cookie-name:access_token}")
+    private String accessCookieName;
+
+    @Value("${custom.jwt.access-cookie-secure:false}")
+    private boolean accessCookieSecure;
+
+    @Value("${custom.jwt.access-cookie-same-site:Lax}")
+    private String accessCookieSameSite;
+
     @GetMapping("/me")
     public ResponseEntity<SuccessResponse<MyInfoResponse>> me(
             @AuthenticationPrincipal JwtPrincipal principal
@@ -41,7 +50,6 @@ public class UserController {
                 .body(SuccessResponse.of(successCode, response));
     }
 
-    // 회원 탈퇴 API
     @DeleteMapping("/me")
     public ResponseEntity<SuccessResponse<String>> withdraw(
             @AuthenticationPrincipal JwtPrincipal principal
@@ -50,26 +58,21 @@ public class UserController {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
-        // 회원 탈퇴 처리
         memberService.withdraw(principal.userId());
-
-        // 세션 종료
         SecurityContextHolder.clearContext();
 
-        // JWT 토큰 만료 쿠키 삭제
-        ResponseCookie cookie = ResponseCookie.from("access_token", "")
+        ResponseCookie expiredCookie = ResponseCookie.from(accessCookieName, "")
                 .httpOnly(true)
-                .secure(true)
+                .secure(accessCookieSecure)
                 .path("/")
-                .maxAge(0)  // 쿠키 만료
-                .sameSite("Strict")
+                .maxAge(0)
+                .sameSite(accessCookieSameSite)
                 .build();
 
-        // 탈퇴 후 응답 반환
         SuccessCode successCode = SuccessCode.WITHDRAW_SUCCESS;
         return ResponseEntity
                 .status(successCode.getStatus())
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())  // 쿠키 삭제 설정
+                .header(HttpHeaders.SET_COOKIE, expiredCookie.toString())
                 .body(SuccessResponse.of(successCode, "회원 탈퇴가 완료되었습니다."));
     }
 }

@@ -13,12 +13,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/admin/reports")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminReportController {
 
     private final AdminReportService adminReportService;
@@ -29,15 +31,20 @@ public class AdminReportController {
     @GetMapping("/pending")
     public ResponseEntity<SuccessResponse<Page<ReportResponseDTO>>> getPendingReports(
             @AuthenticationPrincipal JwtPrincipal principal,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable
     ) {
+
         if (principal == null) {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
-        Page<ReportResponseDTO> reports = adminReportService.getPendingReports(pageable);
+        Page<ReportResponseDTO> reports =
+                adminReportService.getPendingReports(pageable);
 
-        return ResponseEntity.ok(SuccessResponse.of("ADMIN_200", "신고 대기 목록 조회 성공", reports));
+        return ResponseEntity.ok(
+                SuccessResponse.of("ADMIN_200", "신고 대기 목록 조회 성공", reports)
+        );
     }
 
     /**

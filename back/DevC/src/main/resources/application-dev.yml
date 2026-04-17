@@ -22,6 +22,14 @@ spring:
                         redirect-uri: "http://localhost:8080/login/oauth2/code/kakao"
                         client-name: Kakao
 
+                    google:
+                        client-id: ${GOOGLE_CLIENT_ID}
+                        client-secret: ${GOOGLE_CLIENT_SECRET}
+                        scope:
+                            - profile
+                            - email
+                        redirect-uri: "http://localhost:8080/login/oauth2/code/google"
+
                 provider:
                     kakao:
                         authorization-uri: https://kauth.kakao.com/oauth/authorize
@@ -40,6 +48,8 @@ custom:
         allowed-origins: http://localhost:3000
 
     jwt:
+        secret-key: "로컬용-충분히-긴-시크릿-문자열"
+        access-token-expiration-seconds: 3600
         access-cookie-name: access_token
         access-cookie-secure: false
         access-cookie-same-site: Lax
