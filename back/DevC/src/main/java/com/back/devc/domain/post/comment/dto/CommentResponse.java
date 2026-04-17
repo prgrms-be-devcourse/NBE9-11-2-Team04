@@ -1,5 +1,7 @@
 package com.back.devc.domain.post.comment.dto;
 
+import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentResponse;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -23,6 +25,7 @@ public class CommentResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<CommentResponse> replies;
+    private List<CommentAttachmentResponse> attachments;
 
     public static CommentResponse of(
             Long commentId,
@@ -46,6 +49,7 @@ public class CommentResponse {
                 .createdAt(createdAt)
                 .updatedAt(updatedAt)
                 .replies(new ArrayList<>())
+                .attachments(new ArrayList<>())
                 .build();
     }
 }
