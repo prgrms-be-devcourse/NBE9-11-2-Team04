@@ -90,6 +90,8 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     }
 
     private boolean isSupportedProvider(String provider) {
-        return "github".equalsIgnoreCase(provider) || "kakao".equalsIgnoreCase(provider);
+        return "github".equalsIgnoreCase(provider)
+                || "kakao".equalsIgnoreCase(provider)
+                || "google".equalsIgnoreCase(provider);
     }
 }

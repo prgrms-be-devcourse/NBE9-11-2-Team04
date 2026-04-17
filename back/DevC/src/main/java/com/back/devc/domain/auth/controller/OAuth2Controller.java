@@ -100,7 +100,7 @@ public class OAuth2Controller {
                 accessToken
         );
 
-        SuccessCode successCode = SuccessCode.SIGN_UP_SUCCESS;
+        SuccessCode successCode = SuccessCode.LOGIN_SUCCESS;
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, body));
@@ -135,7 +135,7 @@ public class OAuth2Controller {
                 accessToken
         );
 
-        SuccessCode successCode = SuccessCode.LOGIN_SUCCESS;
+        SuccessCode successCode = SuccessCode.SIGN_UP_SUCCESS;
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, body));
@@ -148,6 +148,8 @@ public class OAuth2Controller {
             return oAuth2MemberService.completeGithubSignup(pending, nickname);
         } else if ("kakao".equals(provider)) {
             return oAuth2MemberService.completeKakaoSignup(pending, nickname);
+        } else if ("google".equals(provider)) {
+            return oAuth2MemberService.completeGoogleSignup(pending, nickname);
         }
 
         throw new ApiException(ErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
