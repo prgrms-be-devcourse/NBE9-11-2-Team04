@@ -47,29 +47,44 @@ export default function AdminDashboardLayout({
 }) {
   const router = useRouter()
   const pathname = usePathname()
+
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
-    const auth = sessionStorage.getItem("adminAuth")
-    if (auth !== "true") {
-      router.push("/admin")
-    } else {
-      setIsAuthenticated(true)
+    const token = localStorage.getItem("accessToken")
+
+    if (!token) {
+      router.replace("/admin")
+      return
     }
+
+    setIsAuthenticated(true)
+    setLoading(false)
   }, [router])
 
   const handleLogout = () => {
-    sessionStorage.removeItem("adminAuth")
-    router.push("/admin")
+    localStorage.removeItem("accessToken")
+    router.replace("/admin")
   }
 
-  if (!isAuthenticated) {
+  // =========================
+  // 로딩 상태 (중요)
+  // =========================
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     )
+  }
+
+  // =========================
+  // 인증 실패 방어
+  // =========================
+  if (!isAuthenticated) {
+    return null
   }
 
   return (
@@ -96,6 +111,7 @@ export default function AdminDashboardLayout({
               <Shield className="h-6 w-6 text-primary" />
               <span className="font-bold text-foreground">DevHub Admin</span>
             </Link>
+
             <Button
               variant="ghost"
               size="icon"
@@ -124,7 +140,9 @@ export default function AdminDashboardLayout({
                 >
                   <item.icon className="h-5 w-5" />
                   {item.name}
-                  {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
+                  {isActive && (
+                    <ChevronRight className="ml-auto h-4 w-4" />
+                  )}
                 </Link>
               )
             })}
@@ -156,7 +174,9 @@ export default function AdminDashboardLayout({
           >
             <Menu className="h-5 w-5" />
           </Button>
+
           <div className="flex-1" />
+
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">관리자</span>
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
@@ -166,7 +186,9 @@ export default function AdminDashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto p-4 lg:p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-4 lg:p-6">
+          {children}
+        </main>
       </div>
     </div>
   )
