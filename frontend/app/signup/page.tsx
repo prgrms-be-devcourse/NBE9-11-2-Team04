@@ -7,7 +7,7 @@ import { Code2, Eye, EyeOff, Check, X, Github } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { signup } from "@/lib/interaction"
+import { signup } from "@/lib/auth"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
 

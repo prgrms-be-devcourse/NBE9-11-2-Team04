@@ -1,5 +1,9 @@
 package com.back.devc.domain.member.mypage.service;
 
+import com.back.devc.domain.interaction.bookmark.dto.BookmarkedPostResponse;
+import com.back.devc.domain.interaction.bookmark.service.BookmarkService;
+import com.back.devc.domain.interaction.postLike.dto.LikedPostResponse;
+import com.back.devc.domain.interaction.postLike.service.PostLikeService;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.member.mypage.dto.MyCommentResponse;
@@ -25,6 +29,8 @@ public class MypageService {
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    private final PostLikeService postLikeService;
+    private final BookmarkService bookmarkService;
 
     public MyProfileResponse getMyProfile(Long userId) {
         Member member = memberRepository.findById(userId)
@@ -70,12 +76,38 @@ public class MypageService {
                 .toList();
     }
 
+    public List<LikedPostResponse> getMyLikedPosts(Long userId) {
+        memberRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
+
+        return postLikeService.getLikedPosts(userId);
+    }
+
+    public List<BookmarkedPostResponse> getMyBookmarkedPosts(Long userId) {
+        memberRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
+
+        return bookmarkService.getBookmarkedPosts(userId);
+    }
+
     @Transactional
     public MyProfileResponse updateMyProfile(Long userId, UpdateMyProfileRequest request) {
         Member member = memberRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
 
-        member.updateNickname(request.nickname());
+        String newEmail = request.email().trim();
+        String newNickname = request.nickname().trim();
+
+        if (!member.getEmail().equals(newEmail) && memberRepository.existsByEmail(newEmail)) {
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+        }
+
+        if (!member.getNickname().equals(newNickname) && memberRepository.existsByNickname(newNickname)) {
+            throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+        }
+
+        member.updateEmail(newEmail);
+        member.updateNickname(newNickname);
 
         return new MyProfileResponse(
                 member.getUserId(),
