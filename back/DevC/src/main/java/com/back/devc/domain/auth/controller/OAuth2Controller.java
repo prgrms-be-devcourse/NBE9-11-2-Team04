@@ -100,7 +100,7 @@ public class OAuth2Controller {
                 accessToken
         );
 
-        SuccessCode successCode = SuccessCode.LOGIN_SUCCESS;
+        SuccessCode successCode = SuccessCode.SIGN_UP_SUCCESS;
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, body));
