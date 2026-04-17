@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { persistLoginSession } from "@/lib/auth-storage"
+import { exchangeOAuthCode } from "@/lib/auth"
 
 export default function OAuthCallbackPage() {
   const router = useRouter()
@@ -10,30 +11,35 @@ export default function OAuthCallbackPage() {
 
   useEffect(() => {
     const oauth = searchParams.get("oauth")
-    const email = searchParams.get("email")
-    const nickname = searchParams.get("nickname")
     const errorCode = searchParams.get("errorCode")
+    const code = searchParams.get("code")
 
-    if (oauth === "error") {
-      const query = new URLSearchParams()
-
-      query.set("oauth", "error")
-
-      if (errorCode) {
-        query.set("errorCode", errorCode)
+    const run = async () => {
+      if (oauth === "error") {
+        const query = new URLSearchParams()
+        query.set("oauth", "error")
+        if (errorCode) query.set("errorCode", errorCode)
+        router.replace(`/login?${query.toString()}`)
+        return
       }
 
-      router.replace(`/login?${query.toString()}`)
-      return
+      if (oauth === "success" && code) {
+        try {
+          const data = await exchangeOAuthCode({ code })
+          persistLoginSession(data.accessToken, data.nickname, data.email)
+          router.replace("/mypage")
+          router.refresh()
+          return
+        } catch {
+          router.replace("/login?oauth=error&errorCode=OAUTH2_TOKEN_ISSUE")
+          return
+        }
+      }
+
+      router.replace("/login")
     }
 
-    if (oauth === "success") {
-      persistLoginSession(undefined, nickname, email)
-      router.replace("/mypage")
-      return
-    }
-
-    router.replace("/login")
+    void run()
   }, [router, searchParams])
 
   return (
