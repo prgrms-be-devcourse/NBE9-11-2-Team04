@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState } from "react"
 import Link from "next/link"
@@ -30,9 +30,9 @@ export default function OAuthSignupPage() {
 
     try {
       const data = await completeOAuthSignup({ nickname: trimmed })
-
+      
+      // 로그인 세션과 사용자 프로필 저장
       persistLoginSession(undefined, data.nickname, data.email)
-
       saveCurrentUserProfile({
         email: data.email,
         nickname: data.nickname,
@@ -44,9 +44,10 @@ export default function OAuthSignupPage() {
         twitter: "",
       })
 
+      // 마이페이지로 리디렉션
       router.replace("/mypage")
-      router.refresh()
     } catch (e) {
+      // 에러 메시지 표시
       setError(e instanceof Error ? e.message : "닉네임 저장에 실패했습니다.")
     } finally {
       setIsLoading(false)

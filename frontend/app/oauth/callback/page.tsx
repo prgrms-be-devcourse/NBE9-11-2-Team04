@@ -14,9 +14,9 @@ export default function OAuthCallbackPage() {
     const nickname = searchParams.get("nickname")
     const errorCode = searchParams.get("errorCode")
 
+    // 오류 발생 시 로그인 페이지로 리디렉션
     if (oauth === "error") {
       const query = new URLSearchParams()
-
       query.set("oauth", "error")
 
       if (errorCode) {
@@ -27,12 +27,18 @@ export default function OAuthCallbackPage() {
       return
     }
 
+    // 로그인 성공 시 메인 페이지로 리디렉션
     if (oauth === "success") {
-      persistLoginSession(undefined, nickname, email)
-      router.replace("/mypage")
+      if (email && nickname) {
+        persistLoginSession(undefined, nickname, email)
+        router.replace("/main") // 메인 페이지로 리디렉션
+      } else {
+        router.replace("/login") // 이메일이나 닉네임이 없으면 로그인 페이지로
+      }
       return
     }
 
+    // 기본적으로 로그인 페이지로 리디렉션
     router.replace("/login")
   }, [router, searchParams])
 
