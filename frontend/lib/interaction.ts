@@ -1,72 +1,85 @@
-import { apiFetch } from "./api";
+import { apiFetch } from "./api"
 
 type SuccessResponse<T> = {
-  code: string;
-  message: string;
-  timestamp: string;
-  data: T;
-};
-
-export type LoginRequest = {
-  email: string;
-  password: string;
-};
-
-export type LoginData = {
-  userId: number;
-  email: string;
-  nickname: string;
-  role: string;
-  status: string;
-  accessToken: string;
-};
-
-export type SignUpRequest = {
-  email: string;
-  password: string;
-  nickname: string;
-};
-
-export type SignUpData = {
-  userId: number;
-  email: string;
-  nickname: string;
-  role: string;
-  status: string;
-};
-
-export type OAuthSignupCompleteRequest = {
-  nickname: string;
-};
-
-export async function login(body: LoginRequest): Promise<LoginData> {
-  const res = await apiFetch<SuccessResponse<LoginData>>("/api/auth/login", {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
-
-  return res.data;
+  code: string
+  message: string
+  timestamp: string
+  data: T
 }
 
-export async function signup(body: SignUpRequest): Promise<SignUpData> {
-  const res = await apiFetch<SuccessResponse<SignUpData>>("/api/auth/signup", {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
+export type LikeResponse = {
+  postId: number
+  liked: boolean
+  likeCount: number
+}
 
-  return res.data;
+export type BookmarkResponse = {
+  postId: number
+  bookmarked: boolean
+}
+
+export type OAuthSignupCompleteRequest = {
+  nickname: string
+}
+
+export type OAuthSignupCompleteResponse = {
+  email: string
+  nickname: string
+}
+
+export async function likePost(postId: number): Promise<LikeResponse> {
+  return apiFetch<LikeResponse>(`/posts/${postId}/likes`, {
+    method: "POST",
+    auth: true,
+  })
+}
+
+export async function unlikePost(postId: number): Promise<LikeResponse> {
+  return apiFetch<LikeResponse>(`/posts/${postId}/likes`, {
+    method: "DELETE",
+    auth: true,
+  })
+}
+
+export async function bookmarkPost(postId: number): Promise<BookmarkResponse> {
+  return apiFetch<BookmarkResponse>(`/posts/${postId}/bookmarks`, {
+    method: "POST",
+    auth: true,
+  })
+}
+
+export async function unbookmarkPost(postId: number): Promise<BookmarkResponse> {
+  return apiFetch<BookmarkResponse>(`/posts/${postId}/bookmarks`, {
+    method: "DELETE",
+    auth: true,
+  })
+}
+
+export async function toggleLike(
+  postId: number,
+  liked: boolean
+): Promise<LikeResponse> {
+  return liked ? unlikePost(postId) : likePost(postId)
+}
+
+export async function toggleBookmark(
+  postId: number,
+  bookmarked: boolean
+): Promise<BookmarkResponse> {
+  return bookmarked ? unbookmarkPost(postId) : bookmarkPost(postId)
 }
 
 export async function completeOAuthSignup(
   body: OAuthSignupCompleteRequest
-): Promise<SignUpData> {
-  const res = await apiFetch<SuccessResponse<SignUpData>>(
-    "/api/auth/oauth/signup/complete",
+): Promise<OAuthSignupCompleteResponse> {
+  const res = await apiFetch<SuccessResponse<OAuthSignupCompleteResponse>>(
+    "/api/auth/oauth2/signup/complete",
     {
       method: "POST",
       body: JSON.stringify(body),
+      auth: true,
     }
-  );
+  )
 
-  return res.data;
+  return res.data
 }

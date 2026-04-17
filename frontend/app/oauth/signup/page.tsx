@@ -1,45 +1,57 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Code2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { completeOAuthSignup } from "@/lib/interaction";
-import { persistLoginSession } from "@/lib/auth-storage";
+import { useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { Code2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { completeOAuthSignup } from "@/lib/interaction"
+import { persistLoginSession, saveCurrentUserProfile } from "@/lib/auth-storage"
 
 export default function OAuthSignupPage() {
-  const router = useRouter();
-  const [nickname, setNickname] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const router = useRouter()
+  const [nickname, setNickname] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError("");
+    e.preventDefault()
+    setError("")
 
-    const trimmed = nickname.trim();
+    const trimmed = nickname.trim()
     if (trimmed.length < 2 || trimmed.length > 50) {
-      setError("닉네임은 2자 이상 50자 이하로 입력해주세요.");
-      return;
+      setError("닉네임은 2자 이상 50자 이하로 입력해주세요.")
+      return
     }
 
-    setIsLoading(true);
+    setIsLoading(true)
+
     try {
-      const data = await completeOAuthSignup({ nickname: trimmed });
+      const data = await completeOAuthSignup({ nickname: trimmed })
 
-      // 현재 UI 로그인 상태 로직과 맞추기 위한 임시 세션 값
-      persistLoginSession("oauth-cookie-session", data.nickname, data.email);
+      persistLoginSession(undefined, data.nickname, data.email)
 
-      router.replace("/");
+      saveCurrentUserProfile({
+        email: data.email,
+        nickname: data.nickname,
+        username: data.email?.split("@")[0] || data.nickname,
+        bio: "",
+        location: "",
+        website: "",
+        github: "",
+        twitter: "",
+      })
+
+      router.replace("/mypage")
+      router.refresh()
     } catch (e) {
-      setError(e instanceof Error ? e.message : "닉네임 저장에 실패했습니다.");
+      setError(e instanceof Error ? e.message : "닉네임 저장에 실패했습니다.")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
@@ -84,5 +96,5 @@ export default function OAuthSignupPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }
