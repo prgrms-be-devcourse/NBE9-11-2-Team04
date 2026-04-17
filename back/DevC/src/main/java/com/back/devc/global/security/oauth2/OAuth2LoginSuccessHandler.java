@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.Optional;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
@@ -82,6 +84,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
             response.sendRedirect(redirectUrlResolver.buildSignupUrl(provider));
         } catch (Exception e) {
+            log.error("OAuth2 success handler failed. provider={}", provider, e);
             response.sendRedirect(redirectUrlResolver.buildFailureUrl(ERROR_TOKEN_ISSUE));
         }
     }

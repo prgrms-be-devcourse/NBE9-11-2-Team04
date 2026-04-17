@@ -148,6 +148,10 @@ public class Member {
         this.status = newStatus;
     }
 
+    public void withdraw() {
+        this.status = MemberStatus.WITHDRAWN;
+    }
+
     @PrePersist
     void prePersist() {
         LocalDateTime now = LocalDateTime.now();

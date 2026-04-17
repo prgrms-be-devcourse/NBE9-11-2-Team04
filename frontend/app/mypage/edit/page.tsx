@@ -181,6 +181,31 @@ export default function MyPageEditPage() {
     }
   }
 
+  const handleWithdraw = async () => {
+    if (confirm("정말로 회원 탈퇴를 하시겠습니까?")) {
+      try {
+        await apiFetch("/api/users/me", {
+          method: "DELETE",
+          auth: true,
+        })
+        alert("회원 탈퇴가 완료되었습니다.")
+
+        // 로컬 스토리지에서 로그인 정보 삭제
+        localStorage.removeItem("access_token")
+        localStorage.removeItem("current_user_profile")
+
+        // 프로필 상태 초기화
+        window.location.reload();  // 페이지 새로고침하여 탈퇴된 상태 반영
+
+        // 리다이렉트: 로그인 페이지로 이동
+        router.replace("/login")
+      } catch (e) {
+        console.error(e)
+        alert("회원 탈퇴에 실패했습니다.")
+      }
+    }
+  }
+
   if (loading) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
@@ -206,9 +231,7 @@ export default function MyPageEditPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">프로필 수정</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            내 정보를 수정할 수 있습니다.
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">내 정보를 수정할 수 있습니다.</p>
         </div>
 
         <Link href="/mypage">
@@ -231,9 +254,7 @@ export default function MyPageEditPage() {
           <div className="flex-1">
             <div className="mb-4 flex flex-wrap items-center gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-foreground">
-                  {form.nickname || "사용자"}
-                </h2>
+                <h2 className="text-2xl font-bold text-foreground">{form.nickname || "사용자"}</h2>
               </div>
               <Button variant="outline" className="gap-2" disabled>
                 <Settings className="h-4 w-4" />
@@ -402,6 +423,14 @@ export default function MyPageEditPage() {
               onClick={() => router.push("/mypage")}
             >
               취소
+            </Button>
+
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleWithdraw} // 회원 탈퇴 함수 호출
+            >
+              회원 탈퇴
             </Button>
           </div>
         </form>
