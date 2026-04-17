@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { login } from "@/lib/interaction";
+import { login } from "@/lib/auth";
 import { persistLoginSession } from "@/lib/auth-storage";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
 function getOauthErrorMessage(errorCode: string | null) {
   switch (errorCode) {
@@ -53,11 +54,13 @@ export default function LoginPage() {
       const nickname = searchParams.get("nickname");
       const email = searchParams.get("email");
 
-      // 현재 앱의 로그인 상태 판단이 localStorage token 기반이라 임시 세션값 저장
-      // (추후 /api/users/me 기반 인증 동기화로 교체 권장)
       persistLoginSession("oauth-cookie-session", nickname, email);
-
       router.replace("/");
+      return;
+    }
+
+    if (oauth === "pending_signup") {
+      router.replace("/oauth/signup");
       return;
     }
 
@@ -96,6 +99,11 @@ export default function LoginPage() {
     window.location.href = `${API_BASE_URL}/oauth2/authorization/github`;
   };
 
+  const handleKakaoLogin = () => {
+    setError("");
+    window.location.href = `${API_BASE_URL}/oauth2/authorization/kakao`;
+  };
+
   return (
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
@@ -116,9 +124,7 @@ export default function LoginPage() {
                 type="email"
                 placeholder="name@example.com"
                 value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
                 className="bg-secondary"
               />
@@ -127,10 +133,7 @@ export default function LoginPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">비밀번호</Label>
-                <Link
-                  href="/forgot-password"
-                  className="text-sm text-primary hover:underline"
-                >
+                <Link href="/forgot-password" className="text-sm text-primary hover:underline">
                   비밀번호 찾기
                 </Link>
               </div>
@@ -140,9 +143,7 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   placeholder="비밀번호를 입력하세요"
                   value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
                   className="bg-secondary pr-10"
                 />
@@ -151,11 +152,7 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
@@ -203,6 +200,7 @@ export default function LoginPage() {
               <Github className="h-4 w-4" />
               GitHub으로 로그인
             </Button>
+
             <Button variant="outline" className="w-full gap-2" type="button">
               <svg className="h-4 w-4" viewBox="0 0 24 24">
                 <path
@@ -224,10 +222,12 @@ export default function LoginPage() {
               </svg>
               Google로 로그인
             </Button>
+
             <Button
               variant="outline"
-              className="w-full gap-2 bg-[#FEE500] text-[#000000] hover:bg-[#FEE500]/90 border-[#FEE500]"
+              className="w-full gap-2 border-[#FEE500] bg-[#FEE500] text-[#000000] hover:bg-[#FEE500]/90"
               type="button"
+              onClick={handleKakaoLogin}
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24">
                 <path

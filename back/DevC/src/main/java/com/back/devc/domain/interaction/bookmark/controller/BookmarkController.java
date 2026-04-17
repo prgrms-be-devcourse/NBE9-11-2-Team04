@@ -1,14 +1,11 @@
 package com.back.devc.domain.interaction.bookmark.controller;
 
 import com.back.devc.domain.interaction.bookmark.dto.BookmarkResponse;
-import com.back.devc.domain.interaction.bookmark.dto.BookmarkedPostResponse;
 import com.back.devc.domain.interaction.bookmark.service.BookmarkService;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api")
@@ -31,12 +28,5 @@ public class BookmarkController {
             @PathVariable Long postId
     ) {
         return bookmarkService.cancelBookmark(principal.userId(), postId);
-    }
-
-    @GetMapping("/users/me/bookmarks")
-    public List<BookmarkedPostResponse> getBookmarkedPosts(
-            @AuthenticationPrincipal JwtPrincipal principal
-    ) {
-        return bookmarkService.getBookmarkedPosts(principal.userId());
     }
 }
