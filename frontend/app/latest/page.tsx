@@ -44,7 +44,7 @@ export default function LatestPage() {
         const data: PostPageResponse = await res.json()
 
         const mapped: Post[] = data.content.map((post) => ({
-          id: String(post.postId), // ⭐ 중요 (PostCard가 string이면 맞춰야 함)
+          id: String(post.postId), 
           title: post.title,
           excerpt: post.content,
           author: {
