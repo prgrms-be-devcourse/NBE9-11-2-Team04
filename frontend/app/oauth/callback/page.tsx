@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { persistLoginSession } from "@/lib/auth-storage"
 import { exchangeOAuthCode } from "@/lib/auth"
@@ -8,51 +8,43 @@ import { exchangeOAuthCode } from "@/lib/auth"
 export default function OAuthCallbackPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const handledRef = useRef(false)
 
   useEffect(() => {
-    if (handledRef.current) return
-    handledRef.current = true
-
     const oauth = searchParams.get("oauth")
     const errorCode = searchParams.get("errorCode")
     const code = searchParams.get("code")
 
     const run = async () => {
+      // 1. 에러 발생 시 처리
       if (oauth === "error") {
         const query = new URLSearchParams()
         query.set("oauth", "error")
         if (errorCode) query.set("errorCode", errorCode)
+        
         router.replace(`/login?${query.toString()}`)
         return
       }
 
+      // 2. 로그인 성공 및 코드가 있을 때 처리
       if (oauth === "success" && code) {
-        const exchangeKey = `oauth_exchange_done_${code}`
-
-        if (typeof window !== "undefined" && sessionStorage.getItem(exchangeKey) === "1") {
-          router.replace("/mypage")
-          return
-        }
-
         try {
+          // 서버에서 토큰 교환
           const data = await exchangeOAuthCode({ code })
-
+          // 세션 저장 (액세스 토큰, 닉네임, 이메일 등)
           persistLoginSession(data.accessToken, data.nickname, data.email)
-
-          if (typeof window !== "undefined") {
-            sessionStorage.setItem(exchangeKey, "1")
-          }
-
-          router.replace("/mypage")
+          
+          // 성공 시 리디렉션 (mypage 혹은 main 중 팀의 결정에 따라 선택)
+          router.replace("/mypage") 
           router.refresh()
           return
-        } catch {
+        } catch (error) {
+          console.error("OAuth exchange error:", error)
           router.replace("/login?oauth=error&errorCode=OAUTH2_TOKEN_ISSUE")
           return
         }
       }
 
+      // 3. 그 외 기본 상황은 로그인 페이지로
       router.replace("/login")
     }
 
