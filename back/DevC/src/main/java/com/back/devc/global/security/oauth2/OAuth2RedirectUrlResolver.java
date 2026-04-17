@@ -22,7 +22,7 @@ public class OAuth2RedirectUrlResolver {
     @Value("${custom.oauth2.frontend-signup-url:http://localhost:3000/oauth/signup}")
     private String frontendSignupUrl;
 
-    @Value("${custom.oauth2.allowed-redirect-uris:http://localhost:3000/oauth/callback,http://localhost:3000/login,http://localhost:3000/oauth/signup}")
+    @Value("${custom.oauth2.allowed-redirect-uris:http://localhost:3000/login,http://localhost:3000/oauth/signup}")
     private String allowedRedirectUrisCsv;
 
     public String buildSuccessUrl(String provider, Member member) {

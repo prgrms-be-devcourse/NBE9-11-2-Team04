@@ -75,9 +75,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         try {
             OAuthPendingSignup pending = oAuth2MemberService.buildPendingSignup(provider, oauth2User);
 
-            Optional<Member> existing =
-                    oAuth2MemberService.findMemberByProviderUserId(provider, pending.providerUserId());
-
+            Optional<Member> existing = oAuth2MemberService.findMemberByProviderUserId(provider, pending.providerUserId());
             if (existing.isPresent()) {
                 Member member = existing.get();
 
@@ -86,6 +84,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                     return;
                 }
 
+                // 기존 회원 로그인 성공 시, 남아 있을 수 있는 pending signup 세션 정리
                 HttpSession session = request.getSession(false);
                 if (session != null) {
                     session.removeAttribute(PENDING_SIGNUP_SESSION_KEY);
