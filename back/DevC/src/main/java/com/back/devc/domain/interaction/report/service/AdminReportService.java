@@ -35,7 +35,7 @@ public class AdminReportService {
     @Transactional(readOnly = true)
     public Page<ReportResponseDTO> getPendingReports(Pageable pageable) {
         return reportRepository.findAllByStatus("PENDING", pageable)
-                .map(ReportResponseDTO::from); // Page 객체는 자체적으로 .map을 지원합니다.
+                .map(this::toDtoWithTargetInfo);
     }
 
     /**
@@ -121,5 +121,41 @@ public class AdminReportService {
     private Member findMemberOrThrow(Long userId) {
         return memberRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
+    }
+
+
+    private ReportResponseDTO toDtoWithTargetInfo(Report report) {
+
+        String targetNickname = null;
+        String targetTitle = null;
+        String targetContent = null;
+
+        if ("POST".equals(report.getTargetType())) {
+            Post post = postRepository.findById(report.getTargetId())
+                    .orElse(null);
+
+            if (post != null) {
+                targetNickname = post.getMember().getNickname();
+                targetTitle = post.getTitle();
+                targetContent = post.getContent();
+            }
+        }
+
+        if ("COMMENT".equals(report.getTargetType())) {
+            Comment comment = commentRepository.findById(report.getTargetId())
+                    .orElse(null);
+
+            if (comment != null) {
+                targetNickname = comment.getId().toString(); // nickname 가져오려면 service 단에서 userId로 member 조회 필요
+                targetContent = comment.getContent();
+            }
+        }
+
+        return ReportResponseDTO.of(
+                report,
+                targetNickname,
+                targetTitle,
+                targetContent
+        );
     }
 }
