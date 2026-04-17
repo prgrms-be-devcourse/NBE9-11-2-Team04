@@ -27,6 +27,7 @@ import java.util.List;
  * - COMMENT : 내 게시글에 다른 사용자가 댓글을 남긴 경우
  * - REPLY   : 내 댓글에 다른 사용자가 답글을 남긴 경우
  * - LIKE    : 내 게시글에 다른 사용자가 좋아요를 누른 경우
+ * - BOOKMARK: 내 게시글을 다른 사용자가 북마크한 경우
  * - REPORT  : 내 게시글/댓글이 신고된 경우
  *
  * 구현 시 주의한 점
@@ -136,6 +137,40 @@ public class NotificationServiceImpl implements NotificationService {
                 null,
                 "LIKE",
                 actorUserId + "번 사용자가 회원님의 게시글을 좋아합니다."
+        );
+    }
+
+    /**
+     * 게시글 북마크 알림 생성
+     *
+     * 주의 사항
+     * - 자기 자신의 게시글을 북마크한 경우 알림을 만들지 않음
+     * - 같은 사용자가 같은 게시글을 북마크 취소 후 다시 눌러도
+     *   BOOKMARK 알림은 한 번만 남기도록 중복 생성 방지 검사를 수행
+     */
+    @Override
+    @Transactional
+    public void createBookmarkNotification(Long postId, Long actorUserId) {
+        Long postOwnerId = findPostOwnerId(postId);
+
+        if (postOwnerId.equals(actorUserId)) {
+            return;
+        }
+
+        boolean alreadyNotified = notificationRepository
+                .existsByUserIdAndActorUserIdAndPostIdAndType(postOwnerId, actorUserId, postId, "BOOKMARK");
+
+        if (alreadyNotified) {
+            return;
+        }
+
+        saveNotification(
+                postOwnerId,
+                actorUserId,
+                postId,
+                null,
+                "BOOKMARK",
+                actorUserId + "번 사용자가 회원님의 게시글을 북마크했습니다."
         );
     }
 
