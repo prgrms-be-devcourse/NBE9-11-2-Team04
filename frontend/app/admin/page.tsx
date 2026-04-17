@@ -7,7 +7,7 @@ import { Code2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { login } from "@/lib/interaction";
+import { login } from "@/lib/auth";
 import { persistLoginSession } from "@/lib/auth-storage";
 
 export default function LoginPage() {
