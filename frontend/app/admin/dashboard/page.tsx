@@ -34,32 +34,31 @@ const stats = [
   },
 ]
 
-const recentReports = [
-  {
-    id: "1",
-    type: "게시글",
-    reason: "스팸/광고",
-    reporter: "김철수",
-    target: "비트코인 투자 꿀팁...",
-    date: "5분 전",
+// 오늘 신고 통계 데이터
+const todayReportStats = {
+  post: {
+    total: 12,
+    pending: 8,
+    resolved: 4,
+    byReason: [
+      { reason: "스팸/광고", count: 5 },
+      { reason: "욕설/비방", count: 3 },
+      { reason: "허위정보", count: 2 },
+      { reason: "개인정보 노출", count: 1 },
+      { reason: "기타", count: 1 },
+    ],
   },
-  {
-    id: "2",
-    type: "댓글",
-    reason: "욕설/비방",
-    reporter: "이영희",
-    target: "너 진짜...",
-    date: "12분 전",
+  comment: {
+    total: 6,
+    pending: 4,
+    resolved: 2,
+    byReason: [
+      { reason: "욕설/비방", count: 3 },
+      { reason: "스팸/광고", count: 2 },
+      { reason: "개인정보 노출", count: 1 },
+    ],
   },
-  {
-    id: "3",
-    type: "사용자",
-    reason: "사칭",
-    reporter: "박민수",
-    target: "@fake_developer",
-    date: "1시간 전",
-  },
-]
+}
 
 
 
@@ -99,43 +98,68 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
-      {/* Recent Reports */}
-      <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              최근 신고
-            </CardTitle>
-            <CardDescription>최근 접수된 신고 내역입니다.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentReports.map((report) => (
-                <div
-                  key={report.id}
-                  className="flex items-center justify-between rounded-lg border border-border p-3"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
-                        {report.type}
-                      </span>
-                      <span className="text-sm font-medium text-foreground">
-                        {report.reason}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      대상: {report.target}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">{report.date}</p>
-                  </div>
+      {/* Today Report Stats */}
+      <div>
+        <h2 className="mb-4 text-lg font-semibold text-foreground flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-destructive" />
+          오늘 신고 현황
+        </h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Post Report Card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FileText className="h-4 w-4 text-primary" />
+                  게시글 신고
+                </CardTitle>
+                <div className="flex items-center gap-4 text-sm">
+                  <span className="font-semibold text-foreground">{todayReportStats.post.total}건</span>
+                  <span className="text-amber-500">대기 {todayReportStats.post.pending}</span>
+                  <span className="text-green-500">처리 {todayReportStats.post.resolved}</span>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-      </Card>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {todayReportStats.post.byReason.map((item) => (
+                  <div key={item.reason} className="flex items-center justify-between rounded-md bg-secondary/50 px-3 py-2">
+                    <span className="text-sm text-muted-foreground">{item.reason}</span>
+                    <span className="text-sm font-medium text-foreground">{item.count}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Comment Report Card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <MessageSquare className="h-4 w-4 text-primary" />
+                  댓글 신고
+                </CardTitle>
+                <div className="flex items-center gap-4 text-sm">
+                  <span className="font-semibold text-foreground">{todayReportStats.comment.total}건</span>
+                  <span className="text-amber-500">대기 {todayReportStats.comment.pending}</span>
+                  <span className="text-green-500">처리 {todayReportStats.comment.resolved}</span>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {todayReportStats.comment.byReason.map((item) => (
+                  <div key={item.reason} className="flex items-center justify-between rounded-md bg-secondary/50 px-3 py-2">
+                    <span className="text-sm text-muted-foreground">{item.reason}</span>
+                    <span className="text-sm font-medium text-foreground">{item.count}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Quick Stats */}
       <Card>
