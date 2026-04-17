@@ -24,6 +24,7 @@ public class OAuth2MemberService {
 
     private static final String GITHUB_EMAIL_DOMAIN = "@users.noreply.github.com";
     private static final String KAKAO_EMAIL_DOMAIN = "@users.noreply.kakao.com";
+    private static final String GOOGLE_EMAIL_DOMAIN = "@users.noreply.google.com";
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
@@ -37,6 +38,10 @@ public class OAuth2MemberService {
 
         if ("kakao".equals(normalized)) {
             return buildKakaoPendingSignup(oauth2User);
+        }
+
+        if ("google".equals(normalized)) {
+            return buildGooglePendingSignup(oauth2User);
         }
 
         throw new ApiException(ErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
@@ -81,6 +86,18 @@ public class OAuth2MemberService {
         return new OAuthPendingSignup("kakao", providerUserId, email, login);
     }
 
+    public OAuthPendingSignup buildGooglePendingSignup(OAuth2User oauth2User) {
+        String providerUserId = valueAsString(oauth2User.getAttribute("sub")).trim();
+        if (providerUserId.isBlank()) {
+            throw new ApiException(ErrorCode.OAUTH2_PROVIDER_USER_ID_MISSING);
+        }
+
+        String email = valueAsString(oauth2User.getAttribute("email")).trim();
+        String login = valueAsString(oauth2User.getAttribute("name")).trim();
+
+        return new OAuthPendingSignup("google", providerUserId, email, login);
+    }
+
     @Transactional
     public Member completeGithubSignup(OAuthPendingSignup pending, String nickname) {
         return completeSignupByProvider(AuthProvider.GITHUB, pending, nickname, GITHUB_EMAIL_DOMAIN, "github_");
@@ -89,6 +106,11 @@ public class OAuth2MemberService {
     @Transactional
     public Member completeKakaoSignup(OAuthPendingSignup pending, String nickname) {
         return completeSignupByProvider(AuthProvider.KAKAO, pending, nickname, KAKAO_EMAIL_DOMAIN, "kakao_");
+    }
+
+    @Transactional
+    public Member completeGoogleSignup(OAuthPendingSignup pending, String nickname) {
+        return completeSignupByProvider(AuthProvider.GOOGLE, pending, nickname, GOOGLE_EMAIL_DOMAIN, "google_");
     }
 
     private Member completeSignupByProvider(
@@ -108,7 +130,6 @@ public class OAuth2MemberService {
         if (existing.isPresent()) {
             Member member = existing.get();
 
-            // 가입완료 API 우회로로 블랙리스트 계정 토큰 발급되는 문제 방지
             if (member.getStatus() == MemberStatus.BLACKLISTED) {
                 throw new ApiException(ErrorCode.MEMBER_BLACKLISTED);
             }
@@ -153,6 +174,10 @@ public class OAuth2MemberService {
 
         if ("kakao".equals(normalized)) {
             return AuthProvider.KAKAO;
+        }
+
+        if ("google".equals(normalized)) {
+            return AuthProvider.GOOGLE;
         }
 
         throw new ApiException(ErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);

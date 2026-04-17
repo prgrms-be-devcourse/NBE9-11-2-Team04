@@ -22,6 +22,14 @@ spring:
                         redirect-uri: "http://localhost:8080/login/oauth2/code/kakao"
                         client-name: Kakao
 
+                    google:
+                        client-id: ${GOOGLE_CLIENT_ID}
+                        client-secret: ${GOOGLE_CLIENT_SECRET}
+                        scope:
+                            - profile
+                            - email
+                        redirect-uri: "http://localhost:8080/login/oauth2/code/google"
+
                 provider:
                     kakao:
                         authorization-uri: https://kauth.kakao.com/oauth/authorize
