@@ -66,7 +66,7 @@ public class AdminPostControllerTest {
     @WithMockUser(roles = "USER") // 유저 권한인 경우에 -> block 되는 것을 보여주는 테스트
     void t1() throws Exception {
 
-        mvc.perform(get("/api/v1/admin/posts"))
+        mvc.perform(get("/api/admin/posts"))
                 .andExpect(status().isForbidden());
     }
 
@@ -88,7 +88,7 @@ public class AdminPostControllerTest {
         post2.delete();
         postRepository.flush();
 
-        mvc.perform(get("/api/v1/admin/posts"))
+        mvc.perform(get("/api/admin/posts"))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(3))
@@ -108,7 +108,7 @@ public class AdminPostControllerTest {
         postRepository.flush();
 
         // when & then
-        mvc.perform(get("/api/v1/admin/posts/{postId}", deletedPost.getPostId()))
+        mvc.perform(get("/api/admin/posts/{postId}", deletedPost.getPostId()))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("삭제된 글"))
