@@ -17,9 +17,13 @@ import com.back.devc.global.response.SuccessResponse;
 import com.back.devc.global.security.jwt.JwtProvider;
 import com.back.devc.global.security.oauth2.OAuth2LoginSuccessHandler;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -40,6 +44,18 @@ public class OAuth2Controller {
     private final OAuthLoginCodeService oAuthLoginCodeService;
     private final MemberRepository memberRepository;
     private final JwtProvider jwtProvider;
+
+    @Value("${custom.jwt.access-cookie-name:access_token}")
+    private String accessCookieName;
+
+    @Value("${custom.jwt.access-cookie-secure:false}")
+    private boolean accessCookieSecure;
+
+    @Value("${custom.jwt.access-cookie-same-site:Lax}")
+    private String accessCookieSameSite;
+
+    @Value("${custom.jwt.access-token-expiration-seconds:3600}")
+    private long accessTokenExpirationSeconds;
 
     @GetMapping("/me")
     public OAuth2MeResponse me(
@@ -77,7 +93,8 @@ public class OAuth2Controller {
 
     @PostMapping("/exchange")
     public ResponseEntity<SuccessResponse<LoginResponse>> exchange(
-            @Valid @RequestBody OAuthExchangeRequest request
+            @Valid @RequestBody OAuthExchangeRequest request,
+            HttpServletResponse response
     ) {
         Long userId = oAuthLoginCodeService.consume(request.code())
                 .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED));
@@ -90,6 +107,7 @@ public class OAuth2Controller {
         }
 
         String accessToken = jwtProvider.createAccessToken(member);
+        setAccessTokenCookie(response, accessToken, accessTokenExpirationSeconds);
 
         LoginResponse body = new LoginResponse(
                 member.getUserId(),
@@ -109,7 +127,8 @@ public class OAuth2Controller {
     @PostMapping("/signup/complete")
     public ResponseEntity<SuccessResponse<LoginResponse>> completeSignup(
             @Valid @RequestBody OAuthSignupCompleteRequest request,
-            HttpServletRequest httpServletRequest
+            HttpServletRequest httpServletRequest,
+            HttpServletResponse response
     ) {
         HttpSession session = httpServletRequest.getSession(false);
         if (session == null) {
@@ -125,6 +144,7 @@ public class OAuth2Controller {
         session.removeAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY);
 
         String accessToken = jwtProvider.createAccessToken(member);
+        setAccessTokenCookie(response, accessToken, accessTokenExpirationSeconds);
 
         LoginResponse body = new LoginResponse(
                 member.getUserId(),
@@ -153,5 +173,17 @@ public class OAuth2Controller {
         }
 
         throw new ApiException(ErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
+    }
+
+    private void setAccessTokenCookie(HttpServletResponse response, String token, long maxAgeSeconds) {
+        ResponseCookie cookie = ResponseCookie.from(accessCookieName, token == null ? "" : token)
+                .httpOnly(true)
+                .secure(accessCookieSecure)
+                .path("/")
+                .maxAge(maxAgeSeconds)
+                .sameSite(accessCookieSameSite)
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 }
