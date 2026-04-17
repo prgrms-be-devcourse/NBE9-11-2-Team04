@@ -1,6 +1,6 @@
-"use client"
+﻿"use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { persistLoginSession } from "@/lib/auth-storage"
 import { exchangeOAuthCode } from "@/lib/auth"
@@ -8,33 +8,40 @@ import { exchangeOAuthCode } from "@/lib/auth"
 export default function OAuthCallbackPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const isProcessingRef = useRef(false)
 
   useEffect(() => {
+    if (isProcessingRef.current) {
+      return
+    }
+    isProcessingRef.current = true
+
     const oauth = searchParams.get("oauth")
     const errorCode = searchParams.get("errorCode")
     const code = searchParams.get("code")
 
     const run = async () => {
-      // 1. 에러 발생 시 처리
       if (oauth === "error") {
         const query = new URLSearchParams()
         query.set("oauth", "error")
         if (errorCode) query.set("errorCode", errorCode)
-        
+
         router.replace(`/login?${query.toString()}`)
         return
       }
 
-      // 2. 로그인 성공 및 코드가 있을 때 처리
       if (oauth === "success" && code) {
+        const usedCodeKey = `oauth_code_used:${code}`
+        if (sessionStorage.getItem(usedCodeKey) === "1") {
+          return
+        }
+
         try {
-          // 서버에서 토큰 교환
           const data = await exchangeOAuthCode({ code })
-          // 세션 저장 (액세스 토큰, 닉네임, 이메일 등)
+          sessionStorage.setItem(usedCodeKey, "1")
+
           persistLoginSession(data.accessToken, data.nickname, data.email)
-          
-          // 성공 시 리디렉션 (mypage 혹은 main 중 팀의 결정에 따라 선택)
-          router.replace("/mypage") 
+          router.replace("/mypage")
           router.refresh()
           return
         } catch (error) {
@@ -44,7 +51,6 @@ export default function OAuthCallbackPage() {
         }
       }
 
-      // 3. 그 외 기본 상황은 로그인 페이지로
       router.replace("/login")
     }
 

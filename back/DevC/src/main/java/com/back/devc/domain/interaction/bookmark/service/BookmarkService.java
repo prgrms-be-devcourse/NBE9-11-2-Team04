@@ -8,6 +8,7 @@ import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
+import com.back.devc.domain.interaction.notification.service.NotificationService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,8 @@ public class BookmarkService {
     private final BookmarkRepository bookmarkRepository;
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
+    // 북마크 생성 성공 후 게시글 작성자에게 북마크 알림을 보내기 위해 사용하는 서비스
+    private final NotificationService notificationService;
 
     @Transactional
     public BookmarkResponse createBookmark(Long userId, Long postId) {
@@ -38,6 +41,10 @@ public class BookmarkService {
 
         Bookmark bookmark = new Bookmark(member, post);
         bookmarkRepository.save(bookmark);
+
+        // 북마크 저장이 끝난 뒤 게시글 작성자에게 북마크 알림을 생성
+        // 실제 알림 생성 가능 여부(자기 글 북마크인지, 중복 알림인지 등)는 NotificationService 에서 한 번 더 검증
+        notificationService.createBookmarkNotification(postId, userId);
 
         return new BookmarkResponse(post.getPostId(), true);
     }

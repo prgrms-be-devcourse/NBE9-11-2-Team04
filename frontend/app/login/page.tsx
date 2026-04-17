@@ -94,6 +94,11 @@ export default function LoginPage() {
     window.location.href = `${API_BASE_URL}/oauth2/authorization/kakao`
   }
 
+  const handleGoogleLogin = () => {
+    setError("")
+    window.location.href = `${API_BASE_URL}/oauth2/authorization/google`
+  }
+
   return (
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
@@ -191,7 +196,12 @@ export default function LoginPage() {
               GitHub으로 로그인
             </Button>
 
-            <Button variant="outline" className="w-full gap-2" type="button">
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              type="button"
+              onClick={handleGoogleLogin}
+            >
               <svg className="h-4 w-4" viewBox="0 0 24 24">
                 <path
                   fill="currentColor"
