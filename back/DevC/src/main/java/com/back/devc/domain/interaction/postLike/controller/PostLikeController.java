@@ -7,8 +7,6 @@ import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -24,7 +22,7 @@ public class PostLikeController {
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long postId
     ) {
-        return postLikeService.createLike(getAuthenticatedUserId(principal), postId);
+        return postLikeService.createLike(principal.userId(), postId);
     }
 
     @DeleteMapping("/posts/{postId}/likes")
@@ -32,20 +30,13 @@ public class PostLikeController {
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long postId
     ) {
-        return postLikeService.cancelLike(getAuthenticatedUserId(principal), postId);
+        return postLikeService.cancelLike(principal.userId(), postId);
     }
 
     @GetMapping("/users/me/likes")
     public List<LikedPostResponse> getLikedPosts(
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
-        return postLikeService.getLikedPosts(getAuthenticatedUserId(principal));
-    }
-
-    private Long getAuthenticatedUserId(JwtPrincipal principal) {
-        if (principal == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증이 필요합니다.");
-        }
-        return principal.userId();
+        return postLikeService.getLikedPosts(principal.userId());
     }
 }
