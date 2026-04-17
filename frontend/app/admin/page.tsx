@@ -1,70 +1,92 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Shield, Eye, EyeOff, Lock } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Code2, Eye, EyeOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { login } from "@/lib/interaction";
+import { persistLoginSession } from "@/lib/auth-storage";
 
-const ADMIN_PASSWORD = "admin123" // In production, this should be stored securely
+export default function LoginPage() {
+  const router = useRouter();
 
-export default function AdminLoginPage() {
-  const router = useRouter()
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
-    // Simulate login check
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    try {
+      const data = await login({
+        email: formData.email,
+        password: formData.password,
+      });
 
-    if (password === ADMIN_PASSWORD) {
-      // Store admin session
-      sessionStorage.setItem("adminAuth", "true")
-      router.push("/admin/dashboard")
-    } else {
-      setError("비밀번호가 올바르지 않습니다.")
+      if (!data.accessToken) {
+        throw new Error("토큰 응답이 없습니다.");
+      }
+
+      persistLoginSession(data.accessToken, data.nickname, data.email);
+      router.push("/admin/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "로그인에 실패했습니다.");
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false)
-  }
+  };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm">
-        {/* Logo */}
+    <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <Shield className="h-8 w-8 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">관리자 로그인</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            DevHub 관리자 페이지에 접근하려면 비밀번호를 입력하세요.
-          </p>
+          <Link href="/" className="inline-flex items-center gap-2">
+            <Code2 className="h-8 w-8 text-primary" />
+            <span className="text-2xl font-bold text-foreground">DevHub</span>
+          </Link>
+          <p className="mt-2 text-muted-foreground">계정으로 로그인하세요</p>
         </div>
 
-        {/* Login Form */}
         <div className="rounded-lg border border-border bg-card p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password">관리자 비밀번호</Label>
+              <Label htmlFor="email">이메일</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                required
+                className="bg-secondary"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">비밀번호</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="비밀번호를 입력하세요"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
                   required
-                  className="bg-secondary pl-10 pr-10"
+                  className="bg-secondary pr-10"
                 />
                 <button
                   type="button"
@@ -80,14 +102,6 @@ export default function AdminLoginPage() {
               </div>
             </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                {error}
-              </div>
-            )}
-
-            {/* Submit Button */}
             <Button
               type="submit"
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
@@ -95,16 +109,11 @@ export default function AdminLoginPage() {
             >
               {isLoading ? "로그인 중..." : "로그인"}
             </Button>
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
           </form>
         </div>
-
-        {/* Back to Home */}
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          <a href="/" className="text-primary hover:underline">
-            메인 페이지로 돌아가기
-          </a>
-        </p>
       </div>
     </div>
-  )
+  );
 }

@@ -86,6 +86,9 @@ async function fetchUsers(params: {
 }): Promise<PageResponse<User>> {
   if (!API_BASE) throw new Error("API_BASE 환경변수 없음")
 
+  const token = localStorage.getItem("accessToken")
+  if (!token) throw new Error("로그인 토큰 없음")
+
   const query = new URLSearchParams()
   query.append("page", String(params.page))
   query.append("size", String(params.size))
@@ -98,14 +101,13 @@ async function fetchUsers(params: {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
     },
   })
 
   if (!res.ok) throw new Error("사용자 조회 실패")
 
   const body: ApiResponse<PageResponse<User>> = await res.json()
-  console.log("응답 JSON:", body)
-
   return body.data
 }
 
@@ -115,12 +117,16 @@ async function updateUserStatus(params: {
 }) {
   if (!API_BASE) throw new Error("API_BASE 환경변수 없음")
 
+  const token = localStorage.getItem("accessToken")
+  if (!token) throw new Error("로그인 토큰 없음")
+
   const res = await fetch(
     `${API_BASE}/api/admin/members/${params.userId}/status`,
     {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ status: params.status }),
     }
