@@ -27,6 +27,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final MemberRepository memberRepository;
     private final CategoryRepository categoryRepository;
+    // 게시글 상세 조회 시 현재 로그인 사용자의 좋아요 여부를 확인하기 위해 추가한 repository
     private final PostLikeRepository postLikeRepository;
 
     // 게시글 작성
@@ -60,18 +61,26 @@ public class PostService {
                 .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
     }
 
-
-
-
-    // 단건 상세 조회 (현재 로그인 사용자의 좋아요 여부 포함)
+    /**
+     * 게시글 단건 상세 조회
+     *
+     * 기존 게시글 상세 정보에 더해,
+     * 현재 로그인한 사용자가 이 게시글에 좋아요를 눌렀는지도 함께 계산해서 내려줌
+     *
+     * 이렇게 하면 프론트가 게시글 상세 페이지에 진입했을 때
+     * 서버 기준의 실제 좋아요 상태를 바로 표시할 수 있음
+     */
     @Transactional(readOnly = true)
     public PostDetailResponse findDetailById(Long postId, Long loginUserId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
 
+        // 비로그인 사용자는 좋아요 여부를 확인할 수 없으므로 false 처리
+        // 로그인 사용자라면 post_likes 테이블을 조회해서 현재 게시글에 좋아요를 눌렀는지 확인
         boolean liked = loginUserId != null
                 && postLikeRepository.existsByMember_UserIdAndPost_PostId(loginUserId, postId);
 
+        // 게시글 기본 정보와 현재 로그인 사용자의 좋아요 여부를 함께 응답 DTO로 변환
         return PostDetailResponse.from(post, liked);
     }
 
