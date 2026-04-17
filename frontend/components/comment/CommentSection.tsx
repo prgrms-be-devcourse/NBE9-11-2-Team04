@@ -215,6 +215,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
     const [editingCommentId, setEditingCommentId] = useState<number | null>(null)
     const [editInputs, setEditInputs] = useState<Record<number, string>>({})
     const [editingSubmittingId, setEditingSubmittingId] = useState<number | null>(null)
+    const [reportSubmittingId, setReportSubmittingId] = useState<number | null>(null)
     const [currentUserId, setCurrentUserId] = useState<number | null>(null)
     const [newCommentFiles, setNewCommentFiles] = useState<File[]>([])
     const [replyFiles, setReplyFiles] = useState<ReplyFilesMap>({})
@@ -393,6 +394,35 @@ export default function CommentSection({ postId }: CommentSectionProps) {
         }
     }
 
+    const handleReportComment = async (commentId: number) => {
+        try {
+            setReportSubmittingId(commentId)
+            setError(null)
+
+            const response = await fetch(`http://localhost:8080/api/report/comment`, {
+                ...getAuthFetchOptions(),
+                method: "POST",
+                headers: getJsonAuthHeaders(),
+                body: JSON.stringify({
+                    targetId: commentId,
+                    reasonType: "ETC",
+                    reasonDetail: "댓글 영역에서 접수한 신고입니다.",
+                }),
+            })
+
+            if (!response.ok) {
+                throw new Error("댓글 신고에 실패했습니다.")
+            }
+
+            alert("댓글 신고가 접수되었습니다.")
+            window.dispatchEvent(new CustomEvent("notifications-updated"))
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
+        } finally {
+            setReportSubmittingId(null)
+        }
+    }
+
     const handleDeleteComment = async (commentId: number) => {
         try {
             setDeletingCommentId(commentId)
@@ -564,25 +594,35 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                             <p className="text-xs text-muted-foreground">
                                 작성자: {comment.nickname ?? `user-${comment.userId}`}
                             </p>
-                            {comment.userId === currentUserId && (
-                                <div className="flex items-center gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleStartEdit(comment.commentId, comment.content)}
-                                        className="text-xs font-medium text-primary hover:underline"
-                                    >
-                                        수정
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleDeleteComment(comment.commentId)}
-                                        disabled={deletingCommentId === comment.commentId}
-                                        className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                        {deletingCommentId === comment.commentId ? "삭제 중..." : "삭제"}
-                                    </button>
-                                </div>
-                            )}
+                            <div className="flex items-center gap-3">
+                                {comment.userId === currentUserId && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleStartEdit(comment.commentId, comment.content)}
+                                            className="text-xs font-medium text-primary hover:underline"
+                                        >
+                                            수정
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteComment(comment.commentId)}
+                                            disabled={deletingCommentId === comment.commentId}
+                                            className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            {deletingCommentId === comment.commentId ? "삭제 중..." : "삭제"}
+                                        </button>
+                                    </>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => handleReportComment(comment.commentId)}
+                                    disabled={reportSubmittingId === comment.commentId}
+                                    className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    {reportSubmittingId === comment.commentId ? "신고 중..." : "신고"}
+                                </button>
+                            </div>
                         </div>
 
                         <div className="mt-3 flex justify-end">
@@ -701,25 +741,35 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                                             <p className="text-xs text-muted-foreground">
                                                 작성자: {reply.nickname ?? `user-${reply.userId}`}
                                             </p>
-                                            {reply.userId === currentUserId && (
-                                                <div className="flex items-center gap-3">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleStartEdit(reply.commentId, reply.content)}
-                                                        className="text-xs font-medium text-primary hover:underline"
-                                                    >
-                                                        수정
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleDeleteComment(reply.commentId)}
-                                                        disabled={deletingCommentId === reply.commentId}
-                                                        className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                                                    >
-                                                        {deletingCommentId === reply.commentId ? "삭제 중..." : "삭제"}
-                                                    </button>
-                                                </div>
-                                            )}
+                                            <div className="flex items-center gap-3">
+                                                {reply.userId === currentUserId && (
+                                                    <>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleStartEdit(reply.commentId, reply.content)}
+                                                            className="text-xs font-medium text-primary hover:underline"
+                                                        >
+                                                            수정
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteComment(reply.commentId)}
+                                                            disabled={deletingCommentId === reply.commentId}
+                                                            className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                                        >
+                                                            {deletingCommentId === reply.commentId ? "삭제 중..." : "삭제"}
+                                                        </button>
+                                                    </>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleReportComment(reply.commentId)}
+                                                    disabled={reportSubmittingId === reply.commentId}
+                                                    className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    {reportSubmittingId === reply.commentId ? "신고 중..." : "신고"}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
