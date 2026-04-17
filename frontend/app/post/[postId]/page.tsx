@@ -5,20 +5,17 @@ import { useParams } from "next/navigation"
 import CommentSection from "@/components/comment/CommentSection"
 
 type PostDetailResponse = {
-  id?: number | string
-  postId?: number | string
-  title?: string
-  content?: string
-  authorName?: string
-  nickname?: string
-  memberName?: string
-  writerName?: string
-  author?: {
-    name?: string
-    nickname?: string
-  }
-  createdAt?: string
-  likeCount?: number
+  postId: number
+  title: string
+  content: string
+  userId: number
+  nickName: string
+  categoryId: number
+  viewCount: number
+  likeCount: number
+  commentCount: number
+  createdAt: string
+  updatedAt: string
   liked?: boolean
   isLiked?: boolean
 }
@@ -57,14 +54,7 @@ export default function PostDetailPage() {
     return Number(rawPostId)
   }, [params])
 
-  const authorDisplayName =
-    post?.authorName ??
-    post?.nickname ??
-    post?.memberName ??
-    post?.writerName ??
-    post?.author?.name ??
-    post?.author?.nickname ??
-    "작성자 없음"
+  const authorDisplayName = post?.nickName ?? "작성자 없음"
 
   useEffect(() => {
     const loadPost = async () => {
@@ -77,22 +67,11 @@ export default function PostDetailPage() {
         setLoading(true)
         setError(null)
 
-        const endpoints = [`${API_BASE_URL}/api/posts/${postId}`, `${API_BASE_URL}/api/v1/posts/${postId}`]
-        let response: Response | null = null
+        const response = await fetch(`${API_BASE_URL}/api/posts/${postId}`, {
+          headers: getAuthHeaders(),
+        })
 
-        for (const endpoint of endpoints) {
-          const candidate = await fetch(endpoint, { headers: getAuthHeaders() })
-          if (candidate.ok) {
-            response = candidate
-            break
-          }
-          if (candidate.status !== 404) {
-            response = candidate
-            break
-          }
-        }
-
-        if (!response || !response.ok) {
+        if (!response.ok) {
           throw new Error("게시글을 불러오지 못했습니다.")
         }
 
@@ -168,9 +147,13 @@ export default function PostDetailPage() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">{post?.title ?? "제목 없음"}</h1>
             <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-              <span>게시글 ID: {postId}</span>
+              <span>게시글 ID: {post?.postId ?? postId}</span>
               <span>작성자: {authorDisplayName}</span>
+              <span>카테고리 ID: {post?.categoryId ?? "-"}</span>
+              <span>조회수: {post?.viewCount ?? 0}</span>
+              <span>댓글 수: {post?.commentCount ?? 0}</span>
               {post?.createdAt ? <span>작성일: {post.createdAt}</span> : null}
+              {post?.updatedAt ? <span>수정일: {post.updatedAt}</span> : null}
             </div>
             <div className="mt-6 whitespace-pre-wrap rounded-lg bg-muted/30 p-4 text-sm leading-7 text-foreground">
               {post?.content ?? "내용이 없습니다."}

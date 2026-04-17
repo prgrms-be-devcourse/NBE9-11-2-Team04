@@ -1,6 +1,5 @@
 package com.back.devc.global.security.oauth2;
 
-import com.back.devc.domain.member.member.entity.Member;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -22,18 +21,16 @@ public class OAuth2RedirectUrlResolver {
     @Value("${custom.oauth2.frontend-signup-url:http://localhost:3000/oauth/signup}")
     private String frontendSignupUrl;
 
-    @Value("${custom.oauth2.allowed-redirect-uris:http://localhost:3000/login,http://localhost:3000/oauth/signup}")
+    @Value("${custom.oauth2.allowed-redirect-uris:http://localhost:3000/login,http://localhost:3000/oauth/signup,http://localhost:3000/oauth/callback}")
     private String allowedRedirectUrisCsv;
 
-    public String buildSuccessUrl(String provider, Member member) {
+    public String buildSuccessUrl(String provider, String authCode) {
         String baseUrl = resolveAllowedOrFallback(frontendSuccessUrl, frontendFailureUrl);
 
         return UriComponentsBuilder.fromUriString(baseUrl)
                 .queryParam("oauth", "success")
                 .queryParam("provider", provider)
-                .queryParam("userId", member.getUserId())
-                .queryParam("email", member.getEmail())
-                .queryParam("nickname", member.getNickname())
+                .queryParam("code", authCode)
                 .build()
                 .encode()
                 .toUriString();
