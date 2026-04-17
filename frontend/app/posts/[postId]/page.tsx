@@ -10,7 +10,6 @@ type PostDetailResponse = {
   title?: string
   content?: string
   authorName?: string
-  nickname?: string
   memberName?: string
   writerName?: string
   author?: {
@@ -59,7 +58,6 @@ export default function PostDetailPage() {
 
   const authorDisplayName =
     post?.authorName ??
-    post?.nickname ??
     post?.memberName ??
     post?.writerName ??
     post?.author?.name ??
