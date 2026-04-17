@@ -50,6 +50,8 @@ custom:
     allowed-origins: http://localhost:3000
 
   jwt:
+    secret-key: "로컬용-충분히-긴-시크릿-문자열"
+    access-token-expiration-seconds: 3600
     access-cookie-name: access_token
     access-cookie-secure: false
     access-cookie-same-site: Lax
