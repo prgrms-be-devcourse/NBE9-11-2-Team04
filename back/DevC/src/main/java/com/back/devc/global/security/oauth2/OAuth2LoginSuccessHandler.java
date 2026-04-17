@@ -2,18 +2,14 @@ package com.back.devc.global.security.oauth2;
 
 import com.back.devc.domain.auth.dto.oauth.OAuthPendingSignup;
 import com.back.devc.domain.auth.service.OAuth2MemberService;
+import com.back.devc.domain.auth.service.OAuthLoginCodeService;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.entity.MemberStatus;
-import com.back.devc.global.security.jwt.JwtProvider;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -23,7 +19,6 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.Optional;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
@@ -36,20 +31,8 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     private static final String ERROR_TOKEN_ISSUE = "OAUTH2_TOKEN_ISSUE";
 
     private final OAuth2MemberService oAuth2MemberService;
-    private final JwtProvider jwtProvider;
     private final OAuth2RedirectUrlResolver redirectUrlResolver;
-
-    @Value("${custom.jwt.access-token-expiration-seconds:3600}")
-    private long accessTokenExpirationSeconds;
-
-    @Value("${custom.jwt.access-cookie-name:access_token}")
-    private String accessCookieName;
-
-    @Value("${custom.jwt.access-cookie-secure:false}")
-    private boolean accessCookieSecure;
-
-    @Value("${custom.jwt.access-cookie-same-site:Lax}")
-    private String accessCookieSameSite;
+    private final OAuthLoginCodeService oAuthLoginCodeService;
 
     @Override
     public void onAuthenticationSuccess(
@@ -84,24 +67,13 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                     return;
                 }
 
-                // 기존 회원 로그인 성공 시, 남아 있을 수 있는 pending signup 세션 정리
                 HttpSession session = request.getSession(false);
                 if (session != null) {
                     session.removeAttribute(PENDING_SIGNUP_SESSION_KEY);
                 }
 
-                String accessToken = jwtProvider.createAccessToken(member);
-
-                ResponseCookie accessCookie = ResponseCookie.from(accessCookieName, accessToken)
-                        .httpOnly(true)
-                        .secure(accessCookieSecure)
-                        .path("/")
-                        .maxAge(accessTokenExpirationSeconds)
-                        .sameSite(accessCookieSameSite)
-                        .build();
-
-                response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
-                response.sendRedirect(redirectUrlResolver.buildSuccessUrl(provider, member));
+                String authCode = oAuthLoginCodeService.issue(member);
+                response.sendRedirect(redirectUrlResolver.buildSuccessUrl(provider, authCode));
                 return;
             }
 
@@ -110,7 +82,6 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
             response.sendRedirect(redirectUrlResolver.buildSignupUrl(provider));
         } catch (Exception e) {
-            log.error("OAuth2 login success handler failed. provider={}", provider, e);
             response.sendRedirect(redirectUrlResolver.buildFailureUrl(ERROR_TOKEN_ISSUE));
         }
     }
