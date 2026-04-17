@@ -5,6 +5,9 @@ import { PostCard, type Post } from "@/components/post-card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TrendingUp, Clock, Users } from "lucide-react"
 
+
+const feedPosts: Post[] = []
+
 type PostPageResponse = {
   content: {
     postId: number
@@ -18,9 +21,6 @@ type PostPageResponse = {
     createdAt: string
   }[]
 }
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
 
 const formatTimeAgo = (dateString: string) => {
   const date = new Date(dateString)
@@ -42,6 +42,13 @@ export default function HomePage() {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
 
+  const getPostsForTab = () => {
+    if (activeTab === "feed") {
+      return feedPosts
+    }
+    return posts
+  }
+
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true)
@@ -50,21 +57,14 @@ export default function HomePage() {
         let url = ""
 
         if (activeTab === "popular") {
-          url = `${API_BASE_URL}/api/posts?sort=LIKES`
+          url = "http://localhost:8080/api/posts?sort=LIKES"
         } else if (activeTab === "latest") {
-          url = `${API_BASE_URL}/api/posts?sort=LATEST`
+          url = "http://localhost:8080/api/posts?sort=LATEST"
         } else {
-          // feed는 아직 API 없으니까 빈 배열
-          setPosts([])
           return
         }
 
         const res = await fetch(url)
-
-        if (!res.ok) {
-          throw new Error("게시글 불러오기 실패")
-        }
-
         const data: PostPageResponse = await res.json()
 
         const mapped: Post[] = data.content.map((post) => ({
@@ -94,64 +94,93 @@ export default function HomePage() {
   }, [activeTab])
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Hero */}
-      <section className="mb-12 text-center">
-        <h1 className="mb-4 text-4xl font-bold sm:text-5xl">
-          개발자들의 <span className="text-primary">지식 허브</span>
-        </h1>
-        <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-          최신 기술 트렌드, 실무 경험을 나눠보세요.
-        </p>
-      </section>
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Hero Section */}
+        <section className="mb-12 text-center">
+          <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+            개발자들의 <span className="text-primary">지식 허브</span>
+          </h1>
+          <p className="mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground">
+            최신 기술 트렌드, 실무 경험, 개발 노하우를 함께 나눠보세요.
+            <br />
+            함께 성장하는 개발자 커뮤니티입니다.
+          </p>
+        </section>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-8 grid w-full max-w-md mx-auto grid-cols-3">
-          <TabsTrigger value="popular">
-            <TrendingUp className="h-4 w-4" /> 인기글
-          </TabsTrigger>
-          <TabsTrigger value="latest">
-            <Clock className="h-4 w-4" /> 최신글
-          </TabsTrigger>
-          <TabsTrigger value="feed">
-            <Users className="h-4 w-4" /> 피드
-          </TabsTrigger>
-        </TabsList>
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-8 grid w-full max-w-md mx-auto grid-cols-3 bg-secondary">
+            <TabsTrigger
+                value="popular"
+                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <TrendingUp className="h-4 w-4" />
+              <span className="hidden sm:inline">인기글</span>
+            </TabsTrigger>
+            <TabsTrigger
+                value="latest"
+                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <Clock className="h-4 w-4" />
+              <span className="hidden sm:inline">최신글</span>
+            </TabsTrigger>
+            <TabsTrigger
+                value="feed"
+                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">피드</span>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* 인기글 */}
-        <TabsContent value="popular">
-          {loading ? (
-            <div className="text-center py-10">로딩중...</div>
-          ) : (
-            <div className="grid gap-6">
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
-          )}
-        </TabsContent>
+          <TabsContent value="popular" className="mt-0">
+            {loading ? (
+                <div className="text-center py-10 text-muted-foreground">
+                  로딩중...
+                </div>
+            ) : (
+                <div className="grid gap-6">
+                  {getPostsForTab().map((post) => (
+                      <PostCard key={post.id} post={post} />
+                  ))}
+                </div>
+            )}
+          </TabsContent>
 
-        {/* 최신글 */}
-        <TabsContent value="latest">
-          {loading ? (
-            <div className="text-center py-10">로딩중...</div>
-          ) : (
-            <div className="grid gap-6">
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
-          )}
-        </TabsContent>
+          <TabsContent value="latest" className="mt-0">
+            {loading ? (
+                <div className="text-center py-10 text-muted-foreground">
+                  로딩중...
+                </div>
+            ) : (
+                <div className="grid gap-6">
+                  {getPostsForTab().map((post) => (
+                      <PostCard key={post.id} post={post} />
+                  ))}
+                </div>
+            )}
+          </TabsContent>
 
-        {/* 피드 */}
-        <TabsContent value="feed">
-          <div className="text-center py-10 text-muted-foreground">
-            아직 피드 기능은 구현되지 않았습니다
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
+          <TabsContent value="feed" className="mt-0">
+            {feedPosts.length > 0 ? (
+                <div className="grid gap-6">
+                  {getPostsForTab().map((post) => (
+                      <PostCard key={post.id} post={post} />
+                  ))}
+                </div>
+            ) : (
+                <div className="rounded-lg border border-border bg-card p-12 text-center">
+                  <Users className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                  <h3 className="mb-2 text-lg font-semibold text-foreground">
+                    즐겨찾기한 사용자가 없습니다
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    관심있는 작성자를 즐겨찾기하면 이곳에서 글을 모아볼 수 있습니다.
+                  </p>
+                </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
   )
 }
