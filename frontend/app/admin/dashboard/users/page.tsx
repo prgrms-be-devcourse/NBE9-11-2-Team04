@@ -77,6 +77,21 @@ interface PageResponse<T> {
  * API LAYER
  * =========================
  */
+function getAuthHeaders(): HeadersInit {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  }
+
+  if (typeof window !== "undefined") {
+    const token = window.localStorage.getItem("accessToken")
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+  }
+
+  return headers
+}
+
 
 async function fetchUsers(params: {
   page: number
@@ -86,24 +101,22 @@ async function fetchUsers(params: {
 }): Promise<PageResponse<User>> {
   if (!API_BASE) throw new Error("API_BASE 환경변수 없음")
 
-  const token = localStorage.getItem("accessToken")
-  if (!token) throw new Error("로그인 토큰 없음")
-
   const query = new URLSearchParams()
   query.append("page", String(params.page))
   query.append("size", String(params.size))
 
   if (params.keyword) query.append("keyword", params.keyword)
-  if (params.status && params.status !== "all")
+  if (params.status && params.status !== "all") {
     query.append("status", params.status)
+  }
 
-  const res = await fetch(`${API_BASE}/api/admin/members?${query.toString()}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  })
+  const res = await fetch(
+    `${API_BASE}/api/admin/members?${query.toString()}`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    }
+  )
 
   if (!res.ok) throw new Error("사용자 조회 실패")
 
@@ -111,23 +124,18 @@ async function fetchUsers(params: {
   return body.data
 }
 
+
 async function updateUserStatus(params: {
   userId: number
   status: UserStatus
 }) {
   if (!API_BASE) throw new Error("API_BASE 환경변수 없음")
 
-  const token = localStorage.getItem("accessToken")
-  if (!token) throw new Error("로그인 토큰 없음")
-
   const res = await fetch(
     `${API_BASE}/api/admin/members/${params.userId}/status`,
     {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ status: params.status }),
     }
   )

@@ -83,6 +83,8 @@ interface Report {
    LABELS
 ========================= */
 
+
+
 const typeLabels: Record<ReportType, { label: string; icon: any }> = {
   POST: { label: "게시글", icon: FileText },
   COMMENT: { label: "댓글", icon: MessageSquare },
@@ -110,22 +112,36 @@ const statusLabels: Record<
    API
 ========================= */
 
-async function fetchReports(): Promise<Report[]> {
-  const token = localStorage.getItem("accessToken")
+function getAuthHeaders(): HeadersInit {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  }
 
+  if (typeof window !== "undefined") {
+    const token = window.localStorage.getItem("accessToken")
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+  }
+
+  return headers
+}
+
+
+async function fetchReports(): Promise<Report[]> {
   const res = await fetch(`${API_BASE}/api/admin/reports/pending`, {
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(),
   })
 
-  if (!res.ok) throw new Error("신고 조회 실패")
+  if (!res.ok) {
+    throw new Error("신고 조회 실패")
+  }
 
   const json = await res.json()
   return json.data.content
 }
+
 
 async function processReportApi(params: {
   reportId: number
@@ -137,12 +153,15 @@ async function processReportApi(params: {
     `${API_BASE}/api/admin/reports/${params.reportId}/process`,
     {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify(params),
     }
   )
 
-  if (!res.ok) throw new Error("처리 실패")
+  if (!res.ok) {
+    throw new Error("신고 처리 실패")
+  }
+
   return res.json()
 }
 
