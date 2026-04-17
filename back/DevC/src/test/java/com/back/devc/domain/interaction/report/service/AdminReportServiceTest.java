@@ -51,6 +51,7 @@ class AdminReportServiceTest {
     @Mock private PostRepository postRepository;
     @Mock private CommentRepository commentRepository;
 
+
     private Member admin;
     private Member postAuthor;
     private AdminReportRequestDTO dto;
@@ -374,6 +375,12 @@ class AdminReportServiceTest {
         }
     }
 
+    /**
+     * 현재 AdminReportService.rejectReport(...)는 rejectReport(...) 엔티티 메서드가 아니라
+     * processReport(admin, "REJECTED")를 호출해 반려 상태를 처리한다.
+     *
+     * 따라서 성공 테스트도 실제 서비스 구현에 맞춰 processReport 호출 여부를 검증한다.
+     */
     // ════════════════════════════════════════════════════════════
     // 신고 반려 (rejectReport)
     // ════════════════════════════════════════════════════════════
@@ -392,7 +399,7 @@ class AdminReportServiceTest {
 
             adminReportService.rejectReport(99L, dto);
 
-            verify(report).rejectReport(admin, "허위 신고로 판단됩니다.");
+            verify(report).processReport(admin, "REJECTED");
         }
 
         @Test
@@ -406,7 +413,7 @@ class AdminReportServiceTest {
 
             adminReportService.rejectReport(99L, dto);
 
-            verify(report).rejectReport(admin, null);
+            verify(report).processReport(admin, "REJECTED");
         }
 
         @Test

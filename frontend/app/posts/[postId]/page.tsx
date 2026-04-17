@@ -75,6 +75,7 @@ export default function PostDetailPage() {
 
 
         const response = await fetch(`${API_BASE_URL}/api/posts/${postId}`, {
+          credentials: "include",
           headers: getAuthHeaders(),
         })
 
@@ -108,6 +109,7 @@ export default function PostDetailPage() {
       setError(null)
 
       const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/bookmarks`, {
+        credentials: "include",
         method: bookmarked ? "DELETE" : "POST",
         headers: getAuthHeaders(),
       })
@@ -136,9 +138,9 @@ export default function PostDetailPage() {
       setError(null)
 
       const response = await fetch(`${API_BASE_URL}/api/report/post`, {
+        credentials: "include",
         method: "POST",
         headers: {
-          ...getAuthHeaders(),
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -149,7 +151,24 @@ export default function PostDetailPage() {
       })
 
       if (!response.ok) {
-        throw new Error("게시글 신고에 실패했습니다.")
+        let message = "게시글 신고에 실패했습니다."
+
+        try {
+          const errorData = await response.json()
+          message =
+              errorData?.message ??
+              errorData?.resultMessage ??
+              errorData?.msg ??
+              message
+
+          if (typeof message === "string" && message.includes("이미 신고")) {
+            message = "이미 신고한 게시글입니다."
+          }
+        } catch {
+          // 응답 본문이 JSON이 아니면 기본 메시지를 그대로 사용
+        }
+
+        throw new Error(message)
       }
 
       alert("게시글 신고가 접수되었습니다.")
@@ -161,6 +180,14 @@ export default function PostDetailPage() {
     }
   }
 
+  /**
+   * 좋아요 요청은 북마크와 별도 API를 사용한다.
+   *
+   * - 일반 로그인 사용자는 Authorization 헤더 기반 인증
+   * - OAuth 로그인 사용자는 credentials: include 기반 쿠키 인증
+   *
+   * 따라서 쿠키 포함 옵션과 기존 인증 헤더를 함께 사용해 두 로그인 방식을 모두 지원한다.
+   */
   const handleToggleLike = async () => {
     if (!postId || Number.isNaN(postId)) {
       return
@@ -171,6 +198,7 @@ export default function PostDetailPage() {
       setError(null)
 
       const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/likes`, {
+        credentials: "include",
         method: liked ? "DELETE" : "POST",
         headers: getAuthHeaders(),
       })
