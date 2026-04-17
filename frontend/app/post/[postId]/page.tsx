@@ -77,7 +77,7 @@ export default function PostDetailPage() {
         setLoading(true)
         setError(null)
 
-        const endpoints = [`${API_BASE_URL}/api/posts/${postId}`, `${API_BASE_URL}/api/v1/posts/${postId}`]
+        const endpoints = [`${API_BASE_URL}/api/posts/${postId}`]
         let response: Response | null = null
 
         for (const endpoint of endpoints) {
