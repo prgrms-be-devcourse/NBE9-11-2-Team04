@@ -14,6 +14,8 @@ type PostDetailResponse = {
   viewCount: number
   likeCount: number
   commentCount: number
+  bookmarkCount?: number
+  bookmarked?: boolean
   createdAt: string
   updatedAt: string
   liked?: boolean
@@ -45,6 +47,9 @@ export default function PostDetailPage() {
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
   const [likeLoading, setLikeLoading] = useState(false)
+  const [bookmarked, setBookmarked] = useState(false)
+  const [bookmarkLoading, setBookmarkLoading] = useState(false)
+  const [bookmarkCount, setBookmarkCount] = useState(0)
 
   const postId = useMemo(() => {
     const rawPostId = params?.postId
@@ -79,6 +84,8 @@ export default function PostDetailPage() {
         setPost(data)
         setLiked(Boolean(data?.isLiked ?? data?.liked ?? false))
         setLikeCount(typeof data?.likeCount === "number" ? data.likeCount : 0)
+        setBookmarked(Boolean(data?.bookmarked ?? false))
+        setBookmarkCount(typeof data?.bookmarkCount === "number" ? data.bookmarkCount : 0)
       } catch (err) {
         setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
       } finally {
@@ -89,6 +96,33 @@ export default function PostDetailPage() {
     void loadPost()
   }, [postId])
 
+  const handleToggleBookmark = async () => {
+    if (!postId || Number.isNaN(postId)) {
+      return
+    }
+
+    try {
+      setBookmarkLoading(true)
+      setError(null)
+
+      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/bookmarks`, {
+        method: bookmarked ? "DELETE" : "POST",
+        headers: getAuthHeaders(),
+      })
+
+      if (!response.ok) {
+        throw new Error(bookmarked ? "북마크 취소에 실패했습니다." : "북마크에 실패했습니다.")
+      }
+
+      setBookmarked((prev) => !prev)
+      setBookmarkCount((prev) => (bookmarked ? Math.max(prev - 1, 0) : prev + 1))
+      window.dispatchEvent(new CustomEvent("notifications-updated"))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
+    } finally {
+      setBookmarkLoading(false)
+    }
+  }
   const handleToggleLike = async () => {
     if (!postId || Number.isNaN(postId)) {
       return
@@ -168,6 +202,15 @@ export default function PostDetailPage() {
                 {likeLoading ? "처리 중..." : liked ? "좋아요 취소" : "좋아요"}
               </button>
               <span className="text-sm text-muted-foreground">좋아요 {likeCount}</span>
+              <button
+                type="button"
+                onClick={handleToggleBookmark}
+                disabled={bookmarkLoading}
+                className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {bookmarkLoading ? "처리 중..." : bookmarked ? "북마크 취소" : "북마크"}
+              </button>
+              <span className="text-sm text-muted-foreground">북마크 {bookmarkCount}</span>
             </div>
           </div>
         )}
