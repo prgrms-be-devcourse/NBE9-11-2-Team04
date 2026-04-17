@@ -9,7 +9,11 @@ type PostDetailResponse = {
   title: string
   content: string
   userId: number
+<<<<<<< HEAD:frontend/app/post/[postId]/page.tsx
   nickName: string
+=======
+  writerName: string
+>>>>>>> d9624ff6d5af650d3cf545f2480746d193fb0b70:frontend/app/posts/[postId]/page.tsx
   categoryId: number
   viewCount: number
   likeCount: number
@@ -54,7 +58,11 @@ export default function PostDetailPage() {
     return Number(rawPostId)
   }, [params])
 
+<<<<<<< HEAD:frontend/app/post/[postId]/page.tsx
   const authorDisplayName = post?.nickName ?? "작성자 없음"
+=======
+
+>>>>>>> d9624ff6d5af650d3cf545f2480746d193fb0b70:frontend/app/posts/[postId]/page.tsx
 
   useEffect(() => {
     const loadPost = async () => {
@@ -67,10 +75,18 @@ export default function PostDetailPage() {
         setLoading(true)
         setError(null)
 
+<<<<<<< HEAD:frontend/app/post/[postId]/page.tsx
         const response = await fetch(`${API_BASE_URL}/api/posts/${postId}`, {
           headers: getAuthHeaders(),
         })
 
+=======
+
+        const response = await fetch(`${API_BASE_URL}/api/posts/${postId}`, {
+          headers: getAuthHeaders(),
+        })
+
+>>>>>>> d9624ff6d5af650d3cf545f2480746d193fb0b70:frontend/app/posts/[postId]/page.tsx
         if (!response.ok) {
           throw new Error("게시글을 불러오지 못했습니다.")
         }
@@ -148,7 +164,11 @@ export default function PostDetailPage() {
             <h1 className="text-2xl font-bold text-foreground">{post?.title ?? "제목 없음"}</h1>
             <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
               <span>게시글 ID: {post?.postId ?? postId}</span>
+<<<<<<< HEAD:frontend/app/post/[postId]/page.tsx
               <span>작성자: {authorDisplayName}</span>
+=======
+              <span>작성자: {post?.writerName ?? "-"}</span>
+>>>>>>> d9624ff6d5af650d3cf545f2480746d193fb0b70:frontend/app/posts/[postId]/page.tsx
               <span>카테고리 ID: {post?.categoryId ?? "-"}</span>
               <span>조회수: {post?.viewCount ?? 0}</span>
               <span>댓글 수: {post?.commentCount ?? 0}</span>
