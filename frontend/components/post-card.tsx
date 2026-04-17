@@ -40,7 +40,7 @@ export function PostCard({ post }: PostCardProps) {
             <span className="text-xs text-muted-foreground">{post.createdAt}</span>
           </div>
 
-          <Link href={`/post/${post.id}`}>
+          <Link href={`/posts/${post.id}`}>
             <h3 className="mb-2 text-lg font-semibold text-foreground transition-colors group-hover:text-primary">
               {post.title}
             </h3>
