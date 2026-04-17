@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { login } from "@/lib/auth";
 import { persistLoginSession } from "@/lib/auth-storage";
-import { login } from "@/lib/interaction";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
@@ -69,7 +68,7 @@ export default function LoginPage() {
       const errorCode = searchParams.get("errorCode");
       setError(getOauthErrorMessage(errorCode));
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
