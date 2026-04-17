@@ -14,8 +14,11 @@ public enum SuccessCode {
     MEMBER_STATUS_UPDATE_SUCCESS(HttpStatus.OK, "ADM_200_MEMBER_STATUS_UPDATE", "회원 상태 변경이 완료되었습니다."),
     MEMBER_SEARCH_SUCCESS(HttpStatus.OK, "ADM_200_MEMBER_SEARCH", "회원 검색이 완료되었습니다."),
 
-    //신고 관련 성공 코드
-    REPORT_SUCCESS(HttpStatus.OK, "REPORT_200", "신고가 정상적으로 접수되었습니다.");
+    // 신고 관련 성공 코드
+    REPORT_SUCCESS(HttpStatus.OK, "REPORT_200", "신고가 정상적으로 접수되었습니다."),
+
+    // 회원 탈퇴 성공 코드
+    WITHDRAW_SUCCESS(HttpStatus.OK, "USER_200_WITHDRAW_SUCCESS", "회원 탈퇴가 완료되었습니다.");
 
     private final HttpStatus status;
     private final String code;
