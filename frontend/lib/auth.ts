@@ -12,6 +12,14 @@ export type LoginRequest = {
   password: string
 }
 
+export type OAuthExchangeRequest = {
+  code: string
+}
+
+export type OAuthSignupCompleteRequest = {
+  nickname: string
+}
+
 export type LoginData = {
   userId: number
   email: string
@@ -19,7 +27,6 @@ export type LoginData = {
   role: string
   status: string
   accessToken: string
-  refreshToken: string
 }
 
 export type SignUpRequest = {
@@ -50,6 +57,35 @@ export async function signup(body: SignUpRequest): Promise<SignUpData> {
     method: "POST",
     body: JSON.stringify(body),
   })
+
+  return res.data
+}
+
+export async function exchangeOAuthCode(
+  body: OAuthExchangeRequest
+): Promise<LoginData> {
+  const res = await apiFetch<SuccessResponse<LoginData>>(
+    "/api/auth/oauth2/exchange",
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    }
+  )
+
+  return res.data
+}
+
+export async function completeOAuthSignup(
+  body: OAuthSignupCompleteRequest
+): Promise<LoginData> {
+  const res = await apiFetch<SuccessResponse<LoginData>>(
+    "/api/auth/oauth2/signup/complete",
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+      auth: true,
+    }
+  )
 
   return res.data
 }

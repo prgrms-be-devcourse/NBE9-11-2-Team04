@@ -104,7 +104,7 @@ class PostControllerTest {
         );
 
         mvc.perform(
-                        post("/api/v1/posts")
+                        post("/api/posts")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
@@ -116,46 +116,17 @@ class PostControllerTest {
     }
 
     // =========================
-    // LIST
-    // =========================
-    @Test
-    @DisplayName("게시글 전체 조회 - 관리자용 (삭제 포함, 개수 유지)")
-    void t2() throws Exception {
-
-        Post post1 = postRepository.save(
-                new Post(member, category, "글1", "내용1")
-        );
-        Post post2 = postRepository.save(
-                new Post(member, category, "글2", "내용2")
-        );
-        Post post3 = postRepository.save(
-                new Post(member, category, "글3", "내용3")
-        );
-
-        // post2 삭제 처리 (soft delete)
-        post2.delete();
-        postRepository.flush(); // DB 반영
-
-        // when & then
-        mvc.perform(get("/api/v1/posts/admin"))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[1].isDeleted").value(true));
-    }
-
-    // =========================
     // DETAIL
     // =========================
     @Test
     @DisplayName("게시글 상세 조회")
-    void t3() throws Exception {
+    void t2() throws Exception {
 
         Post post = postRepository.save(
                 new Post(member, category, "테스트3", "테스트3내용")
         );
 
-        mvc.perform(get("/api/v1/posts/" + post.getPostId()))
+        mvc.perform(get("/api/posts/" + post.getPostId()))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("테스트3"));
@@ -166,7 +137,7 @@ class PostControllerTest {
     // =========================
     @Test
     @DisplayName("게시글 수정")
-    void t4() throws Exception {
+    void t3() throws Exception {
 
         setAuthentication();
         Post post = postRepository.save(
@@ -174,7 +145,7 @@ class PostControllerTest {
         );
 
         mvc.perform(
-                        put("/api/v1/posts/" + post.getPostId())
+                        put("/api/posts/" + post.getPostId())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
                                         {
@@ -194,14 +165,14 @@ class PostControllerTest {
     // =========================
     @Test
     @DisplayName("게시글 삭제")
-    void t5() throws Exception {
+    void t4() throws Exception {
 
         setAuthentication();
         Post post = postRepository.save(
                 new Post(member, category, "title", "content")
         );
 
-        mvc.perform(delete("/api/v1/posts/" + post.getPostId()))
+        mvc.perform(delete("/api/posts/" + post.getPostId()))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("삭제되었습니다."));
@@ -218,7 +189,7 @@ class PostControllerTest {
 
     @Test
     @DisplayName("게시글 최신순 조회")
-    void t6() throws Exception {
+    void t5() throws Exception {
 
         // given (게시글 2개 생성)
         Post post1 = postRepository.save(
@@ -232,7 +203,7 @@ class PostControllerTest {
         );
 
         // when & then (최신순 조회)
-        mvc.perform(get("/api/v1/posts")
+        mvc.perform(get("/api/posts")
                         .param("sort", "LATEST")
                         .param("page", "0")
                         .param("size", "10"))
@@ -246,7 +217,7 @@ class PostControllerTest {
 
     @Test
     @DisplayName("게시글 좋아요순 조회, 만약 좋아요 개수가 같은경우 최신순으로 보여줌")
-    void t7() throws Exception {
+    void t6() throws Exception {
 
         // given
         Post post1 = postRepository.save(new Post(member, category, "제목1", "내용1"));
@@ -263,7 +234,7 @@ class PostControllerTest {
         postRepository.flush();
 
         // when
-        ResultActions result = mvc.perform(get("/api/v1/posts")
+        ResultActions result = mvc.perform(get("/api/posts")
                 .param("sort", "LIKES")
                 .param("page", "0")
                 .param("size", "10")
@@ -280,7 +251,7 @@ class PostControllerTest {
 
     @Test
     @DisplayName("게시글 조회수 순서 조회, 만약 조회수 개수가 같은경우 최신순으로 보여준다")
-    void t8() throws Exception {
+    void t7() throws Exception {
 
         // given
         Post post1 = postRepository.save(new Post(member, category, "제목1", "내용1"));
@@ -297,7 +268,7 @@ class PostControllerTest {
         postRepository.flush();
 
         // when
-        ResultActions result = mvc.perform(get("/api/v1/posts")
+        ResultActions result = mvc.perform(get("/api/posts")
                 .param("sort", "VIEWS")
                 .param("page", "0")
                 .param("size", "10")
@@ -314,7 +285,7 @@ class PostControllerTest {
 
     @Test
     @DisplayName("게시글 카테고리별 조회")
-    void t9() throws Exception {
+    void t8() throws Exception {
 
         // given
         Category category2 = categoryRepository.save(new Category("테스트 공지"));
@@ -327,7 +298,7 @@ class PostControllerTest {
         postRepository.save(new Post(member, category2, "공지1", "내용3"));
 
         // when & then
-        mvc.perform(get("/api/v1/posts")
+        mvc.perform(get("/api/posts")
                         .param("categoryId", String.valueOf(category.getCategoryId()))
                         .param("page", "0")
                         .param("size", "10"))
@@ -341,7 +312,7 @@ class PostControllerTest {
 
     @Test
     @DisplayName("카테고리 + 최신순 조회")
-    void t10() throws Exception {
+    void t9() throws Exception {
 
         // given
         Category category2 = categoryRepository.save(new Category("공지"));
@@ -354,7 +325,7 @@ class PostControllerTest {
         postRepository.save(new Post(member, category2, "공지1", "내용3"));
 
         // when & then
-        mvc.perform(get("/api/v1/posts")
+        mvc.perform(get("/api/posts")
                         .param("categoryId", String.valueOf(category.getCategoryId()))
                         .param("sort", "LATEST")
                         .param("page", "0")
@@ -369,7 +340,7 @@ class PostControllerTest {
 
     @Test
     @DisplayName("카테고리 + 좋아요순 조회")
-    void t11() throws Exception {
+    void t10() throws Exception {
 
         // given
         Category category2 = categoryRepository.save(new Category("공지"));
@@ -388,7 +359,7 @@ class PostControllerTest {
         postRepository.flush();
 
         // when & then
-        mvc.perform(get("/api/v1/posts")
+        mvc.perform(get("/api/posts")
                         .param("categoryId", String.valueOf(category.getCategoryId()))
                         .param("sort", "LIKES")
                         .param("page", "0")
@@ -403,7 +374,7 @@ class PostControllerTest {
 
     @Test
     @DisplayName("카테고리 + 조회수순 조회")
-    void t12() throws Exception {
+    void t11() throws Exception {
 
         // given
         Category category2 = categoryRepository.save(new Category("공지"));
@@ -422,7 +393,7 @@ class PostControllerTest {
         postRepository.flush();
 
         // when & then
-        mvc.perform(get("/api/v1/posts")
+        mvc.perform(get("/api/posts")
                         .param("categoryId", String.valueOf(category.getCategoryId()))
                         .param("sort", "VIEWS")
                         .param("page", "0")
@@ -441,13 +412,13 @@ class PostControllerTest {
 
     @Test
     @DisplayName("게시글 제목 검색")
-    void t13() throws Exception {
+    void t12() throws Exception {
 
         postRepository.save(new Post(member, category, "스프링 공부", "내용1"));
         postRepository.save(new Post(member, category, "자바 공부", "내용2"));
         postRepository.save(new Post(member, category, "리액트 공부", "내용3"));
 
-        mvc.perform(get("/api/v1/posts")
+        mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
                         .param("searchType", "TITLE")
                         .param("page", "0")
@@ -460,13 +431,13 @@ class PostControllerTest {
 
     @Test
     @DisplayName("게시글 내용 검색")
-    void t14() throws Exception {
+    void t13() throws Exception {
 
         postRepository.save(new Post(member, category, "글1", "스프링부트 강의"));
         postRepository.save(new Post(member, category, "글2", "자바 강의"));
         postRepository.save(new Post(member, category, "글3", "스프링 핵심"));
 
-        mvc.perform(get("/api/v1/posts")
+        mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
                         .param("searchType", "CONTENT")
                         .param("page", "0")
@@ -478,13 +449,13 @@ class PostControllerTest {
 
     @Test
     @DisplayName("게시글 제목 + 내용 검색")
-    void t15() throws Exception {
+    void t14() throws Exception {
 
         postRepository.save(new Post(member, category, "스프링", "자바 내용"));
         postRepository.save(new Post(member, category, "자바", "스프링 내용"));
         postRepository.save(new Post(member, category, "리액트", "프론트"));
 
-        mvc.perform(get("/api/v1/posts")
+        mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
                         .param("searchType", "TITLE_OR_CONTENT")
                         .param("page", "0")
@@ -496,13 +467,13 @@ class PostControllerTest {
 
     @Test
     @DisplayName("제목 검색 + 최신순")
-    void t16() throws Exception {
+    void t15() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 1", "내용1"));
         Thread.sleep(10);
         Post p2 = postRepository.save(new Post(member, category, "스프링 2", "내용2"));
 
-        mvc.perform(get("/api/v1/posts")
+        mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
                         .param("searchType", "TITLE")
                         .param("sort", "LATEST")
@@ -515,7 +486,7 @@ class PostControllerTest {
 
     @Test
     @DisplayName("제목 검색 + 좋아요순")
-    void t17() throws Exception {
+    void t16() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 1", "내용1"));
         Post p2 = postRepository.save(new Post(member, category, "스프링 2", "내용2"));
@@ -523,7 +494,7 @@ class PostControllerTest {
         for (int i = 0; i < 10; i++) p1.increaseLikeCount(); // p1번의 좋아요를 더 많게 작성
         for (int i = 0; i < 5; i++) p2.increaseLikeCount();
 
-        mvc.perform(get("/api/v1/posts")
+        mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
                         .param("searchType", "TITLE")
                         .param("sort", "LIKES")
@@ -537,7 +508,7 @@ class PostControllerTest {
 
     @Test
     @DisplayName("제목 검색 + 조회수순")
-    void t18() throws Exception {
+    void t17() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 1", "내용1"));
         Post p2 = postRepository.save(new Post(member, category, "스프링 2", "내용2"));
@@ -547,7 +518,7 @@ class PostControllerTest {
         for (int i = 0; i < 10; i++) p2.increaseViewCount();
         for (int i = 0; i < 5; i++) p3.increaseViewCount();
 
-        mvc.perform(get("/api/v1/posts")
+        mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
                         .param("searchType", "TITLE")
                         .param("sort", "VIEWS")
@@ -561,13 +532,13 @@ class PostControllerTest {
 
     @Test
     @DisplayName("내용 검색 + 최신순")
-    void t19() throws Exception {
+    void t18() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "글1", "스프링 1"));
         Thread.sleep(10);
         Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 2"));
 
-        mvc.perform(get("/api/v1/posts")
+        mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
                         .param("searchType", "CONTENT")
                         .param("sort", "LATEST")
@@ -580,7 +551,7 @@ class PostControllerTest {
 
     @Test
     @DisplayName("내용 검색 + 좋아요순")
-    void t20() throws Exception {
+    void t19() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "글1", "스프링 1"));
         Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 2"));
@@ -588,7 +559,7 @@ class PostControllerTest {
         for (int i = 0; i < 10; i++) p1.increaseLikeCount();
         for (int i = 0; i < 5; i++) p2.increaseLikeCount();
 
-        mvc.perform(get("/api/v1/posts")
+        mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
                         .param("searchType", "CONTENT")
                         .param("sort", "LIKES")
@@ -601,7 +572,7 @@ class PostControllerTest {
 
     @Test
     @DisplayName("내용 검색 + 조회수순")
-    void t21() throws Exception {
+    void t20() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "글1", "스프링 1"));
         Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 2"));
@@ -611,7 +582,7 @@ class PostControllerTest {
         for (int i = 0; i < 10; i++) p2.increaseViewCount();
         for (int i = 0; i < 5; i++) p3.increaseViewCount();
 
-        mvc.perform(get("/api/v1/posts")
+        mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
                         .param("searchType", "CONTENT")
                         .param("sort", "VIEWS")
@@ -624,13 +595,13 @@ class PostControllerTest {
 
     @Test
     @DisplayName("제목+내용 검색 + 최신순")
-    void t22() throws Exception {
+    void t21() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 글1", "내용 A"));
         Thread.sleep(10);
         Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 내용"));
 
-        mvc.perform(get("/api/v1/posts")
+        mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
                         .param("searchType", "TITLE_OR_CONTENT")
                         .param("sort", "LATEST")
@@ -643,7 +614,7 @@ class PostControllerTest {
 
     @Test
     @DisplayName("제목+내용 검색 + 좋아요순")
-    void t23() throws Exception {
+    void t22() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 글1", "내용 A"));
         Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 내용"));
@@ -651,7 +622,7 @@ class PostControllerTest {
         for (int i = 0; i < 10; i++) p1.increaseLikeCount();
         for (int i = 0; i < 5; i++) p2.increaseLikeCount();
 
-        mvc.perform(get("/api/v1/posts")
+        mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
                         .param("searchType", "TITLE_OR_CONTENT")
                         .param("sort", "LIKES")
@@ -664,7 +635,7 @@ class PostControllerTest {
 
     @Test
     @DisplayName("제목+내용 검색 + 조회수순")
-    void t24() throws Exception {
+    void t23() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 글1", "내용 A"));
         Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 내용"));
@@ -674,7 +645,7 @@ class PostControllerTest {
         for (int i = 0; i < 10; i++) p2.increaseViewCount();
         for (int i = 0; i < 5; i++) p3.increaseViewCount();
 
-        mvc.perform(get("/api/v1/posts")
+        mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
                         .param("searchType", "TITLE_OR_CONTENT")
                         .param("sort", "VIEWS")

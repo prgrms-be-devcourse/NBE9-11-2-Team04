@@ -48,18 +48,15 @@ public class PostService {
         return postRepository.save(post);
     }
 
-    // 전체 조회 (최신순)
-    @Transactional(readOnly = true)
-    public List<Post> findAll() {
-        return postRepository.findAllByOrderByCreatedAtDesc();
-    }
-
     // 단건 조회
     @Transactional(readOnly = true)
     public Post findById(Long postId) {
         return postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
     }
+    
+    // 단건 상세 조회 (현재 로그인 사용자의 좋아요 여부 포함)
+    // 게시글이 현재 isDeleted=false인 경우만 상세 조회 할 수 있도록 변경하였습니다.
 
     /**
      * 게시글 단건 상세 조회
@@ -70,9 +67,10 @@ public class PostService {
      * 이렇게 하면 프론트가 게시글 상세 페이지에 진입했을 때
      * 서버 기준의 실제 좋아요 상태를 바로 표시할 수 있음
      */
+
     @Transactional(readOnly = true)
     public PostDetailResponse findDetailById(Long postId, Long loginUserId) {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByPostIdAndIsDeletedFalse(postId)
                 .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
 
         // 비로그인 사용자는 좋아요 여부를 확인할 수 없으므로 false 처리
