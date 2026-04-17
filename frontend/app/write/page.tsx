@@ -18,10 +18,10 @@ import Link from "next/link"
 import { getAuthSnapshot } from "@/lib/auth-storage"
 
 const categories = [
-  "IT 기술 정보",
-  "취업 시장 정보",
-  "개발자 트렌드",
-  "자유 주제",
+  { id: 1, name: "IT 기술 정보" },
+  { id: 2, name: "취업 시장 정보" },
+  { id: 3, name: "개발자 트렌드" },
+  { id: 4, name: "자유 주제" },
 ]
 
 export default function WritePage() {
@@ -46,15 +46,54 @@ export default function WritePage() {
     setIsAuthReady(true)
   }, [router])
 
+
+
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
+
+  function getAuthHeaders(): HeadersInit {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    }
+
+    if (typeof window !== "undefined") {
+      const token = window.localStorage.getItem("accessToken")
+      if (token) {
+        headers.Authorization = `Bearer ${token}`
+      }
+    }
+
+    return headers
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-
-    // Simulate post creation
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    setIsLoading(false)
-    router.push("/")
+  
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/posts`, {
+        method: "POST",
+        headers: getAuthHeaders(), // 🔥 여기 인증 포함됨
+        body: JSON.stringify({
+          title: formData.title,
+          content: formData.content,
+          categoryId: Number(formData.category), // 🔥 핵심 수정
+        }),
+      })
+  
+      if (!response.ok) {
+        throw new Error("게시글 생성 실패")
+      }
+  
+      const data = await response.json()
+  
+      // 🔥 postId로 이동
+      router.push(`/posts/${data.postId}`)
+    } catch (err) {
+      console.error(err)
+      alert("게시글 생성 중 오류 발생")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const insertMarkdown = (type: string) => {
@@ -162,11 +201,11 @@ export default function WritePage() {
                 <SelectValue placeholder="카테고리 선택" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category.toLowerCase()}>
-                    {category}
-                  </SelectItem>
-                ))}
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={String(category.id)}>
+                    {category.name}
+              </SelectItem>
+              ))}
               </SelectContent>
             </Select>
           </div>

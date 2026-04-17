@@ -9,7 +9,7 @@ type PostDetailResponse = {
   title: string
   content: string
   userId: number
-  nickName: string
+  writerName: string
   categoryId: number
   viewCount: number
   likeCount: number
@@ -54,7 +54,7 @@ export default function PostDetailPage() {
     return Number(rawPostId)
   }, [params])
 
-  const authorDisplayName = post?.nickName ?? "작성자 없음"
+
 
   useEffect(() => {
     const loadPost = async () => {
@@ -66,6 +66,7 @@ export default function PostDetailPage() {
       try {
         setLoading(true)
         setError(null)
+
 
         const response = await fetch(`${API_BASE_URL}/api/posts/${postId}`, {
           headers: getAuthHeaders(),
@@ -148,7 +149,7 @@ export default function PostDetailPage() {
             <h1 className="text-2xl font-bold text-foreground">{post?.title ?? "제목 없음"}</h1>
             <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
               <span>게시글 ID: {post?.postId ?? postId}</span>
-              <span>작성자: {authorDisplayName}</span>
+              <span>작성자: {post?.writerName ?? "-"}</span>
               <span>카테고리 ID: {post?.categoryId ?? "-"}</span>
               <span>조회수: {post?.viewCount ?? 0}</span>
               <span>댓글 수: {post?.commentCount ?? 0}</span>
