@@ -43,20 +43,6 @@ public class PostController {
         return ResponseEntity.ok(PostCreateResponse.from(post));
     }
 
-
-    // 전체 목록 조회 -> 리스트로 담아서 전달 (관리자쪽에서 사용하기 위해 isDeleted=true인것도 같이 조회)
-    @GetMapping("/admin")
-    public ResponseEntity<List<AdminPostListResponse>> list() {
-
-        List<Post> result = postService.findAll();
-
-        List<AdminPostListResponse> postDtoList = result.stream()
-                .map(AdminPostListResponse::new)
-                .toList();
-
-        return ResponseEntity.ok(postDtoList);
-    }
-
     //상세 조회 하는 경우
     @GetMapping("/{postid}")
     public ResponseEntity<PostDetailResponse> detail(

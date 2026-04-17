@@ -116,35 +116,6 @@ class PostControllerTest {
     }
 
     // =========================
-    // LIST
-    // =========================
-    @Test
-    @DisplayName("게시글 전체 조회 - 관리자용 (삭제 포함, 개수 유지)")
-    void t2() throws Exception {
-
-        Post post1 = postRepository.save(
-                new Post(member, category, "글1", "내용1")
-        );
-        Post post2 = postRepository.save(
-                new Post(member, category, "글2", "내용2")
-        );
-        Post post3 = postRepository.save(
-                new Post(member, category, "글3", "내용3")
-        );
-
-        // post2 삭제 처리 (soft delete)
-        post2.delete();
-        postRepository.flush(); // DB 반영
-
-        // when & then
-        mvc.perform(get("/api/v1/posts/admin"))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[1].isDeleted").value(true));
-    }
-
-    // =========================
     // DETAIL
     // =========================
     @Test
