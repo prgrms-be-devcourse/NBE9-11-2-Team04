@@ -50,6 +50,7 @@ export default function PostDetailPage() {
   const [bookmarked, setBookmarked] = useState(false)
   const [bookmarkLoading, setBookmarkLoading] = useState(false)
   const [bookmarkCount, setBookmarkCount] = useState(0)
+  const [reportLoading, setReportLoading] = useState(false)
 
   const postId = useMemo(() => {
     const rawPostId = params?.postId
@@ -124,6 +125,42 @@ export default function PostDetailPage() {
       setBookmarkLoading(false)
     }
   }
+
+  const handleReportPost = async () => {
+    if (!postId || Number.isNaN(postId)) {
+      return
+    }
+
+    try {
+      setReportLoading(true)
+      setError(null)
+
+      const response = await fetch(`${API_BASE_URL}/api/report/post`, {
+        method: "POST",
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          targetId: postId,
+          reasonType: "ETC",
+          reasonDetail: "게시글 상세 페이지에서 접수한 신고입니다.",
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("게시글 신고에 실패했습니다.")
+      }
+
+      alert("게시글 신고가 접수되었습니다.")
+      window.dispatchEvent(new CustomEvent("notifications-updated"))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
+    } finally {
+      setReportLoading(false)
+    }
+  }
+
   const handleToggleLike = async () => {
     if (!postId || Number.isNaN(postId)) {
       return
@@ -213,6 +250,14 @@ export default function PostDetailPage() {
               </button>
               <span className="text-sm text-muted-foreground">북마크 {bookmarkCount}</span>
             </div>
+            <button
+                type="button"
+                onClick={handleReportPost}
+                disabled={reportLoading}
+                className="rounded-md border border-destructive/40 px-4 py-2 text-sm font-medium text-destructive disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {reportLoading ? "신고 중..." : "신고"}
+            </button>
           </div>
         )}
       </section>

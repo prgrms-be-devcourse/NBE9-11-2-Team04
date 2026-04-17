@@ -175,22 +175,93 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     /**
-     * 신고 알림 생성
+     * 게시글 신고 알림 생성
      *
-     * 신고 기능은 게시글 신고/댓글 신고 두 흐름에서 공통으로 사용하므로,
-     * receiver(targetUserId), actor(actorUserId), message를 외부에서 받아 공통 저장만 수행
+     * 주의 사항
+     * - 자기 자신의 게시글을 신고한 경우 알림을 만들지 않음
+     * - 같은 사용자가 같은 게시글을 반복 신고해도 REPORT 알림은 한 번만 남기도록 중복 생성 방지 검사를 수행
      */
     @Override
     @Transactional
-    public void createReportNotification(Long targetUserId, Long actorUserId, Long postId, String message) {
-        if (targetUserId.equals(actorUserId)) {
+    public void createPostReportNotification(Long postId, Long actorUserId) {
+        Long postOwnerId = findPostOwnerId(postId);
+
+        if (postOwnerId.equals(actorUserId)) {
+            return;
+        }
+
+        boolean alreadyNotified = notificationRepository
+                .existsByUserIdAndActorUserIdAndPostIdAndType(postOwnerId, actorUserId, postId, "REPORT");
+
+        if (alreadyNotified) {
             return;
         }
 
         saveNotification(
-                targetUserId,
+                postOwnerId,
                 actorUserId,
                 postId,
+                null,
+                "REPORT",
+                actorUserId + "번 사용자가 회원님의 게시글을 신고했습니다."
+        );
+    }
+
+    /**
+     * 댓글 신고 알림 생성
+     *
+     * 주의 사항
+     * - 자기 자신의 댓글을 신고한 경우 알림을 만들지 않음
+     * - 같은 사용자가 같은 댓글을 반복 신고해도 REPORT 알림은 한 번만 남기도록 중복 생성 방지 검사를 수행
+     */
+    @Override
+    @Transactional
+    public void createCommentReportNotification(Long commentId, Long actorUserId) {
+        Long commentOwnerId = findCommentOwnerId(commentId);
+
+        if (commentOwnerId.equals(actorUserId)) {
+            return;
+        }
+
+        boolean alreadyNotified = notificationRepository.findByUserIdOrderByCreatedAtDesc(commentOwnerId)
+                .stream()
+                .anyMatch(notification ->
+                        "REPORT".equals(notification.getType())
+                                && actorUserId.equals(notification.getActorUserId())
+                                && commentId.equals(notification.getCommentId())
+                );
+
+        if (alreadyNotified) {
+            return;
+        }
+
+        saveNotification(
+                commentOwnerId,
+                actorUserId,
+                null,
+                commentId,
+                "REPORT",
+                actorUserId + "번 사용자가 회원님의 댓글을 신고했습니다."
+        );
+    }
+
+    /**
+     * 기존 NotificationService 인터페이스와의 호환을 위한 공통 신고 알림 생성 메서드.
+     *
+     * 현재 프로젝트에서는 게시글 신고/댓글 신고를 각각 분리해서 사용하고 있지만,
+     * 기존 인터페이스에 남아 있는 createReportNotification(...)도 구현해 두어 컴파일 오류가 나지 않도록 맞춘다.
+     */
+    @Override
+    @Transactional
+    public void createReportNotification(Long targetId, Long actorUserId, Long receiverUserId, String message) {
+        if (receiverUserId.equals(actorUserId)) {
+            return;
+        }
+
+        saveNotification(
+                receiverUserId,
+                actorUserId,
+                null,
                 null,
                 "REPORT",
                 message
@@ -238,6 +309,13 @@ public class NotificationServiceImpl implements NotificationService {
         return postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId))
                 .getMember()
+                .getUserId();
+    }
+
+    // 댓글 작성자를 조회해 신고 알림 수신자(receiver)를 구하는 공통 메서드
+    private Long findCommentOwnerId(Long commentId) {
+        return commentRepository.findById(commentId)
+                .orElseThrow(() -> new EntityNotFoundException("댓글을 찾을 수 없습니다. id=" + commentId))
                 .getUserId();
     }
 
