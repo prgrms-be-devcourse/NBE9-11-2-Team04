@@ -1,9 +1,18 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { getAccessToken } from "@/lib/auth-storage"
 
 type CommentSectionProps = {
     postId: number
+}
+
+type CommentAttachmentItem = {
+    attachmentId: number
+    fileName: string
+    fileUrl: string
+    fileType?: string | null
+    mimeType?: string | null
 }
 
 type CommentItem = {
@@ -16,6 +25,7 @@ type CommentItem = {
     createdAt: string
     updatedAt: string
     deleted: boolean
+    attachments?: CommentAttachmentItem[]
     replies: CommentItem[]
 }
 
@@ -23,15 +33,80 @@ type CommentListResponse = {
     comments: CommentItem[]
 }
 
+type CreatedCommentApiResponse = {
+    id?: number
+    commentId?: number
+    data?: {
+        id?: number
+        commentId?: number
+        comment?: {
+            id?: number
+            commentId?: number
+        }
+    }
+}
+
+/**
+ * 댓글/대댓글 생성 응답에서 실제 commentId 를 꺼낸다.
+ *
+ * 다양한 백엔드 응답 형식에 대응한다.
+ */
+function extractCreatedCommentId(responseBody: unknown): number | null {
+    if (!responseBody || typeof responseBody !== "object") {
+        return null
+    }
+
+    const candidate = responseBody as CreatedCommentApiResponse
+
+    const possibleIds = [
+        candidate.commentId,
+        candidate.id,
+        candidate.data?.commentId,
+        candidate.data?.id,
+        candidate.data?.comment?.commentId,
+        candidate.data?.comment?.id,
+    ]
+
+    const validId = possibleIds.find((value) => typeof value === "number")
+
+    return typeof validId === "number" ? validId : null
+}
+
 type ReplyFilesMap = Record<number, File[]>
+
+/**
+ * 현재 auth-storage 에는 공통 fetch 헬퍼가 없어서,
+ * 댓글 영역에서는 임시로 JWT/OAuth 공통 인증 옵션을 로컬에서 구성한다.
+ *
+ * - 일반 로그인 사용자는 Bearer 토큰 사용
+ * - OAuth 로그인 사용자는 credentials: include 기반 세션 인증 사용
+ */
+const OAUTH_SESSION_PLACEHOLDER_TOKEN = "oauth-cookie-session"
+
+function hasLocalJwtToken(token: string | null | undefined): boolean {
+    return Boolean(token) && token !== OAUTH_SESSION_PLACEHOLDER_TOKEN
+}
+
+function getAuthFetchOptions(): Pick<RequestInit, "credentials" | "headers"> {
+    const token = getAccessToken()
+
+    return {
+        credentials: "include",
+        headers: hasLocalJwtToken(token)
+            ? {
+                Authorization: `Bearer ${token}`,
+            }
+            : undefined,
+    }
+}
 
 function getCurrentUserId(): number | null {
     if (typeof window === "undefined") {
         return null
     }
 
-    const token = window.localStorage.getItem("accessToken")
-    if (!token) {
+    const token = getAccessToken()
+    if (!hasLocalJwtToken(token)) {
         return null
     }
 
@@ -61,27 +136,61 @@ function getCurrentUserId(): number | null {
     }
 }
 
-function getAuthHeaders(): Record<string, string> {
-    if (typeof window === "undefined") {
-        return {
-            "Content-Type": "application/json",
-        }
-    }
-
-    const token = window.localStorage.getItem("accessToken")
-
-    if (!token) {
-        return {
-            "Content-Type": "application/json",
-        }
-    }
-
+function getJsonAuthHeaders(): Record<string, string> {
     return {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        ...(getAuthFetchOptions().headers ?? {}),
     }
 }
 
+
+function isImageAttachment(attachment: CommentAttachmentItem): boolean {
+    const normalizedFileType = attachment.fileType?.toUpperCase()
+    const normalizedMimeType = attachment.mimeType?.toLowerCase()
+
+    return normalizedFileType === "IMAGE" || normalizedMimeType?.startsWith("image/") === true
+}
+
+function renderAttachments(attachments: CommentAttachmentItem[] | undefined) {
+    if (!attachments || attachments.length === 0) {
+        return null
+    }
+
+    return (
+        <div className="mt-3 space-y-3">
+            <p className="text-xs font-medium text-muted-foreground">첨부파일</p>
+            <div className="flex flex-col gap-3">
+                {attachments.map((attachment) => {
+                    const fileUrl = `http://localhost:8080${attachment.fileUrl}`
+                    const isImage = isImageAttachment(attachment)
+
+                    return (
+                        <div
+                            key={attachment.attachmentId}
+                            className="flex flex-col gap-2 rounded-md border border-border/70 p-3"
+                        >
+                            {isImage && (
+                                <img
+                                    src={fileUrl}
+                                    alt={attachment.fileName}
+                                    className="max-h-80 w-fit max-w-full rounded-md border border-border object-contain"
+                                />
+                            )}
+                            <a
+                                href={fileUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-fit text-sm text-primary underline-offset-2 hover:underline"
+                            >
+                                {attachment.fileName}
+                            </a>
+                        </div>
+                    )
+                })}
+            </div>
+        </div>
+    )
+}
 
 function sortCommentsByNewest(comments: CommentItem[]): CommentItem[] {
     return [...comments]
@@ -154,6 +263,14 @@ export default function CommentSection({ postId }: CommentSectionProps) {
         }
     }, [])
 
+    /**
+     * 댓글/대댓글 작성 직후 첨부파일을 업로드한다.
+     *
+     * - 일반 로그인 사용자는 Authorization 헤더 기반으로 인증
+     * - OAuth 로그인 사용자는 credentials: include 기반 세션 인증
+     *
+     * FormData 요청이라 Content-Type 은 직접 지정하지 않고 브라우저에 맡긴다.
+     */
     const uploadCommentAttachments = async (commentId: number, files: File[]) => {
         if (files.length === 0) {
             return
@@ -166,14 +283,11 @@ export default function CommentSection({ postId }: CommentSectionProps) {
             formData.append("fileOrder", String(index + 1))
         })
 
-        const token =
-            typeof window === "undefined"
-                ? null
-                : window.localStorage.getItem("accessToken")
+        const authOptions = getAuthFetchOptions()
 
         const response = await fetch(`http://localhost:8080/api/comments/${commentId}/attachments`, {
+            ...authOptions,
             method: "POST",
-            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
             body: formData,
         })
 
@@ -194,8 +308,9 @@ export default function CommentSection({ postId }: CommentSectionProps) {
             setError(null)
 
             const response = await fetch(`http://localhost:8080/api/posts/${postId}/comments`, {
+                ...getAuthFetchOptions(),
                 method: "POST",
-                headers: getAuthHeaders(),
+                headers: getJsonAuthHeaders(),
                 body: JSON.stringify({
                     content: trimmedComment,
                 }),
@@ -206,9 +321,14 @@ export default function CommentSection({ postId }: CommentSectionProps) {
             }
 
             const createdComment = await response.json()
+            const createdCommentId = extractCreatedCommentId(createdComment)
 
-            if (typeof createdComment?.commentId === "number" && newCommentFiles.length > 0) {
-                await uploadCommentAttachments(createdComment.commentId, newCommentFiles)
+            if (newCommentFiles.length > 0) {
+                if (createdCommentId === null) {
+                    throw new Error("댓글은 생성됐지만 생성된 commentId를 응답에서 찾지 못해 첨부 업로드를 진행하지 못했습니다.")
+                }
+
+                await uploadCommentAttachments(createdCommentId, newCommentFiles)
             }
 
             setNewComment("")
@@ -233,8 +353,9 @@ export default function CommentSection({ postId }: CommentSectionProps) {
             setError(null)
 
             const response = await fetch(`http://localhost:8080/api/comments/${commentId}/replies`, {
+                ...getAuthFetchOptions(),
                 method: "POST",
-                headers: getAuthHeaders(),
+                headers: getJsonAuthHeaders(),
                 body: JSON.stringify({
                     content,
                 }),
@@ -245,9 +366,14 @@ export default function CommentSection({ postId }: CommentSectionProps) {
             }
 
             const createdReply = await response.json()
+            const createdReplyId = extractCreatedCommentId(createdReply)
 
-            if (typeof createdReply?.commentId === "number" && (replyFiles[commentId]?.length ?? 0) > 0) {
-                await uploadCommentAttachments(createdReply.commentId, replyFiles[commentId] ?? [])
+            if ((replyFiles[commentId]?.length ?? 0) > 0) {
+                if (createdReplyId === null) {
+                    throw new Error("답글은 생성됐지만 생성된 commentId를 응답에서 찾지 못해 첨부 업로드를 진행하지 못했습니다.")
+                }
+
+                await uploadCommentAttachments(createdReplyId, replyFiles[commentId] ?? [])
             }
 
             setReplyInputs((prev) => ({
@@ -273,8 +399,9 @@ export default function CommentSection({ postId }: CommentSectionProps) {
             setError(null)
 
             const response = await fetch(`http://localhost:8080/api/comments/${commentId}`, {
+                ...getAuthFetchOptions(),
                 method: "DELETE",
-                headers: getAuthHeaders(),
+                headers: getJsonAuthHeaders(),
             })
 
             if (!response.ok) {
@@ -316,8 +443,9 @@ export default function CommentSection({ postId }: CommentSectionProps) {
             setError(null)
 
             const response = await fetch(`http://localhost:8080/api/comments/${commentId}`, {
+                ...getAuthFetchOptions(),
                 method: "PATCH",
-                headers: getAuthHeaders(),
+                headers: getJsonAuthHeaders(),
                 body: JSON.stringify({
                     content,
                 }),
@@ -426,7 +554,10 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                                 </div>
                             </div>
                         ) : (
-                            <p className="text-sm text-foreground">{comment.content}</p>
+                            <>
+                                <p className="text-sm text-foreground">{comment.content}</p>
+                                {renderAttachments(comment.attachments)}
+                            </>
                         )}
 
                         <div className="mt-2 flex items-center justify-between gap-3">
@@ -560,7 +691,10 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                                                 </div>
                                             </div>
                                         ) : (
-                                            <p className="text-sm text-foreground">{reply.content}</p>
+                                            <>
+                                                <p className="text-sm text-foreground">{reply.content}</p>
+                                                {renderAttachments(reply.attachments)}
+                                            </>
                                         )}
 
                                         <div className="mt-2 flex items-center justify-between gap-3">

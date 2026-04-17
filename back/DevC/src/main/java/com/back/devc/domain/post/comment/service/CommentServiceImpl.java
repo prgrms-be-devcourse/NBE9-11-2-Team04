@@ -10,6 +10,7 @@ import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.domain.member.member.repository.MemberRepository;
+import com.back.devc.domain.post.comment.attachment.service.CommentAttachmentService;
 import com.back.devc.domain.member.member.entity.Member;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,8 @@ public class CommentServiceImpl implements CommentService {
     private final CommentRepository commentRepository;
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
+    // 댓글 조회 응답에 첨부파일 목록도 함께 담기 위해 사용하는 서비스
+    private final CommentAttachmentService commentAttachmentService;
     // 댓글/대댓글 작성 시 알림 기능과 연결하기 위해 주입한 서비스
     private final NotificationService notificationService;
 
@@ -185,7 +188,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     private CommentResponse toResponse(Comment comment) {
-        return CommentResponse.of(
+        CommentResponse response = CommentResponse.of(
                 comment.getId(),
                 comment.getPostId(),
                 comment.getUserId(),
@@ -196,5 +199,15 @@ public class CommentServiceImpl implements CommentService {
                 comment.getCreatedAt(),
                 comment.getUpdatedAt()
         );
+
+        // 삭제된 댓글은 현재 정책상 첨부파일을 노출하지 않고,
+        // 삭제되지 않은 댓글만 첨부파일 목록을 함께 내려준다.
+        if (!comment.isDeleted()) {
+            response.getAttachments().addAll(
+                    commentAttachmentService.getAttachments(comment.getId()).getAttachments()
+            );
+        }
+
+        return response;
     }
 }
