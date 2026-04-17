@@ -7,7 +7,7 @@ import { Code2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { completeOAuthSignup } from "@/lib/interaction"
+import { completeOAuthSignup } from "@/lib/auth"
 import { persistLoginSession, saveCurrentUserProfile } from "@/lib/auth-storage"
 
 export default function OAuthSignupPage() {
@@ -31,7 +31,7 @@ export default function OAuthSignupPage() {
     try {
       const data = await completeOAuthSignup({ nickname: trimmed })
 
-      persistLoginSession(undefined, data.nickname, data.email)
+      persistLoginSession(data.accessToken, data.nickname, data.email)
 
       saveCurrentUserProfile({
         email: data.email,
@@ -47,7 +47,7 @@ export default function OAuthSignupPage() {
       router.replace("/mypage")
       router.refresh()
     } catch (e) {
-      setError(e instanceof Error ? e.message : "닉네임 저장에 실패했습니다.")
+      setError(e instanceof Error ? e.message : "닉네임 설정에 실패했습니다.")
     } finally {
       setIsLoading(false)
     }
@@ -62,7 +62,7 @@ export default function OAuthSignupPage() {
             <span className="text-2xl font-bold text-foreground">DevHub</span>
           </Link>
           <p className="mt-2 text-muted-foreground">
-            GitHub 가입을 완료하려면 닉네임을 설정해주세요.
+            OAuth 가입을 완료하려면 닉네임을 설정해주세요.
           </p>
         </div>
 
@@ -88,7 +88,7 @@ export default function OAuthSignupPage() {
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               disabled={isLoading}
             >
-              {isLoading ? "저장 중..." : "닉네임 저장하고 시작하기"}
+              {isLoading ? "저장 중..." : "닉네임 설정하고 시작하기"}
             </Button>
 
             {error ? <p className="text-sm text-destructive">{error}</p> : null}

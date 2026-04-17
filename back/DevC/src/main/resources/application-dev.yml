@@ -34,7 +34,7 @@ spring:
 
 custom:
   oauth2:
-    frontend-success-url: http://localhost:3000/login
+    frontend-success-url: http://localhost:3000/oauth/callback
     frontend-failure-url: http://localhost:3000/login
     frontend-signup-url: http://localhost:3000/oauth/signup
     allowed-redirect-uris: http://localhost:3000/login,http://localhost:3000/oauth/signup,http://localhost:3000/oauth/callback

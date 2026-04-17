@@ -1,11 +1,15 @@
 package com.back.devc.domain.auth.controller;
 
 import com.back.devc.domain.auth.dto.OAuth2MeResponse;
+import com.back.devc.domain.auth.dto.login.LoginResponse;
+import com.back.devc.domain.auth.dto.oauth.OAuthExchangeRequest;
 import com.back.devc.domain.auth.dto.oauth.OAuthPendingSignup;
 import com.back.devc.domain.auth.dto.oauth.OAuthSignupCompleteRequest;
-import com.back.devc.domain.auth.dto.oauth.OAuthSignupCompleteResponse;
 import com.back.devc.domain.auth.service.OAuth2MemberService;
+import com.back.devc.domain.auth.service.OAuthLoginCodeService;
 import com.back.devc.domain.member.member.entity.Member;
+import com.back.devc.domain.member.member.entity.MemberStatus;
+import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
 import com.back.devc.global.response.SuccessCode;
@@ -16,9 +20,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -36,19 +37,9 @@ import java.util.Map;
 public class OAuth2Controller {
 
     private final OAuth2MemberService oAuth2MemberService;
+    private final OAuthLoginCodeService oAuthLoginCodeService;
+    private final MemberRepository memberRepository;
     private final JwtProvider jwtProvider;
-
-    @Value("${custom.jwt.access-token-expiration-seconds:3600}")
-    private long accessTokenExpirationSeconds;
-
-    @Value("${custom.jwt.access-cookie-name:access_token}")
-    private String accessCookieName;
-
-    @Value("${custom.jwt.access-cookie-secure:false}")
-    private boolean accessCookieSecure;
-
-    @Value("${custom.jwt.access-cookie-same-site:Lax}")
-    private String accessCookieSameSite;
 
     @GetMapping("/me")
     public OAuth2MeResponse me(
@@ -84,8 +75,39 @@ public class OAuth2Controller {
         return new OAuth2MeResponse(true, oauth2User.getName(), authorities, attributes);
     }
 
+    @PostMapping("/exchange")
+    public ResponseEntity<SuccessResponse<LoginResponse>> exchange(
+            @Valid @RequestBody OAuthExchangeRequest request
+    ) {
+        Long userId = oAuthLoginCodeService.consume(request.code())
+                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED));
+
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
+
+        if (member.getStatus() == MemberStatus.BLACKLISTED) {
+            throw new ApiException(ErrorCode.MEMBER_BLACKLISTED);
+        }
+
+        String accessToken = jwtProvider.createAccessToken(member);
+
+        LoginResponse body = new LoginResponse(
+                member.getUserId(),
+                member.getEmail(),
+                member.getNickname(),
+                member.getRole(),
+                member.getStatus(),
+                accessToken
+        );
+
+        SuccessCode successCode = SuccessCode.SIGN_UP_SUCCESS;
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, body));
+    }
+
     @PostMapping("/signup/complete")
-    public ResponseEntity<SuccessResponse<OAuthSignupCompleteResponse>> completeSignup(
+    public ResponseEntity<SuccessResponse<LoginResponse>> completeSignup(
             @Valid @RequestBody OAuthSignupCompleteRequest request,
             HttpServletRequest httpServletRequest
     ) {
@@ -100,27 +122,22 @@ public class OAuth2Controller {
         }
 
         Member member = completeByProvider(pending, request.nickname());
-
-        String accessToken = jwtProvider.createAccessToken(member);
-        ResponseCookie accessCookie = ResponseCookie.from(accessCookieName, accessToken)
-                .httpOnly(true)
-                .secure(accessCookieSecure)
-                .path("/")
-                .maxAge(accessTokenExpirationSeconds)
-                .sameSite(accessCookieSameSite)
-                .build();
-
         session.removeAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY);
 
-        OAuthSignupCompleteResponse body = new OAuthSignupCompleteResponse(
+        String accessToken = jwtProvider.createAccessToken(member);
+
+        LoginResponse body = new LoginResponse(
+                member.getUserId(),
                 member.getEmail(),
-                member.getNickname()
+                member.getNickname(),
+                member.getRole(),
+                member.getStatus(),
+                accessToken
         );
 
-        SuccessCode successCode = SuccessCode.SIGN_UP_SUCCESS;
+        SuccessCode successCode = SuccessCode.LOGIN_SUCCESS;
         return ResponseEntity
                 .status(successCode.getStatus())
-                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
                 .body(SuccessResponse.of(successCode, body));
     }
 

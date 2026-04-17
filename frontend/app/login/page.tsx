@@ -1,108 +1,98 @@
-﻿"use client";
+﻿"use client"
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Code2, Eye, EyeOff, Github } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { login } from "@/lib/auth";
-import { persistLoginSession } from "@/lib/auth-storage";
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Code2, Eye, EyeOff, Github } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { login } from "@/lib/auth"
+import { persistLoginSession } from "@/lib/auth-storage"
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
 
 function getOauthErrorMessage(errorCode: string | null) {
   switch (errorCode) {
     case "OAUTH2_CANCELLED":
-      return "로그인이 취소되었습니다.";
+      return "로그인이 취소되었습니다."
     case "OAUTH2_INVALID_STATE":
-      return "보안 검증에 실패했습니다. 다시 시도해주세요.";
+      return "보안 검증에 실패했습니다. 다시 시도해주세요."
     case "OAUTH2_MEMBER_BLACKLISTED":
-      return "이용이 제한된 계정입니다.";
+      return "이용이 제한된 계정입니다."
     case "OAUTH2_INVALID_PRINCIPAL":
-      return "OAuth 사용자 정보 처리에 실패했습니다.";
+      return "OAuth 사용자 정보 처리에 실패했습니다."
     case "OAUTH2_TOKEN_ISSUE":
-      return "토큰 발급에 실패했습니다.";
+      return "토큰 발급에 실패했습니다."
     case "OAUTH2_LOGIN_FAILED":
-      return "OAuth 로그인에 실패했습니다.";
+      return "OAuth 로그인에 실패했습니다."
     default:
-      return "OAuth 로그인 중 오류가 발생했습니다.";
+      return "OAuth 로그인 중 오류가 발생했습니다."
   }
 }
 
 export default function LoginPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     rememberMe: false,
-  });
+  })
 
   useEffect(() => {
-    const oauth = searchParams.get("oauth");
-    if (!oauth) return;
-
-    if (oauth === "success") {
-      const nickname = searchParams.get("nickname");
-      const email = searchParams.get("email");
-
-      persistLoginSession("oauth-cookie-session", nickname, email);
-      router.replace("/");
-      return;
-    }
+    const oauth = searchParams.get("oauth")
+    if (!oauth) return
 
     if (oauth === "pending_signup") {
-      router.replace("/oauth/signup");
-      return;
+      router.replace("/oauth/signup")
+      return
     }
 
     if (oauth === "error") {
-      const errorCode = searchParams.get("errorCode");
-      setError(getOauthErrorMessage(errorCode));
+      const errorCode = searchParams.get("errorCode")
+      setError(getOauthErrorMessage(errorCode))
     }
-  }, [searchParams, router]);
+  }, [searchParams, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setIsLoading(true);
+    e.preventDefault()
+    setError("")
+    setIsLoading(true)
 
     try {
       const data = await login({
         email: formData.email,
         password: formData.password,
-      });
+      })
 
       if (!data.accessToken) {
-        throw new Error("토큰 응답이 없습니다.");
+        throw new Error("토큰 응답이 없습니다.")
       }
 
-      persistLoginSession(data.accessToken, data.nickname, data.email);
-      router.push("/");
+      persistLoginSession(data.accessToken, data.nickname, data.email)
+      router.push("/")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "로그인에 실패했습니다.");
+      setError(err instanceof Error ? err.message : "로그인에 실패했습니다.")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleGithubLogin = () => {
-    setError("");
-    window.location.href = `${API_BASE_URL}/oauth2/authorization/github`;
-  };
+    setError("")
+    window.location.href = `${API_BASE_URL}/oauth2/authorization/github`
+  }
 
   const handleKakaoLogin = () => {
-    setError("");
-    window.location.href = `${API_BASE_URL}/oauth2/authorization/kakao`;
-  };
+    setError("")
+    window.location.href = `${API_BASE_URL}/oauth2/authorization/kakao`
+  }
 
   return (
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
@@ -248,5 +238,5 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
-  );
+  )
 }
