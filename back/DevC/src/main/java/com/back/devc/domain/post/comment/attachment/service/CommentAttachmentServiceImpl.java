@@ -41,7 +41,7 @@ public class CommentAttachmentServiceImpl implements CommentAttachmentService {
             List<MultipartFile> files,
             List<Integer> fileOrders
     ) {
-        validateCommentExists(commentId);
+        Comment comment = validateComment(commentId);
 
         if (files == null || files.isEmpty()) {
             throw new IllegalArgumentException("업로드할 파일이 없습니다.");
@@ -104,7 +104,7 @@ public class CommentAttachmentServiceImpl implements CommentAttachmentService {
 
     @Override
     public CommentAttachmentListResponse getAttachments(Long commentId) {
-        validateCommentExists(commentId);
+        Comment comment = validateComment(commentId);
 
         List<CommentAttachmentResponse> attachments = commentAttachmentRepository
                 .findByCommentIdOrderByFileOrderAscIdAsc(commentId)
@@ -118,8 +118,12 @@ public class CommentAttachmentServiceImpl implements CommentAttachmentService {
     @Override
     @Transactional
     public CommentAttachmentDeleteResponse deleteAttachment(Long commentId, Long attachmentId) {
-        validateCommentExists(commentId);
+        Comment comment = validateComment(commentId);
 
+        // 현재 댓글 흐름은 soft delete 기반이므로, 삭제된 댓글의 첨부파일은 별도로 삭제 처리하지 않도록 한 번 더 방어
+        if (comment.isDeleted()) {
+            throw new IllegalStateException("삭제된 댓글의 첨부파일은 삭제할 수 없습니다.");
+        }
         CommentAttachment attachment = commentAttachmentRepository.findByIdAndCommentId(attachmentId, commentId)
                 .orElseThrow(() -> new EntityNotFoundException("댓글 첨부파일을 찾을 수 없습니다. id=" + attachmentId));
 
@@ -138,13 +142,17 @@ public class CommentAttachmentServiceImpl implements CommentAttachmentService {
         );
     }
 
-    private void validateCommentExists(Long commentId) {
+    private Comment validateComment(Long commentId) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException("댓글을 찾을 수 없습니다. id=" + commentId));
 
+        // 현재 댓글 기능은 soft delete 기반으로 동작하므로,
+        // 삭제된 댓글에 대해서는 첨부파일 업로드/조회/삭제를 모두 막는다.
         if (comment.isDeleted()) {
             throw new IllegalStateException("삭제된 댓글에는 첨부파일을 처리할 수 없습니다.");
         }
+
+        return comment;
     }
 
     private CommentAttachmentResponse toResponse(CommentAttachment attachment) {

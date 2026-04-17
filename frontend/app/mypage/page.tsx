@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { PostCard, type Post } from "@/components/post-card"
@@ -23,7 +23,56 @@ import {
   AUTH_CHANGED_EVENT,
   getAuthSnapshot,
   getCurrentUserProfile,
+  persistLoginSession,
 } from "@/lib/auth-storage"
+import { apiFetch } from "@/lib/api"
+
+type MyProfileResponse = {
+  userId: number
+  email: string
+  nickname: string
+}
+
+type MyPostResponse = {
+  postId: number
+  title: string
+  likeCount: number
+  commentCount: number
+  createdAt: string
+}
+
+type MyCommentResponse = {
+  commentId: number
+  postId: number
+  content: string
+  createdAt: string
+}
+
+type LikedPostResponse = {
+  postId: number
+  title: string
+  authorNickname: string
+  likeCount: number
+  commentCount: number
+  createdAt: string
+}
+
+type BookmarkedPostResponse = {
+  postId: number
+  title: string
+  authorNickname: string
+  likeCount: number
+  commentCount: number
+  createdAt: string
+}
+
+type LocalProfileData = {
+  bio: string
+  location: string
+  website: string
+  github: string
+  twitter: string
+}
 
 const defaultUserData = {
   avatar: "",
@@ -33,118 +82,266 @@ const defaultUserData = {
   github: "kimdev",
   twitter: "kimdev",
   joinedAt: "2024년 1월",
-  stats: {
-    posts: 42,
-    followers: 1234,
-    following: 89,
-    likes: 5678,
-  },
 }
 
-const myPosts: Post[] = [
-  {
-    id: "1",
-    title: "개발자의 번아웃 예방: 나만의 루틴 만들기",
-    excerpt:
-      "10년차 개발자가 알려주는 번아웃 예방법. 지속 가능한 개발자 생활을 위한 팁들을 공유합니다.",
-    author: { name: "김개발" },
-    category: "자유 주제",
-    createdAt: "4시간 전",
-    likes: 234,
-    comments: 67,
-    views: 2890,
-    tags: ["번아웃", "루틴", "개발자생활"],
-  },
-  {
-    id: "2",
-    title: "2026년 프론트엔드 개발자 로드맵",
-    excerpt:
-      "React, Next.js, TypeScript 중심으로 프론트엔드 개발자가 알아야 할 기술들을 정리했습니다.",
-    author: { name: "김개발" },
-    category: "IT 기술 정보",
-    createdAt: "2일 전",
-    likes: 128,
-    comments: 24,
-    views: 1520,
-    tags: ["frontend", "react", "로드맵"],
-  },
-]
+const emptyProfileData: LocalProfileData = {
+  bio: defaultUserData.bio,
+  location: defaultUserData.location,
+  website: defaultUserData.website,
+  github: defaultUserData.github,
+  twitter: defaultUserData.twitter,
+}
 
-const bookmarkedPosts: Post[] = [
-  {
-    id: "3",
-    title: "AI 코딩 어시스턴트 비교: Copilot vs Cursor vs Claude",
-    excerpt:
-      "개발 생산성을 높여주는 AI 도구들을 실제 사용 경험을 바탕으로 비교 분석합니다.",
-    author: { name: "이트렌드" },
-    category: "개발자 트렌드",
-    createdAt: "1일 전",
-    likes: 256,
-    comments: 42,
-    views: 3240,
-    tags: ["ai", "copilot", "개발도구"],
-  },
-]
+function normalizeWebsiteUrl(value: string) {
+  const trimmed = value?.trim()
+  if (!trimmed) return ""
 
-const likedPosts: Post[] = [
-  {
-    id: "4",
-    title: "신입 개발자 채용 트렌드 분석",
-    excerpt:
-      "상반기 IT 기업들의 신입 개발자 채용 동향과 필요한 역량을 분석합니다.",
-    author: { name: "박취준" },
-    category: "취업 시장 정보",
-    createdAt: "5시간 전",
-    likes: 89,
-    comments: 15,
-    views: 892,
-    tags: ["취업", "신입채용", "대기업"],
-  },
-]
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed
+  }
+
+  return `https://${trimmed}`
+}
+
+function normalizeGithubUrl(value: string) {
+  const trimmed = value?.trim()
+  if (!trimmed) return ""
+
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed
+  }
+
+  const normalizedId = trimmed
+    .replace(/^https?:\/\/github\.com\//, "")
+    .replace(/^github\.com\//, "")
+    .replace(/^@/, "")
+    .replace(/\/+$/, "")
+
+  return normalizedId ? `https://github.com/${normalizedId}` : ""
+}
+
+function normalizeTwitterUrl(value: string) {
+  const trimmed = value?.trim()
+  if (!trimmed) return ""
+
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed
+  }
+
+  const normalizedId = trimmed
+    .replace(/^https?:\/\/twitter\.com\//, "")
+    .replace(/^https?:\/\/x\.com\//, "")
+    .replace(/^twitter\.com\//, "")
+    .replace(/^x\.com\//, "")
+    .replace(/^@/, "")
+    .replace(/\/+$/, "")
+
+  return normalizedId ? `https://twitter.com/${normalizedId}` : ""
+}
+
+function formatRelativeDate(value: string) {
+  if (!value) return ""
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMinutes = Math.floor(diffMs / 1000 / 60)
+  const diffHours = Math.floor(diffMinutes / 60)
+  const diffDays = Math.floor(diffHours / 24)
+
+  if (diffMinutes < 1) return "방금 전"
+  if (diffMinutes < 60) return `${diffMinutes}분 전`
+  if (diffHours < 24) return `${diffHours}시간 전`
+  if (diffDays < 30) return `${diffDays}일 전`
+
+  return date.toLocaleDateString("ko-KR")
+}
+
+function formatJoinedAt(email?: string | null) {
+  if (!email) return `${defaultUserData.joinedAt} 가입`
+  return "가입 정보"
+}
+
+function mapMyPostsToPostCard(posts: MyPostResponse[], displayName: string): Post[] {
+  return posts.map((post) => ({
+    id: String(post.postId),
+    title: post.title,
+    excerpt: "",
+    author: { name: displayName },
+    category: "내 글",
+    createdAt: formatRelativeDate(post.createdAt),
+    likes: post.likeCount,
+    comments: post.commentCount,
+    views: 0,
+    tags: [],
+  }))
+}
+
+function mapBookmarkedPostsToPostCard(posts: BookmarkedPostResponse[]): Post[] {
+  return posts.map((post) => ({
+    id: String(post.postId),
+    title: post.title,
+    excerpt: "",
+    author: { name: post.authorNickname },
+    category: "북마크",
+    createdAt: formatRelativeDate(post.createdAt),
+    likes: post.likeCount,
+    comments: post.commentCount,
+    views: 0,
+    tags: [],
+  }))
+}
+
+function mapLikedPostsToPostCard(posts: LikedPostResponse[]): Post[] {
+  return posts.map((post) => ({
+    id: String(post.postId),
+    title: post.title,
+    excerpt: "",
+    author: { name: post.authorNickname },
+    category: "좋아요",
+    createdAt: formatRelativeDate(post.createdAt),
+    likes: post.likeCount,
+    comments: post.commentCount,
+    views: 0,
+    tags: [],
+  }))
+}
 
 export default function MyPage() {
   const router = useRouter()
+
   const [activeTab, setActiveTab] = useState("posts")
   const [displayName, setDisplayName] = useState("김개발")
   const [displayUsername, setDisplayUsername] = useState("kimdev")
+  const [displayEmail, setDisplayEmail] = useState("")
   const [isAuthReady, setIsAuthReady] = useState(false)
-  const [profileData, setProfileData] = useState({
-    bio: defaultUserData.bio,
-    location: defaultUserData.location,
-    website: defaultUserData.website,
-    github: defaultUserData.github,
-    twitter: defaultUserData.twitter,
-  })
+  const [loading, setLoading] = useState(true)
+  const [tabLoading, setTabLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  const [profileData, setProfileData] = useState<LocalProfileData>(emptyProfileData)
+  const [myPosts, setMyPosts] = useState<MyPostResponse[]>([])
+  const [bookmarkedPosts, setBookmarkedPosts] = useState<BookmarkedPostResponse[]>([])
+  const [likedPosts, setLikedPosts] = useState<LikedPostResponse[]>([])
+  const [myComments, setMyComments] = useState<MyCommentResponse[]>([])
+
+  const websiteHref = useMemo(
+    () => normalizeWebsiteUrl(profileData.website),
+    [profileData.website]
+  )
+  const githubHref = useMemo(
+    () => normalizeGithubUrl(profileData.github),
+    [profileData.github]
+  )
+  const twitterHref = useMemo(
+    () => normalizeTwitterUrl(profileData.twitter),
+    [profileData.twitter]
+  )
+
+  const myPostCards = useMemo(
+    () => mapMyPostsToPostCard(myPosts, displayName),
+    [myPosts, displayName]
+  )
+  const bookmarkedPostCards = useMemo(
+    () => mapBookmarkedPostsToPostCard(bookmarkedPosts),
+    [bookmarkedPosts]
+  )
+  const likedPostCards = useMemo(
+    () => mapLikedPostsToPostCard(likedPosts),
+    [likedPosts]
+  )
 
   useEffect(() => {
-    const auth = getAuthSnapshot()
-    if (!auth.isLoggedIn) {
-      router.replace("/login")
-      return
+    const fetchInitialData = async () => {
+      try {
+        setLoading(true)
+        setError("")
+
+        const [profileRes, postsRes] = await Promise.all([
+          apiFetch<MyProfileResponse>("/api/mypage", {
+            method: "GET",
+            auth: true,
+          }),
+          apiFetch<MyPostResponse[]>("/api/mypage/posts", {
+            method: "GET",
+            auth: true,
+          }),
+        ])
+
+        const nextName = profileRes.nickname?.trim() || "김개발"
+        const nextEmail = profileRes.email?.trim() || ""
+        const nextUsername = nextEmail
+          ? nextEmail.split("@")[0]
+          : nextName.replace(/\s+/g, "")
+
+        setDisplayName(nextName)
+        setDisplayEmail(nextEmail)
+        setDisplayUsername(nextUsername)
+        setMyPosts(postsRes ?? [])
+
+        persistLoginSession(undefined, nextName, nextEmail)
+
+        const savedProfile = getCurrentUserProfile()
+
+        setProfileData({
+          bio: savedProfile?.bio?.trim() || defaultUserData.bio,
+          location: savedProfile?.location?.trim() || defaultUserData.location,
+          website: savedProfile?.website?.trim() || defaultUserData.website,
+          github: savedProfile?.github?.trim() || defaultUserData.github,
+          twitter: savedProfile?.twitter?.trim() || defaultUserData.twitter,
+        })
+
+        setIsAuthReady(true)
+      } catch (err) {
+        console.error(err)
+        router.replace("/login")
+      } finally {
+        setLoading(false)
+      }
     }
 
-    setIsAuthReady(true)
+    fetchInitialData()
   }, [router])
 
   useEffect(() => {
+    if (!isAuthReady) return
+
     const syncProfile = () => {
       const auth = getAuthSnapshot()
       const profile = getCurrentUserProfile()
-      const fallbackName = "김개발"
-      const name = profile?.nickname?.trim() || auth.nickname?.trim() || fallbackName
-      const usernameFromEmail = auth.email?.split("@")[0]?.trim()
-      const usernameFromProfile = profile?.username?.trim()
-      const usernameFromName = name.trim().replace(/\s+/g, "")
-      const username = usernameFromProfile || usernameFromEmail || usernameFromName || "kimdev"
 
-      setDisplayName(name)
+      const nickname =
+        profile?.nickname?.trim() ||
+        auth.nickname?.trim() ||
+        displayName ||
+        "김개발"
+
+      const email =
+        profile?.email?.trim() ||
+        auth.email?.trim() ||
+        displayEmail ||
+        ""
+
+      const usernameFromProfile = profile?.username?.trim()
+      const usernameFromEmail = email ? email.split("@")[0] : ""
+      const usernameFromName = nickname.trim().replace(/\s+/g, "")
+      const username =
+        usernameFromProfile ||
+        usernameFromEmail ||
+        usernameFromName ||
+        "kimdev"
+
+      setDisplayName(nickname)
+      setDisplayEmail(email)
       setDisplayUsername(username)
       setProfileData({
-        bio: profile?.bio || defaultUserData.bio,
-        location: profile?.location || defaultUserData.location,
-        website: profile?.website || defaultUserData.website,
-        github: profile?.github || defaultUserData.github,
-        twitter: profile?.twitter || defaultUserData.twitter,
+        bio: profile?.bio?.trim() || defaultUserData.bio,
+        location: profile?.location?.trim() || defaultUserData.location,
+        website: profile?.website?.trim() || defaultUserData.website,
+        github: profile?.github?.trim() || defaultUserData.github,
+        twitter: profile?.twitter?.trim() || defaultUserData.twitter,
       })
     }
 
@@ -156,7 +353,89 @@ export default function MyPage() {
       window.removeEventListener(AUTH_CHANGED_EVENT, syncProfile as EventListener)
       window.removeEventListener("storage", syncProfile)
     }
-  }, [])
+  }, [isAuthReady, displayName, displayEmail])
+
+  useEffect(() => {
+    if (!isAuthReady) return
+    if (activeTab !== "bookmarks" || bookmarkedPosts.length > 0) return
+
+    const fetchBookmarks = async () => {
+      try {
+        setTabLoading(true)
+        setError("")
+
+        const res = await apiFetch<BookmarkedPostResponse[]>("/api/mypage/bookmarks", {
+          method: "GET",
+          auth: true,
+        })
+
+        setBookmarkedPosts(res ?? [])
+      } catch (err) {
+        console.error(err)
+        setError("북마크 목록을 불러오지 못했습니다.")
+      } finally {
+        setTabLoading(false)
+      }
+    }
+
+    fetchBookmarks()
+  }, [activeTab, bookmarkedPosts.length, isAuthReady])
+
+  useEffect(() => {
+    if (!isAuthReady) return
+    if (activeTab !== "likes" || likedPosts.length > 0) return
+
+    const fetchLikes = async () => {
+      try {
+        setTabLoading(true)
+        setError("")
+
+        const res = await apiFetch<LikedPostResponse[]>("/api/mypage/likes", {
+          method: "GET",
+          auth: true,
+        })
+
+        setLikedPosts(res ?? [])
+      } catch (err) {
+        console.error(err)
+        setError("좋아요 목록을 불러오지 못했습니다.")
+      } finally {
+        setTabLoading(false)
+      }
+    }
+
+    fetchLikes()
+  }, [activeTab, likedPosts.length, isAuthReady])
+
+  useEffect(() => {
+    if (!isAuthReady) return
+    if (activeTab !== "comments" || myComments.length > 0) return
+
+    const fetchComments = async () => {
+      try {
+        setTabLoading(true)
+        setError("")
+
+        const res = await apiFetch<MyCommentResponse[]>("/api/mypage/comments", {
+          method: "GET",
+          auth: true,
+        })
+
+        setMyComments(res ?? [])
+      } catch (err) {
+        console.error(err)
+        setError("댓글 목록을 불러오지 못했습니다.")
+      } finally {
+        setTabLoading(false)
+      }
+    }
+
+    fetchComments()
+  }, [activeTab, myComments.length, isAuthReady])
+
+  if (loading) {
+    return null
+  }
 
   if (!isAuthReady) {
     return null
@@ -169,7 +448,7 @@ export default function MyPage() {
           <Avatar className="h-24 w-24 border-4 border-primary/20">
             <AvatarImage src={defaultUserData.avatar} alt={displayName} />
             <AvatarFallback className="bg-primary text-2xl text-primary-foreground">
-              {displayName.slice(0, 2)}
+              {(displayName || displayUsername || "U").slice(0, 2)}
             </AvatarFallback>
           </Avatar>
 
@@ -177,7 +456,11 @@ export default function MyPage() {
             <div className="mb-4 flex flex-wrap items-center gap-4">
               <div>
                 <h1 className="text-2xl font-bold text-foreground">{displayName}</h1>
+                {displayUsername ? (
+                  <p className="text-sm text-muted-foreground">@{displayUsername}</p>
+                ) : null}
               </div>
+
               <Link href="/mypage/edit">
                 <Button variant="outline" className="gap-2">
                   <Settings className="h-4 w-4" />
@@ -193,32 +476,35 @@ export default function MyPage() {
                 <MapPin className="h-4 w-4" />
                 {profileData.location}
               </div>
+
               <a
-                href={profileData.website}
+                href={websiteHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 hover:text-primary"
               >
                 <LinkIcon className="h-4 w-4" />
-                {profileData.website.replace("https://", "")}
+                {profileData.website.replace(/^https?:\/\//, "")}
               </a>
+
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                {defaultUserData.joinedAt} 가입
+                {formatJoinedAt(displayEmail)}
               </div>
             </div>
 
             <div className="mt-4 flex gap-3">
               <a
-                href={`https://github.com/${profileData.github}`}
+                href={githubHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground"
               >
                 <Github className="h-5 w-5" />
               </a>
+
               <a
-                href={`https://twitter.com/${profileData.twitter}`}
+                href={twitterHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground"
@@ -231,45 +517,67 @@ export default function MyPage() {
 
         <div className="mt-6 grid grid-cols-4 gap-4 border-t border-border pt-6">
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{defaultUserData.stats.posts}</p>
+            <p className="text-2xl font-bold text-foreground">{myPosts.length}</p>
             <p className="text-sm text-muted-foreground">글</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{defaultUserData.stats.followers.toLocaleString()}</p>
-            <p className="text-sm text-muted-foreground">팔로워</p>
+            <p className="text-2xl font-bold text-foreground">{bookmarkedPosts.length}</p>
+            <p className="text-sm text-muted-foreground">북마크</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{defaultUserData.stats.following}</p>
-            <p className="text-sm text-muted-foreground">팔로잉</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{defaultUserData.stats.likes.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-foreground">{likedPosts.length}</p>
             <p className="text-sm text-muted-foreground">좋아요</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-foreground">{myComments.length}</p>
+            <p className="text-sm text-muted-foreground">댓글</p>
           </div>
         </div>
       </div>
 
+      {error ? (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {error}
+        </div>
+      ) : null}
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6 w-full justify-start bg-secondary">
-          <TabsTrigger value="posts" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <FileText className="h-4 w-4" />내 글
+          <TabsTrigger
+            value="posts"
+            className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            <FileText className="h-4 w-4" />
+            내 글
           </TabsTrigger>
-          <TabsTrigger value="bookmarks" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Bookmark className="h-4 w-4" />북마크
+          <TabsTrigger
+            value="bookmarks"
+            className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            <Bookmark className="h-4 w-4" />
+            북마크
           </TabsTrigger>
-          <TabsTrigger value="likes" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Heart className="h-4 w-4" />좋아요
+          <TabsTrigger
+            value="likes"
+            className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            <Heart className="h-4 w-4" />
+            좋아요
           </TabsTrigger>
-          <TabsTrigger value="comments" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <MessageCircle className="h-4 w-4" />댓글
+          <TabsTrigger
+            value="comments"
+            className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            <MessageCircle className="h-4 w-4" />
+            댓글
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="posts">
-          {myPosts.length > 0 ? (
+          {myPostCards.length > 0 ? (
             <div className="grid gap-6">
-              {myPosts.map((post) => (
-                <PostCard key={post.id} post={{ ...post, author: { ...post.author, name: displayName } }} />
+              {myPostCards.map((post) => (
+                <PostCard key={post.id} post={post} />
               ))}
             </div>
           ) : (
@@ -283,9 +591,9 @@ export default function MyPage() {
         </TabsContent>
 
         <TabsContent value="bookmarks">
-          {bookmarkedPosts.length > 0 ? (
+          {tabLoading ? null : bookmarkedPostCards.length > 0 ? (
             <div className="grid gap-6">
-              {bookmarkedPosts.map((post) => (
+              {bookmarkedPostCards.map((post) => (
                 <PostCard key={post.id} post={post} />
               ))}
             </div>
@@ -299,9 +607,9 @@ export default function MyPage() {
         </TabsContent>
 
         <TabsContent value="likes">
-          {likedPosts.length > 0 ? (
+          {tabLoading ? null : likedPostCards.length > 0 ? (
             <div className="grid gap-6">
-              {likedPosts.map((post) => (
+              {likedPostCards.map((post) => (
                 <PostCard key={post.id} post={post} />
               ))}
             </div>
@@ -315,11 +623,32 @@ export default function MyPage() {
         </TabsContent>
 
         <TabsContent value="comments">
-          <EmptyState
-            icon={<MessageCircle className="h-12 w-12" />}
-            title="작성한 댓글이 없습니다"
-            description="글에 댓글을 남겨 소통해보세요"
-          />
+          {tabLoading ? null : myComments.length > 0 ? (
+            <div className="grid gap-4">
+              {myComments.map((comment) => (
+                <div
+                  key={comment.commentId}
+                  className="rounded-lg border border-border bg-card p-5"
+                >
+                  <div className="mb-2 flex items-center justify-between gap-4">
+                    <p className="text-sm text-foreground">{comment.content}</p>
+                    <span className="text-xs text-muted-foreground">
+                      {formatRelativeDate(comment.createdAt)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    게시글 ID: {comment.postId}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={<MessageCircle className="h-12 w-12" />}
+              title="작성한 댓글이 없습니다"
+              description="글에 댓글을 남겨 소통해보세요"
+            />
+          )}
         </TabsContent>
       </Tabs>
     </div>
@@ -344,7 +673,9 @@ function EmptyState({
       <p className="text-sm text-muted-foreground">{description}</p>
       {action ? (
         <Link href={action.href}>
-          <Button className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90">{action.label}</Button>
+          <Button className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90">
+            {action.label}
+          </Button>
         </Link>
       ) : null}
     </div>

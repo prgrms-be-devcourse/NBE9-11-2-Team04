@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { login } from "@/lib/interaction";
+import { login } from "@/lib/auth";
 import { persistLoginSession } from "@/lib/auth-storage";
+import { login } from "@/lib/interaction";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
 function getOauthErrorMessage(errorCode: string | null) {
   switch (errorCode) {
@@ -67,7 +69,7 @@ export default function LoginPage() {
       const errorCode = searchParams.get("errorCode");
       setError(getOauthErrorMessage(errorCode));
     }
-  }, [searchParams, router]);
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

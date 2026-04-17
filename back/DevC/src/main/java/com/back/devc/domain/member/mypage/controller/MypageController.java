@@ -1,5 +1,7 @@
 package com.back.devc.domain.member.mypage.controller;
 
+import com.back.devc.domain.interaction.bookmark.dto.BookmarkedPostResponse;
+import com.back.devc.domain.interaction.postLike.dto.LikedPostResponse;
 import com.back.devc.domain.member.mypage.dto.MyCommentResponse;
 import com.back.devc.domain.member.mypage.dto.MyPostResponse;
 import com.back.devc.domain.member.mypage.dto.MyProfileResponse;
@@ -44,6 +46,22 @@ public class MypageController {
     ) {
         validatePrincipal(principal);
         return mypageService.getMyComments(principal.userId());
+    }
+
+    @GetMapping("/likes")
+    public List<LikedPostResponse> getMyLikedPosts(
+            @AuthenticationPrincipal JwtPrincipal principal
+    ) {
+        validatePrincipal(principal);
+        return mypageService.getMyLikedPosts(principal.userId());
+    }
+
+    @GetMapping("/bookmarks")
+    public List<BookmarkedPostResponse> getMyBookmarkedPosts(
+            @AuthenticationPrincipal JwtPrincipal principal
+    ) {
+        validatePrincipal(principal);
+        return mypageService.getMyBookmarkedPosts(principal.userId());
     }
 
     @PatchMapping

@@ -30,6 +30,29 @@ type NotificationListResponse = {
   notifications: NotificationItem[]
 }
 
+async function ensureAuthReady() {
+  if (typeof window === "undefined") {
+    return false
+  }
+
+  const token = window.localStorage.getItem("accessToken")
+  if (token) {
+    return true
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+    })
+
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
 function normalizeNotification(notification: NotificationItem): NotificationItem {
   return {
     ...notification,
@@ -88,6 +111,22 @@ function dispatchNotificationsUpdated() {
   window.dispatchEvent(new CustomEvent("notifications-updated"))
 }
 
+function getAuthHeaders() {
+  if (typeof window === "undefined") {
+    return undefined
+  }
+
+  const token = window.localStorage.getItem("accessToken")
+
+  if (!token || token === "oauth-cookie-session") {
+    return undefined
+  }
+
+  return {
+    Authorization: `Bearer ${token}`,
+  }
+}
+
 function formatRelativeDate(createdAt: string) {
   const date = new Date(createdAt)
 
@@ -119,13 +158,49 @@ export default function NotificationsPage() {
   const [isAuthReady, setIsAuthReady] = useState(false)
 
   useEffect(() => {
-    const auth = getAuthSnapshot()
-    if (!auth.isLoggedIn) {
-      router.replace("/login")
-      return
+    let isMounted = true
+
+    const syncAuthState = async () => {
+      const localAuth = getAuthSnapshot()
+
+      if (localAuth.isLoggedIn) {
+        if (isMounted) {
+          setIsAuthReady(true)
+        }
+        return
+      }
+
+      const readyFromServer = await ensureAuthReady()
+
+      if (!isMounted) {
+        return
+      }
+
+      if (!readyFromServer) {
+        setNotifications([])
+        setIsAuthReady(false)
+        router.replace("/login")
+        return
+      }
+
+      setIsAuthReady(true)
     }
 
-    setIsAuthReady(true)
+    const handleAuthChanged = async () => {
+      setNotifications([])
+      await syncAuthState()
+    }
+
+    void syncAuthState()
+
+    window.addEventListener("auth-changed", handleAuthChanged)
+    window.addEventListener("storage", handleAuthChanged)
+
+    return () => {
+      isMounted = false
+      window.removeEventListener("auth-changed", handleAuthChanged)
+      window.removeEventListener("storage", handleAuthChanged)
+    }
   }, [router])
 
   const loadNotifications = async () => {
@@ -135,6 +210,8 @@ export default function NotificationsPage() {
 
       const response = await fetch(`${API_BASE_URL}/api/notifications`, {
         cache: "no-store",
+        headers: getAuthHeaders(),
+        credentials: "include",
       })
 
       if (!response.ok) {
@@ -171,10 +248,12 @@ export default function NotificationsPage() {
       await Promise.all(
         unreadNotifications.map(async (notification) => {
           const response = await fetch(
-            `${API_BASE_URL}/api/notifications/${notification.notificationId}/read`,
-            {
-              method: "PATCH",
-            }
+              `${API_BASE_URL}/api/notifications/${notification.notificationId}/read`,
+              {
+                method: "PATCH",
+                headers: getAuthHeaders(),
+                credentials: "include",
+              }
           )
 
           if (!response.ok) {
@@ -198,6 +277,8 @@ export default function NotificationsPage() {
 
       const response = await fetch(`${API_BASE_URL}/api/notifications/${notificationId}/read`, {
         method: "PATCH",
+        headers: getAuthHeaders(),
+        credentials: "include",
       })
 
       if (!response.ok) {
