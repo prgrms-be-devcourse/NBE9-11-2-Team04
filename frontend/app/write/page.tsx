@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import Link from "next/link"
-import { getAuthSnapshot } from "@/lib/auth-storage"
+import { clearLoginSession, getAuthSnapshot } from "@/lib/auth-storage"
 
 const categories = [
   { id: 1, name: "IT 기술 정보" },
@@ -43,7 +43,28 @@ export default function WritePage() {
       return
     }
 
-    setIsAuthReady(true)
+    const verifyAuth = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+          headers: getAuthHeaders(),
+        })
+
+        if (!response.ok) {
+          clearLoginSession()
+          router.replace("/login")
+          return
+        }
+      } catch {
+        // Keep page usable on temporary network issues.
+      }
+
+      setIsAuthReady(true)
+    }
+
+    void verifyAuth()
   }, [router])
 
 
@@ -57,7 +78,7 @@ export default function WritePage() {
 
     if (typeof window !== "undefined") {
       const token = window.localStorage.getItem("accessToken")
-      if (token) {
+      if (token && token !== "oauth-cookie-session") {
         headers.Authorization = `Bearer ${token}`
       }
     }
@@ -67,11 +88,16 @@ export default function WritePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!formData.category) {
+      alert("카테고리를 선택해주세요.")
+      return
+    }
     setIsLoading(true)
   
     try {
       const response = await fetch(`${API_BASE_URL}/api/posts`, {
         method: "POST",
+        credentials: "include",
         headers: getAuthHeaders(), // 🔥 여기 인증 포함됨
         body: JSON.stringify({
           title: formData.title,
@@ -81,7 +107,14 @@ export default function WritePage() {
       })
   
       if (!response.ok) {
-        throw new Error("게시글 생성 실패")
+        let message = "게시글 생성 실패"
+        try {
+          const errorBody = await response.json()
+          message = errorBody?.message || errorBody?.data?.message || message
+        } catch {
+          // ignore parse failure
+        }
+        throw new Error(message)
       }
   
       const data = await response.json()
@@ -90,7 +123,7 @@ export default function WritePage() {
       router.push(`/posts/${data.postId}`)
     } catch (err) {
       console.error(err)
-      alert("게시글 생성 중 오류 발생")
+      alert(err instanceof Error ? err.message : "게시글 생성 중 오류가 발생했습니다.")
     } finally {
       setIsLoading(false)
     }

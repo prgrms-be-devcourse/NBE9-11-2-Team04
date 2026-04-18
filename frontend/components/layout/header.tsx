@@ -101,7 +101,7 @@ export function Header() {
 
           if (me?.email || me?.nickname) {
             persistLoginSession(
-              "oauth-cookie-session",
+              undefined,
               me?.nickname ?? null,
               me?.email ?? null
             )
