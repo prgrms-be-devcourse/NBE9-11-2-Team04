@@ -1,5 +1,6 @@
 package com.back.devc.domain.post.post.dto;
 
+import com.back.devc.domain.member.member.util.MemberDisplayUtil;
 import com.back.devc.domain.post.post.entity.Post;
 
 import java.time.LocalDateTime;
@@ -22,6 +23,7 @@ public record PostDetailResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
+
     public static PostDetailResponse from(Post post) {
         return from(post, false, false, 0);
     }
@@ -32,9 +34,6 @@ public record PostDetailResponse(
 
     /**
      * 게시글 상세조회 응답 생성
-     *
-     * liked / bookmarked 는 현재 로그인 사용자를 기준으로 계산한 상태값이고,
-     * bookmarkCount 는 상세 페이지에서 별도 추가 조회 없이 바로 북마크 수를 표시하기 위해 포함
      */
     public static PostDetailResponse from(Post post, boolean liked, boolean bookmarked, int bookmarkCount) {
         return new PostDetailResponse(
@@ -42,7 +41,7 @@ public record PostDetailResponse(
                 post.getTitle(),
                 post.getContent(),
                 post.getMember() != null ? post.getMember().getUserId() : null,
-                post.getMember() != null ? post.getMember().getNickname() : null,
+                MemberDisplayUtil.getDisplayName(post.getMember()),
                 post.getCategory().getCategoryId(),
                 post.getViewCount(),
                 post.getLikeCount(),

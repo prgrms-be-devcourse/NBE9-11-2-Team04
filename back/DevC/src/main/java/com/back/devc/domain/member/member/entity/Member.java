@@ -149,7 +149,15 @@ public class Member {
     }
 
     public void withdraw() {
+        if (this.status == MemberStatus.WITHDRAWN) {
+            throw new IllegalStateException("이미 탈퇴한 회원입니다.");
+        }
+
         this.status = MemberStatus.WITHDRAWN;
+        this.email = "withdrawn_" + this.userId + "@deleted.local";
+        this.nickname = "withdrawn_" + this.userId;
+        this.passwordHash = "WITHDRAWN_USER";
+        this.providerUserId = "withdrawn_" + this.userId;
     }
 
     @PrePersist
