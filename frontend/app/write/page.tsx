@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select"
 import Link from "next/link"
 import { clearLoginSession, getAuthSnapshot } from "@/lib/auth-storage"
+import { apiFetch } from "@/lib/api"
 
 const categories = [
   { id: 1, name: "IT 기술 정보" },
@@ -23,6 +24,24 @@ const categories = [
   { id: 3, name: "개발자 트렌드" },
   { id: 4, name: "자유 주제" },
 ]
+
+type SuccessResponse<T> = {
+  code?: string
+  message?: string
+  timestamp?: string
+  data?: T
+}
+
+type MyInfoResponse = {
+  userId: number
+  email: string
+  nickname: string
+}
+
+type PostCreateResponse = {
+  postId: number
+  message: string
+}
 
 export default function WritePage() {
   const router = useRouter()
@@ -45,19 +64,17 @@ export default function WritePage() {
 
     const verifyAuth = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+        await apiFetch<SuccessResponse<MyInfoResponse>>("/api/users/me", {
           method: "GET",
-          credentials: "include",
+          auth: true,
           cache: "no-store",
-          headers: getAuthHeaders(),
         })
-
-        if (!response.ok) {
+      } catch (error) {
+        if (error instanceof Error && error.message === "UNAUTHORIZED") {
           clearLoginSession()
           router.replace("/login")
           return
         }
-      } catch {
         // Keep page usable on temporary network issues.
       }
 
@@ -66,25 +83,6 @@ export default function WritePage() {
 
     void verifyAuth()
   }, [router])
-
-
-
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
-
-  function getAuthHeaders(): HeadersInit {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    }
-
-    if (typeof window !== "undefined") {
-      const token = window.localStorage.getItem("accessToken")
-      if (token && token !== "oauth-cookie-session") {
-        headers.Authorization = `Bearer ${token}`
-      }
-    }
-
-    return headers
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -95,31 +93,16 @@ export default function WritePage() {
     setIsLoading(true)
   
     try {
-      const response = await fetch(`${API_BASE_URL}/api/posts`, {
+      const data = await apiFetch<PostCreateResponse>("/api/posts", {
         method: "POST",
-        credentials: "include",
-        headers: getAuthHeaders(), // 🔥 여기 인증 포함됨
+        auth: true,
         body: JSON.stringify({
           title: formData.title,
           content: formData.content,
-          categoryId: Number(formData.category), // 🔥 핵심 수정
+          categoryId: Number(formData.category),
         }),
       })
-  
-      if (!response.ok) {
-        let message = "게시글 생성 실패"
-        try {
-          const errorBody = await response.json()
-          message = errorBody?.message || errorBody?.data?.message || message
-        } catch {
-          // ignore parse failure
-        }
-        throw new Error(message)
-      }
-  
-      const data = await response.json()
-  
-      // 🔥 postId로 이동
+
       router.push(`/posts/${data.postId}`)
     } catch (err) {
       console.error(err)

@@ -1,3 +1,5 @@
+import { getAccessToken, sanitizeAccessToken } from "./auth-storage"
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 type ErrorResponse = {
@@ -11,11 +13,6 @@ type RequestOptions = RequestInit & {
   token?: string | null
 }
 
-function getStoredAccessToken() {
-  if (typeof window === "undefined") return null
-  return localStorage.getItem("accessToken")
-}
-
 export async function apiFetch<T>(
   path: string,
   options: RequestOptions = {}
@@ -25,7 +22,9 @@ export async function apiFetch<T>(
   }
 
   const { auth = false, token, headers, ...rest } = options
-  const accessToken = token ?? getStoredAccessToken()
+  const accessToken = token !== undefined
+    ? sanitizeAccessToken(token)
+    : getAccessToken()
 
   const finalHeaders = new Headers()
 
