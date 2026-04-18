@@ -59,14 +59,28 @@ class AdmMemberControllerTest {
 
     @Test
     void getMembers_success() throws Exception {
-        AdmMemberListResponse dto = new AdmMemberListResponse(1L, "nick", "test@test.com", null);
-        Page<AdmMemberListResponse> page = new PageImpl<>(List.of(dto));
 
-        given(admMemberService.getMembers(anyInt(), anyInt())).willReturn(page);
+        AdmMemberListResponse dto =
+                new AdmMemberListResponse(1L, "test@test.com", "nick", 10, 5, MemberStatus.ACTIVE, LocalDateTime.now());
 
-        mockMvc.perform(get("/api/admin/members"))
+        Page<AdmMemberListResponse> page =
+                new PageImpl<>(List.of(dto));
+
+        given(admMemberService.getMembers(
+                anyInt(),
+                anyInt(),
+                any(),
+                any()
+        )).willReturn(page);
+
+        mockMvc.perform(get("/api/admin/members")
+                        .param("page", "0")
+                        .param("size", "20"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(SuccessCode.MEMBER_LIST_SUCCESS.getCode()));
+                .andExpect(jsonPath("$.code")
+                        .value(SuccessCode.MEMBER_LIST_SUCCESS.getCode()))
+                .andExpect(jsonPath("$.data.content[0].userId").value(1L))
+                .andExpect(jsonPath("$.data.content[0].nickname").value("nick"));
     }
 
     @Test
@@ -100,19 +114,5 @@ class AdmMemberControllerTest {
                         .content(objectMapper.writeValueAsString(request))) // 이제 status가 포함된 JSON이 전달됨
                 .andExpect(status().isOk()) // 200 OK 기대
                 .andExpect(jsonPath("$.code").value(SuccessCode.MEMBER_STATUS_UPDATE_SUCCESS.getCode()));
-    }
-
-    @Test
-    void searchMembers_success() throws Exception {
-        AdmMemberListResponse dto = new AdmMemberListResponse(1L, "nick", "test@test.com", null);
-        Page<AdmMemberListResponse> page = new PageImpl<>(List.of(dto));
-
-        given(admMemberService.searchMembers(eq("nick"), anyInt(), anyInt())).willReturn(page);
-
-        mockMvc.perform(get("/api/admin/members/search")
-                        .param("keyword", "nick") // 키워드가 필수인지 확인
-                        .param("page", "0")       // 페이지 번호도 필요한지 확인
-                        .param("size", "10"))
-                .andExpect(status().isOk());
     }
 }

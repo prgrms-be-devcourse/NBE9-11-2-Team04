@@ -4,6 +4,7 @@ import com.back.devc.domain.member.member.dto.AdmMemberDetailResponse;
 import com.back.devc.domain.member.member.dto.AdmMemberListResponse;
 import com.back.devc.domain.member.member.dto.AdmMemberStatusUpdateRequest;
 import com.back.devc.domain.member.member.entity.Member;
+import com.back.devc.domain.member.member.entity.MemberStatus;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.repository.PostRepository;
@@ -26,11 +27,41 @@ public class AdmMemberService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
 
-    // 1. 전체 회원 목록 조회 (최신 가입 순)
-    public Page<AdmMemberListResponse> getMembers(int page, int size) {
+    public Page<AdmMemberListResponse> getMembers(int page, int size, String keyword, MemberStatus status) {
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return memberRepository.findAll(pageable)
-                .map(AdmMemberListResponse::from);
+
+        Page<Member> members;
+
+        // keyword + status 둘 다 없는 경우 → 전체 목록
+        if ((keyword == null || keyword.isBlank()) && status == null) {
+            members = memberRepository.findAll(pageable);
+        }
+        // keyword만 있는 경우
+        else if (status == null) {
+            members = memberRepository
+                    .findByNicknameContainingOrEmailContaining(keyword, keyword, pageable);
+        }
+        // status만 있는 경우
+        else if (keyword == null || keyword.isBlank()) {
+            members = memberRepository.findByStatus(status, pageable);
+        }
+        // 둘 다 있는 경우
+        else {
+            members = memberRepository
+                    .findByStatusAndNicknameContainingOrStatusAndEmailContaining(
+                            status, keyword,
+                            status, keyword,
+                            pageable
+                    );
+        }
+
+        return members.map(member -> {
+            long postCount = postRepository.countByMember(member);
+            long commentCount = commentRepository.countByUserIdAndIsDeletedFalse(member.getUserId());
+
+            return AdmMemberListResponse.of(member, postCount, commentCount);
+        });
     }
 
     // 2. 회원 상세 조회
@@ -46,13 +77,6 @@ public class AdmMemberService {
         Member member = findMemberOrThrow(userId);
         member.updateStatus(request.status());
         return convertToDetailResponse(member);
-    }
-
-    // 4. 회원 검색 (닉네임 또는 이메일)
-    public Page<AdmMemberListResponse> searchMembers(String keyword, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return memberRepository.searchByKeyword(keyword, pageable)
-                .map(AdmMemberListResponse::from);
     }
 
     /*

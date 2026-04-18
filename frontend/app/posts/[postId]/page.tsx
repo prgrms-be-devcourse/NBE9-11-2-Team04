@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useMemo, useState } from "react"
 import { useParams } from "next/navigation"
@@ -16,6 +16,7 @@ type PostDetailResponse = {
   viewCount: number
   likeCount: number
   commentCount: number
+  bookmarkCount?: number
   bookmarked?: boolean
   createdAt: string
   updatedAt: string
@@ -44,6 +45,7 @@ export default function PostDetailPage() {
   const [post, setPost] = useState<PostDetailResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [reportLoading, setReportLoading] = useState(false)
 
   const postId = useMemo(() => {
     const rawPostId = params?.postId
@@ -71,7 +73,7 @@ export default function PostDetailPage() {
           throw new Error("게시글을 불러오지 못했습니다.")
         }
 
-        const data = await response.json()
+        const data: PostDetailResponse = await response.json()
         console.log("post detail response:", data)
         setPost(data)
       } catch (err) {
@@ -85,6 +87,41 @@ export default function PostDetailPage() {
 
     void loadPost()
   }, [postId])
+
+  const handleReportPost = async () => {
+    if (!postId || Number.isNaN(postId)) {
+      return
+    }
+
+    try {
+      setReportLoading(true)
+      setError(null)
+
+      const response = await fetch(`${API_BASE_URL}/api/report/post`, {
+        method: "POST",
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          targetId: postId,
+          reasonType: "ETC",
+          reasonDetail: "게시글 상세 페이지에서 접수한 신고입니다.",
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("게시글 신고에 실패했습니다.")
+      }
+
+      alert("게시글 신고가 접수되었습니다.")
+      window.dispatchEvent(new CustomEvent("notifications-updated"))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
+    } finally {
+      setReportLoading(false)
+    }
+  }
 
   if (!postId || Number.isNaN(postId)) {
     return (
@@ -123,6 +160,15 @@ export default function PostDetailPage() {
                 initialLikeCount={post?.likeCount ?? 0}
               />
             </div>
+
+            <button
+              type="button"
+              onClick={handleReportPost}
+              disabled={reportLoading}
+              className="mt-4 rounded-md border border-destructive/40 px-4 py-2 text-sm font-medium text-destructive disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {reportLoading ? "신고 중..." : "신고"}
+            </button>
           </div>
         )}
       </section>

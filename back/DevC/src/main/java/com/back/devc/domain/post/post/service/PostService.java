@@ -66,7 +66,9 @@ public class PostService {
         boolean bookmarked = loginUserId != null
                 && bookmarkRepository.existsByMember_UserIdAndPost_PostId(loginUserId, postId);
 
-        return PostDetailResponse.from(post, liked, bookmarked);
+        int bookmarkCount = Math.toIntExact(bookmarkRepository.countByPost_PostId(postId));
+
+        return PostDetailResponse.from(post, liked, bookmarked, bookmarkCount);
     }
 
     @Transactional
@@ -118,11 +120,11 @@ public class PostService {
             } else {
                 result = (categoryId != null)
                         ? postRepository.findByCategoryCategoryIdAndTitleContainingOrContentContainingAndIsDeletedFalse(
-                        categoryId, kw, kw, pageable
-                )
+                                categoryId, kw, kw, pageable
+                        )
                         : postRepository.findByTitleContainingOrContentContainingAndIsDeletedFalse(
-                        kw, kw, pageable
-                );
+                                kw, kw, pageable
+                        );
             }
         } else {
             if (categoryId != null) {
