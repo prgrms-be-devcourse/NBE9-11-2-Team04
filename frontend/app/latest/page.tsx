@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { PostCard, type Post } from "@/components/post-card"
 import { Clock } from "lucide-react"
+import { getAccessToken } from "@/lib/auth-storage"
 
 type PostPageResponse = {
   content: {
@@ -14,6 +15,8 @@ type PostPageResponse = {
     viewCount: number
     likeCount: number
     commentCount: number
+    liked: boolean
+    bookmarked: boolean
     createdAt: string
   }[]
 }
@@ -33,6 +36,19 @@ const formatTimeAgo = (dateString: string) => {
   return `${days}일 전`
 }
 
+function getAuthHeaders(): HeadersInit {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  }
+
+  const token = getAccessToken()
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  return headers
+}
+
 export default function LatestPage() {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
@@ -40,11 +56,19 @@ export default function LatestPage() {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await fetch("http://localhost:8080/api/posts?sort=LATEST")
+        const res = await fetch("http://localhost:8080/api/posts?sort=LATEST", {
+          headers: getAuthHeaders(),
+          cache: "no-store",
+        })
+
+        if (!res.ok) {
+          throw new Error("최신글을 불러오지 못했습니다.")
+        }
+
         const data: PostPageResponse = await res.json()
 
         const mapped: Post[] = data.content.map((post) => ({
-          id: String(post.postId), // ⭐ 중요 (PostCard가 string이면 맞춰야 함)
+          id: String(post.postId),
           title: post.title,
           excerpt: post.content,
           author: {
@@ -56,6 +80,8 @@ export default function LatestPage() {
           comments: post.commentCount,
           views: post.viewCount,
           tags: [],
+          liked: post.liked,
+          bookmarked: post.bookmarked,
         }))
 
         setPosts(mapped)
@@ -71,7 +97,6 @@ export default function LatestPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Header */}
       <div className="mb-8 flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
           <Clock className="h-5 w-5 text-primary" />
@@ -84,9 +109,8 @@ export default function LatestPage() {
         </div>
       </div>
 
-      {/* Posts */}
       {loading ? (
-        <div className="text-center py-10 text-muted-foreground">
+        <div className="py-10 text-center text-muted-foreground">
           로딩중...
         </div>
       ) : (
