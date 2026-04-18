@@ -71,7 +71,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private boolean isAuthenticatableMember(Member member) {
-        return member != null && member.getStatus() != MemberStatus.BLACKLISTED;
+        return member != null && member.getStatus() == MemberStatus.ACTIVE;
     }
 
     private String resolveToken(HttpServletRequest request) {
