@@ -49,7 +49,8 @@ export function getAuthSnapshot(): AuthSnapshot {
     token,
     nickname,
     email,
-    isLoggedIn: Boolean(token || email),
+    // 핵심 변경: 이메일 존재 여부가 아니라 "유효한 토큰 존재"로 로그인 판정
+    isLoggedIn: Boolean(token),
   }
 }
 
@@ -87,7 +88,7 @@ function writeProfileMap(profileMap: UserProfileMap) {
 /**
  * accessToken:
  * - string 전달: 그 값으로 갱신
- * - null 전달: 토큰 삭제
+ * - null 전달: 토큰 제거
  * - undefined 전달: 기존 토큰 유지
  */
 export function persistLoginSession(
