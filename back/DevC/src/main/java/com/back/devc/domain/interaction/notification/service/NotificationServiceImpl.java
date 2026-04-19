@@ -28,7 +28,7 @@ import java.util.List;
  * - REPLY   : 내 댓글에 다른 사용자가 답글을 남긴 경우
  * - LIKE    : 내 게시글에 다른 사용자가 좋아요를 누른 경우
  * - BOOKMARK: 내 게시글을 다른 사용자가 북마크한 경우
- * - REPORT  : 내 게시글/댓글이 신고된 경우
+ * - REPORT  : 관리자 처리 후 내 게시글/댓글이 신고된 사실을 안내하는 경우
  *
  * 구현 시 주의한 점
  * - 자기 자신이 한 행동은 알림을 만들지 않음
@@ -175,23 +175,28 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     /**
-     * 게시글 신고 알림 생성
+     * 관리자 처리 후 게시글 신고 결과 알림 생성
      *
      * 주의 사항
-     * - 자기 자신의 게시글을 신고한 경우 알림을 만들지 않음
-     * - 같은 사용자가 같은 게시글을 반복 신고해도 REPORT 알림은 한 번만 남기도록 중복 생성 방지 검사를 수행
+     * - 관리자 처리 후에만 신고 대상 게시글 작성자에게 REPORT 알림을 생성한다.
+     * - 알림 메시지에는 신고한 사용자를 노출하지 않는다.
+     * - 같은 게시글에 대해 REPORT 알림이 여러 번 쌓이지 않도록 중복 생성 방지 검사를 수행한다.
      */
     @Override
     @Transactional
-    public void createPostReportNotification(Long postId, Long actorUserId) {
+    public void createPostReportNotification(Long postId, Long adminUserId) {
         Long postOwnerId = findPostOwnerId(postId);
 
-        if (postOwnerId.equals(actorUserId)) {
+        if (postOwnerId.equals(adminUserId)) {
             return;
         }
 
-        boolean alreadyNotified = notificationRepository
-                .existsByUserIdAndActorUserIdAndPostIdAndType(postOwnerId, actorUserId, postId, "REPORT");
+        boolean alreadyNotified = notificationRepository.findByUserIdOrderByCreatedAtDesc(postOwnerId)
+                .stream()
+                .anyMatch(notification ->
+                        "REPORT".equals(notification.getType())
+                                && postId.equals(notification.getPostId())
+                );
 
         if (alreadyNotified) {
             return;
@@ -199,27 +204,28 @@ public class NotificationServiceImpl implements NotificationService {
 
         saveNotification(
                 postOwnerId,
-                actorUserId,
+                adminUserId,
                 postId,
                 null,
                 "REPORT",
-                actorUserId + "번 사용자가 회원님의 게시글을 신고했습니다."
+                "회원님의 게시글이 신고 접수되어 관리자에 의해 처리되었습니다."
         );
     }
 
     /**
-     * 댓글 신고 알림 생성
+     * 관리자 처리 후 댓글 신고 결과 알림 생성
      *
      * 주의 사항
-     * - 자기 자신의 댓글을 신고한 경우 알림을 만들지 않음
-     * - 같은 사용자가 같은 댓글을 반복 신고해도 REPORT 알림은 한 번만 남기도록 중복 생성 방지 검사를 수행
+     * - 관리자 처리 후에만 신고 대상 댓글 작성자에게 REPORT 알림을 생성한다.
+     * - 알림 메시지에는 신고한 사용자를 노출하지 않는다.
+     * - 같은 댓글에 대해 REPORT 알림이 여러 번 쌓이지 않도록 중복 생성 방지 검사를 수행한다.
      */
     @Override
     @Transactional
-    public void createCommentReportNotification(Long commentId, Long actorUserId) {
+    public void createCommentReportNotification(Long commentId, Long adminUserId) {
         Long commentOwnerId = findCommentOwnerId(commentId);
 
-        if (commentOwnerId.equals(actorUserId)) {
+        if (commentOwnerId.equals(adminUserId)) {
             return;
         }
 
@@ -227,7 +233,6 @@ public class NotificationServiceImpl implements NotificationService {
                 .stream()
                 .anyMatch(notification ->
                         "REPORT".equals(notification.getType())
-                                && actorUserId.equals(notification.getActorUserId())
                                 && commentId.equals(notification.getCommentId())
                 );
 
@@ -237,11 +242,11 @@ public class NotificationServiceImpl implements NotificationService {
 
         saveNotification(
                 commentOwnerId,
-                actorUserId,
+                adminUserId,
                 null,
                 commentId,
                 "REPORT",
-                actorUserId + "번 사용자가 회원님의 댓글을 신고했습니다."
+                "회원님의 댓글이 신고 접수되어 관리자에 의해 처리되었습니다."
         );
     }
 

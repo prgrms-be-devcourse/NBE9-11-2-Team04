@@ -1,5 +1,6 @@
 package com.back.devc.domain.interaction.report.service;
 
+import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.domain.interaction.report.dto.AdminReportRequestDTO;
 import com.back.devc.domain.interaction.report.dto.ReportResponseDTO;
 import com.back.devc.domain.interaction.report.entity.Report;
@@ -48,6 +49,7 @@ class AdminReportServiceTest {
 
     @Mock private ReportRepository reportRepository;
     @Mock private MemberRepository memberRepository;
+    @Mock private NotificationService notificationService;
     @Mock private PostRepository postRepository;
     @Mock private CommentRepository commentRepository;
 
@@ -188,6 +190,7 @@ class AdminReportServiceTest {
             adminReportService.approveReport(99L, dto);
 
             verify(report).processReport(admin, "RESOLVED");
+            verify(notificationService).createPostReportNotification(10L, 99L);
             verify(post).delete();
             verify(postAuthor).updateStatus(MemberStatus.WARNED);
         }
@@ -272,6 +275,7 @@ class AdminReportServiceTest {
             adminReportService.approveReport(99L, dto);
 
             verify(report).processReport(admin, "RESOLVED");
+            verify(notificationService).createCommentReportNotification(20L, 99L);
             verify(comment).softDelete();
             verify(postAuthor).updateStatus(MemberStatus.WARNED);
         }

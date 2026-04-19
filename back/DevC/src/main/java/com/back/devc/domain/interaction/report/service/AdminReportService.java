@@ -1,5 +1,6 @@
 package com.back.devc.domain.interaction.report.service;
 
+import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.domain.interaction.report.dto.AdminReportRequestDTO;
 import com.back.devc.domain.interaction.report.dto.ReportResponseDTO;
 import com.back.devc.domain.interaction.report.entity.Report;
@@ -28,6 +29,8 @@ public class AdminReportService {
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    // 신고가 관리자에 의해 처리된 뒤, 신고 대상 작성자에게 결과 알림을 보내기 위해 사용하는 서비스
+    private final NotificationService notificationService;
 
     /**
      * 대기 중인 신고 목록 조회
@@ -53,6 +56,13 @@ public class AdminReportService {
 
         // 1. 신고 상태 변경 (RESOLVED)
         report.processReport(admin, "RESOLVED");
+        // 관리자 승인 처리 후, 신고 대상 작성자에게 신고 처리 결과 알림을 생성
+        if ("POST".equals(report.getTargetType())) {
+            notificationService.createPostReportNotification(report.getTargetId(), adminId);
+        }
+        if ("COMMENT".equals(report.getTargetType())) {
+            notificationService.createCommentReportNotification(report.getTargetId(), adminId);
+        }
 
         // 2. 대상 콘텐츠 삭제 및 작성자 제재
         if ("POST".equals(report.getTargetType())) {
@@ -87,6 +97,13 @@ public class AdminReportService {
         validatePendingStatus(report);
 
         report.processReport(admin, "REJECTED");
+        // 관리자 반려 처리 후에도, 신고 대상 작성자에게 신고 처리 결과 알림을 생성
+        if ("POST".equals(report.getTargetType())) {
+            notificationService.createPostReportNotification(report.getTargetId(), adminId);
+        }
+        if ("COMMENT".equals(report.getTargetType())) {
+            notificationService.createCommentReportNotification(report.getTargetId(), adminId);
+        }
     }
 
     /**
