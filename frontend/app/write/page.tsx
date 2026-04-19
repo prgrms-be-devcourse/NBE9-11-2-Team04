@@ -2,7 +2,19 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Save, Eye, ImagePlus, Code, Link2, Bold, Italic, List, ListOrdered, Quote } from "lucide-react"
+import {
+  ArrowLeft,
+  Save,
+  Eye,
+  ImagePlus,
+  Code,
+  Link2,
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Quote,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,7 +28,7 @@ import {
 } from "@/components/ui/select"
 import Link from "next/link"
 import { clearLoginSession, getAuthSnapshot } from "@/lib/auth-storage"
-import { apiFetch } from "@/lib/api"
+import { apiFetch, isApiError } from "@/lib/api"
 
 const categories = [
   { id: 1, name: "IT 기술 정보" },
@@ -70,12 +82,12 @@ export default function WritePage() {
           cache: "no-store",
         })
       } catch (error) {
-        if (error instanceof Error && error.message === "UNAUTHORIZED") {
+        if (isApiError(error) && error.isUnauthorized) {
           clearLoginSession()
           router.replace("/login")
           return
         }
-        // Keep page usable on temporary network issues.
+        // 일시적 네트워크 오류면 페이지 사용 허용
       }
 
       setIsAuthReady(true)
@@ -86,12 +98,14 @@ export default function WritePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
     if (!formData.category) {
       alert("카테고리를 선택해주세요.")
       return
     }
+
     setIsLoading(true)
-  
+
     try {
       const data = await apiFetch<PostCreateResponse>("/api/posts", {
         method: "POST",
@@ -106,7 +120,11 @@ export default function WritePage() {
       router.push(`/posts/${data.postId}`)
     } catch (err) {
       console.error(err)
-      alert(err instanceof Error ? err.message : "게시글 생성 중 오류가 발생했습니다.")
+      if (isApiError(err)) {
+        alert(err.message)
+      } else {
+        alert("게시글 생성 중 오류가 발생했습니다.")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -152,6 +170,7 @@ export default function WritePage() {
       formData.content.substring(0, start) +
       insertion +
       formData.content.substring(end)
+
     setFormData({ ...formData, content: newContent })
   }
 
@@ -161,7 +180,6 @@ export default function WritePage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/">
@@ -192,7 +210,6 @@ export default function WritePage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Title */}
         <div className="space-y-2">
           <Input
             id="title"
@@ -205,10 +222,11 @@ export default function WritePage() {
           />
         </div>
 
-        {/* Category & Tags */}
         <div className="flex flex-wrap gap-4">
           <div className="w-full sm:w-48">
-            <Label htmlFor="category" className="sr-only">카테고리</Label>
+            <Label htmlFor="category" className="sr-only">
+              카테고리
+            </Label>
             <Select
               value={formData.category}
               onValueChange={(value) => setFormData({ ...formData, category: value })}
@@ -217,16 +235,18 @@ export default function WritePage() {
                 <SelectValue placeholder="카테고리 선택" />
               </SelectTrigger>
               <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={String(category.id)}>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={String(category.id)}>
                     {category.name}
-              </SelectItem>
-              ))}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div className="flex-1">
-            <Label htmlFor="tags" className="sr-only">태그</Label>
+            <Label htmlFor="tags" className="sr-only">
+              태그
+            </Label>
             <Input
               id="tags"
               type="text"
@@ -238,7 +258,6 @@ export default function WritePage() {
           </div>
         </div>
 
-        {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-secondary p-2">
           <Button
             type="button"
@@ -316,7 +335,6 @@ export default function WritePage() {
           </Button>
         </div>
 
-        {/* Content */}
         {isPreview ? (
           <div className="min-h-[400px] rounded-lg border border-border bg-card p-6">
             <div className="prose prose-invert max-w-none">
@@ -329,7 +347,9 @@ export default function WritePage() {
           </div>
         ) : (
           <div className="space-y-2">
-            <Label htmlFor="content" className="sr-only">내용</Label>
+            <Label htmlFor="content" className="sr-only">
+              내용
+            </Label>
             <Textarea
               id="content"
               placeholder="내용을 작성하세요. 마크다운 문법을 지원합니다."
@@ -342,7 +362,6 @@ export default function WritePage() {
           </div>
         )}
 
-        {/* Helper Text */}
         <p className="text-xs text-muted-foreground">
           마크다운 문법을 지원합니다. 코드 블록은 ```언어명 으로 시작하세요.
         </p>

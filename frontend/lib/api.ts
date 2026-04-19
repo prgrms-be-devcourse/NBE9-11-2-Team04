@@ -14,6 +14,32 @@ type RequestOptions = RequestInit & {
   retryOnUnauthorized?: boolean
 }
 
+export class ApiError extends Error {
+  status: number
+  code?: string
+  validation?: Record<string, string>
+
+  constructor(
+    message: string,
+    status: number,
+    options?: { code?: string; validation?: Record<string, string> }
+  ) {
+    super(message)
+    this.name = "ApiError"
+    this.status = status
+    this.code = options?.code
+    this.validation = options?.validation
+  }
+
+  get isUnauthorized() {
+    return this.status === 401
+  }
+}
+
+export function isApiError(error: unknown): error is ApiError {
+  return error instanceof ApiError
+}
+
 function isSafeMethod(method?: string) {
   const normalized = (method ?? "GET").toUpperCase()
   return normalized === "GET" || normalized === "HEAD" || normalized === "OPTIONS"
@@ -45,10 +71,7 @@ function buildHeaders(
   return finalHeaders
 }
 
-async function performFetch(
-  path: string,
-  requestInit: RequestInit
-): Promise<Response> {
+async function performFetch(path: string, requestInit: RequestInit): Promise<Response> {
   return fetch(`${API_BASE_URL}${path}`, {
     ...requestInit,
     credentials: "include",
@@ -60,7 +83,7 @@ export async function apiFetch<T>(
   options: RequestOptions = {}
 ): Promise<T> {
   if (!API_BASE_URL) {
-    throw new Error("NEXT_PUBLIC_API_BASE_URL is not set")
+    throw new ApiError("NEXT_PUBLIC_API_BASE_URL is not set", 500)
   }
 
   const {
@@ -84,12 +107,9 @@ export async function apiFetch<T>(
     })
   } catch (error) {
     console.error("FETCH ERROR =", error)
-    throw new Error("백엔드 서버 연결 실패 (CORS/서버실행/주소 확인)")
+    throw new ApiError("백엔드 서버 연결 실패 (CORS/서버실행/주소 확인)", 0)
   }
 
-  // 401 1회 완화 처리:
-  // - 인증 요청(auth=true)인 경우만
-  // - 부작용 없는 메서드(GET/HEAD/OPTIONS)인 경우만 재시도
   if (
     res.status === 401 &&
     auth &&
@@ -100,14 +120,13 @@ export async function apiFetch<T>(
     finalHeaders = buildHeaders(rest, headers, auth, accessToken)
 
     try {
-      const retryRes = await performFetch(path, {
+      res = await performFetch(path, {
         ...rest,
         headers: finalHeaders,
       })
-      res = retryRes
     } catch (error) {
       console.error("RETRY FETCH ERROR =", error)
-      throw new Error("백엔드 서버 연결 실패 (재시도)")
+      throw new ApiError("백엔드 서버 연결 실패 (재시도)", 0)
     }
   }
 
@@ -120,18 +139,19 @@ export async function apiFetch<T>(
     parsed = null
   }
 
-  if (res.status === 401) {
-    throw new Error("UNAUTHORIZED")
-  }
-
   if (!res.ok) {
     const err = parsed as ErrorResponse | null
     const validationMessage = err?.validation
       ? Object.values(err.validation)[0]
       : undefined
 
-    throw new Error(
-      validationMessage || err?.message || `API request failed (${res.status})`
+    throw new ApiError(
+      validationMessage || err?.message || `API request failed (${res.status})`,
+      res.status,
+      {
+        code: err?.code,
+        validation: err?.validation,
+      }
     )
   }
 
