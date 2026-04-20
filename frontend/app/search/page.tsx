@@ -21,7 +21,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 
 const SEARCH_HISTORY_KEY = "searchHistory"
 const MAX_RECENT_SEARCHES = 5
@@ -129,9 +128,6 @@ export default function SearchPage() {
   const [searchType, setSearchType] = useState("TITLE_OR_CONTENT")
   const [recentSearches, setRecentSearches] = useState<string[]>([])
 
-  useEffect(() => {
-    setRecentSearches(getSearchHistory())
-  }, [])
 
   const handleSearch = async (searchQuery: string) => {
     const trimmed = searchQuery.trim()
@@ -153,7 +149,7 @@ export default function SearchPage() {
         keyword: trimmed,
         searchType: searchType,
         sort: sortMap[sortBy],
-        ...(categoryId ? { categoryId: String(categoryId) } : {}),
+        ...(categoryId != null ? { categoryId: String(categoryId) } : {}),
       })
 
       const res = await fetch(
@@ -191,16 +187,6 @@ export default function SearchPage() {
     const nextHistory = saveSearchHistory(trimmed)
     setRecentSearches(nextHistory)
   }
-
-  useEffect(() => {
-    const debounce = setTimeout(() => {
-      if (query.trim()) {
-        handleSearch(query)
-      }
-    }, 300)
-
-    return () => clearTimeout(debounce)
-  }, [query])
 
   useEffect(() => {
     const debounce = setTimeout(() => {
@@ -275,7 +261,6 @@ export default function SearchPage() {
 
               <div className="mt-6 space-y-6">
 
-                {/* 🔥 추가된 검색 타입 */}
                 <div className="space-y-2">
                   <Label>검색 범위</Label>
                   <Select value={searchType} onValueChange={setSearchType}>
