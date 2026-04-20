@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Search, X, SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,48 +25,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 
 const SEARCH_HISTORY_KEY = "searchHistory"
 const MAX_RECENT_SEARCHES = 5
-
-const mockResults: Post[] = [
-  {
-    id: "1",
-    title: "2026년 프론트엔드 개발자 로드맵: 꼭 알아야 할 기술 스택",
-    excerpt:
-      "React, Next.js, TypeScript를 중심으로 2026년 프론트엔드 개발자가 반드시 알아야 할 기술들을 정리했습니다.",
-    author: { name: "김개발" },
-    category: "IT 기술 정보",
-    createdAt: "2시간 전",
-    likes: 128,
-    comments: 24,
-    views: 1520,
-    tags: ["frontend", "react", "개발로드맵"],
-  },
-  {
-    id: "2",
-    title: "네카라쿠배당토 신입 개발자 채용 트렌드 분석",
-    excerpt:
-      "2026년 상반기 대기업 IT 기업들의 신입 개발자 채용 동향과 필요한 역량을 분석합니다.",
-    author: { name: "박취준" },
-    category: "취업 시장 정보",
-    createdAt: "5시간 전",
-    likes: 89,
-    comments: 15,
-    views: 892,
-    tags: ["취업", "신입채용", "대기업"],
-  },
-  {
-    id: "3",
-    title: "AI 코딩 어시스턴트 비교: Copilot vs Cursor vs Claude",
-    excerpt:
-      "개발 생산성을 높여주는 AI 코딩 도구들을 실제 사용 경험을 바탕으로 비교 분석합니다.",
-    author: { name: "이트렌드" },
-    category: "개발자 트렌드",
-    createdAt: "1일 전",
-    likes: 256,
-    comments: 42,
-    views: 3240,
-    tags: ["ai", "copilot", "개발도구"],
-  },
-]
 
 const categories = [
   "전체",
@@ -140,50 +98,95 @@ export default function SearchPage() {
   const [sortBy, setSortBy] = useState("relevance")
   const [selectedCategory, setSelectedCategory] = useState("전체")
   const [recentSearches, setRecentSearches] = useState<string[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setRecentSearches(getSearchHistory())
   }, [])
 
-  const handleSearch = async (searchQuery: string) => {
-    const trimmed = searchQuery.trim()
+  const handleSearch = useCallback(
+    async (searchQuery: string, signal?: AbortSignal) => {
+      const trimmed = searchQuery.trim()
+
+      if (!trimmed) {
+        setResults([])
+        setError(null)
+        setIsSearching(false)
+        return
+      }
+
+      try {
+        setIsSearching(true)
+        setError(null)
+
+        const params = new URLSearchParams({
+          q: trimmed,
+          sortBy,
+        })
+
+        if (selectedCategory !== "전체") {
+          params.set("category", selectedCategory)
+        }
+
+        const response = await fetch(`/api/posts/search?${params.toString()}`, {
+          method: "GET",
+          signal,
+          cache: "no-store",
+        })
+
+        if (!response.ok) {
+          throw new Error("검색 요청에 실패했습니다.")
+        }
+
+        const data = await response.json()
+
+        setResults(Array.isArray(data.posts) ? data.posts : [])
+
+        const nextHistory = saveSearchHistory(trimmed)
+        setRecentSearches(nextHistory)
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return
+        }
+
+        console.error(err)
+        setResults([])
+        setError("검색 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.")
+      } finally {
+        if (!signal?.aborted) {
+          setIsSearching(false)
+        }
+      }
+    },
+    [sortBy, selectedCategory]
+  )
+
+  useEffect(() => {
+    const trimmed = query.trim()
 
     if (!trimmed) {
       setResults([])
+      setError(null)
+      setIsSearching(false)
       return
     }
 
-    setIsSearching(true)
+    const controller = new AbortController()
 
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    const filtered = mockResults.filter(
-      (post) =>
-        post.title.toLowerCase().includes(trimmed.toLowerCase()) ||
-        post.excerpt.toLowerCase().includes(trimmed.toLowerCase()) ||
-        post.tags.some((tag) => tag.toLowerCase().includes(trimmed.toLowerCase()))
-    )
-
-    setResults(filtered.length > 0 ? filtered : mockResults)
-    setIsSearching(false)
-
-    const nextHistory = saveSearchHistory(trimmed)
-    setRecentSearches(nextHistory)
-  }
-
-  useEffect(() => {
     const debounce = setTimeout(() => {
-      if (query.trim()) {
-        handleSearch(query)
-      }
+      handleSearch(trimmed, controller.signal)
     }, 300)
 
-    return () => clearTimeout(debounce)
-  }, [query])
+    return () => {
+      clearTimeout(debounce)
+      controller.abort()
+    }
+  }, [query, sortBy, selectedCategory, handleSearch])
 
   const clearSearch = () => {
     setQuery("")
     setResults([])
+    setError(null)
   }
 
   const removeRecentSearch = (search: string) => {
@@ -219,6 +222,7 @@ export default function SearchPage() {
             />
             {query && (
               <button
+                type="button"
                 onClick={clearSearch}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
@@ -265,6 +269,7 @@ export default function SearchPage() {
                     {categories.map((category) => (
                       <Button
                         key={category}
+                        type="button"
                         variant={selectedCategory === category ? "default" : "outline"}
                         size="sm"
                         onClick={() => setSelectedCategory(category)}
@@ -323,12 +328,14 @@ export default function SearchPage() {
                 className="flex items-center gap-1 rounded-full border border-border bg-secondary px-3 py-1.5"
               >
                 <button
+                  type="button"
                   onClick={() => handleRecentSearchClick(search)}
                   className="text-sm text-foreground hover:text-primary"
                 >
                   {search}
                 </button>
                 <button
+                  type="button"
                   onClick={() => removeRecentSearch(search)}
                   className="text-muted-foreground hover:text-foreground"
                 >
@@ -360,7 +367,14 @@ export default function SearchPage() {
             </Select>
           </div>
 
-          {isSearching ? (
+          {error ? (
+            <div className="rounded-lg border border-border bg-card p-12 text-center">
+              <h3 className="mb-2 text-lg font-semibold text-foreground">
+                오류가 발생했습니다
+              </h3>
+              <p className="text-sm text-muted-foreground">{error}</p>
+            </div>
+          ) : isSearching ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
                 <div
@@ -409,6 +423,7 @@ export default function SearchPage() {
             ].map((tag) => (
               <button
                 key={tag}
+                type="button"
                 onClick={() => handleRecentSearchClick(tag)}
                 className="rounded-full border border-border bg-secondary px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
               >

@@ -37,7 +37,9 @@ export function PostCard({ post }: PostCardProps) {
             >
               {post.category}
             </Link>
-            <span className="text-xs text-muted-foreground">{post.createdAt}</span>
+            <span className="text-xs text-muted-foreground">
+              {post.createdAt}
+            </span>
           </div>
 
           <Link href={`/posts/${post.id}`}>
@@ -64,7 +66,10 @@ export function PostCard({ post }: PostCardProps) {
           )}
 
           <div className="flex items-center justify-between">
-            <Link href={`/user/${post.author.name}`} className="flex items-center gap-2">
+            <Link
+              href={`/user/${post.author.name}`}
+              className="flex items-center gap-2"
+            >
               <Avatar className="h-6 w-6">
                 <AvatarImage src={post.author.avatar} alt={post.author.name} />
                 <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
