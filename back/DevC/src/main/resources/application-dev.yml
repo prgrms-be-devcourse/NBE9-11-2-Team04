@@ -9,8 +9,7 @@ spring:
     oauth2:
       client:
         registration:
-          github:
-            client-id: "Ov23liq1Y34Z0DSnB94l" # 환경 변수
+          github: # 환경 변수
             client-id: ${GITHUB_CLIENT_ID}
             client-secret: ${GITHUB_CLIENT_SECRET}
           kakao:
