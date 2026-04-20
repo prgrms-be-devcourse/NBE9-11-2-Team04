@@ -22,7 +22,7 @@ type PostPageResponse = {
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
 
-// 🔥 slug → categoryId 매핑
+// slug → categoryId 매핑
 const categoryMap: Record<string, number> = {
   tech: 1,
   "job-market": 2,
@@ -70,15 +70,15 @@ export default function CategoryPage() {
 
         if (!categoryId) return
 
-        const res = await fetch(
+        const response = await fetch(
           `${API_BASE_URL}/api/posts?categoryId=${categoryId}`
         )
 
-        if (!res.ok) {
+        if (!response.ok) {
           throw new Error("데이터 못불러옴")
         }
 
-        const data: PostPageResponse = await res.json()
+        const data: PostPageResponse = await response.json()
 
         const mapped: Post[] = data.content.map((post) => ({
           id: String(post.postId),
@@ -144,7 +144,7 @@ export default function CategoryPage() {
           <p className="text-lg font-semibold">
             아직 작성된 글이 없습니다
           </p>
-          <Link href="/write">
+          <Link href={`/write?category=${slug}`}>
             <button className="mt-4 px-4 py-2 bg-primary text-white rounded">
               글 쓰기
             </button>
