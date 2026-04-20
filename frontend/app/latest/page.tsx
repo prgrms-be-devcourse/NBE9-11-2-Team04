@@ -29,14 +29,14 @@ const formatTimeAgo = (dateString: string) => {
   const diff = Date.now() - date.getTime()
 
   const minutes = Math.floor(diff / 1000 / 60)
-  if (minutes < 1) return "방금 전"
-  if (minutes < 60) return `${minutes}분 전`
+  if (minutes < 1) return "just now"
+  if (minutes < 60) return `${minutes}m ago`
 
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}시간 전`
+  if (hours < 24) return `${hours}h ago`
 
   const days = Math.floor(hours / 24)
-  return `${days}일 전`
+  return `${days}d ago`
 }
 
 function getAuthHeaders(): HeadersInit {
@@ -59,16 +59,16 @@ export default function LatestPage() {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/posts?sort=LATEST`, {
+        const response = await fetch(`${API_BASE_URL}/api/posts?sort=LATEST`, {
           headers: getAuthHeaders(),
           cache: "no-store",
         })
 
-        if (!res.ok) {
-          throw new Error("최신글을 불러오지 못했습니다.")
+        if (!response.ok) {
+          throw new Error("Failed to fetch latest posts.")
         }
 
-        const data: PostPageResponse = await res.json()
+        const data: PostPageResponse = await response.json()
 
         const mapped: Post[] = data.content.map((post) => ({
           id: String(post.postId),
@@ -106,17 +106,13 @@ export default function LatestPage() {
           <Clock className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold">최신글</h1>
-          <p className="text-muted-foreground">
-            방금 올라온 따끈따끈한 글들입니다
-          </p>
+          <h1 className="text-3xl font-bold">Latest</h1>
+          <p className="text-muted-foreground">Fresh posts just published.</p>
         </div>
       </div>
 
       {loading ? (
-        <div className="py-10 text-center text-muted-foreground">
-          로딩중...
-        </div>
+        <div className="py-10 text-center text-muted-foreground">Loading...</div>
       ) : (
         <div className="grid gap-6">
           {posts.map((post) => (
