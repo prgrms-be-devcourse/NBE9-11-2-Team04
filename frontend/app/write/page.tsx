@@ -2,7 +2,19 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Save, Eye, ImagePlus, Code, Link2, Bold, Italic, List, ListOrdered, Quote } from "lucide-react"
+import {
+  ArrowLeft,
+  Save,
+  Eye,
+  ImagePlus,
+  Code,
+  Link2,
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Quote,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,7 +27,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import Link from "next/link"
-import { getAuthSnapshot } from "@/lib/auth-storage"
+import { clearLoginSession, getAuthSnapshot } from "@/lib/auth-storage"
+import { apiFetch, isApiError } from "@/lib/api"
 
 const categories = [
   { id: 1, name: "IT 기술 정보" },
@@ -23,6 +36,24 @@ const categories = [
   { id: 3, name: "개발자 트렌드" },
   { id: 4, name: "자유 주제" },
 ]
+
+type SuccessResponse<T> = {
+  code?: string
+  message?: string
+  timestamp?: string
+  data?: T
+}
+
+type MyInfoResponse = {
+  userId: number
+  email: string
+  nickname: string
+}
+
+type PostCreateResponse = {
+  postId: number
+  message: string
+}
 
 export default function WritePage() {
   const router = useRouter()
@@ -43,54 +74,57 @@ export default function WritePage() {
       return
     }
 
-    setIsAuthReady(true)
-  }, [router])
-
-
-
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
-
-  function getAuthHeaders(): HeadersInit {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    }
-
-    if (typeof window !== "undefined") {
-      const token = window.localStorage.getItem("accessToken")
-      if (token) {
-        headers.Authorization = `Bearer ${token}`
+    const verifyAuth = async () => {
+      try {
+        await apiFetch<SuccessResponse<MyInfoResponse>>("/api/users/me", {
+          method: "GET",
+          auth: true,
+          cache: "no-store",
+        })
+      } catch (error) {
+        if (isApiError(error) && error.isUnauthorized) {
+          clearLoginSession()
+          router.replace("/login")
+          return
+        }
+        // 일시적 네트워크 오류면 페이지 사용 허용
       }
+
+      setIsAuthReady(true)
     }
 
-    return headers
-  }
+    void verifyAuth()
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!formData.category) {
+      alert("카테고리를 선택해주세요.")
+      return
+    }
+
     setIsLoading(true)
-  
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/posts`, {
+      const data = await apiFetch<PostCreateResponse>("/api/posts", {
         method: "POST",
-        headers: getAuthHeaders(), // 🔥 여기 인증 포함됨
+        auth: true,
         body: JSON.stringify({
           title: formData.title,
           content: formData.content,
-          categoryId: Number(formData.category), // 🔥 핵심 수정
+          categoryId: Number(formData.category),
         }),
       })
-  
-      if (!response.ok) {
-        throw new Error("게시글 생성 실패")
-      }
-  
-      const data = await response.json()
-  
-      // 🔥 postId로 이동
+
       router.push(`/posts/${data.postId}`)
     } catch (err) {
       console.error(err)
-      alert("게시글 생성 중 오류 발생")
+      if (isApiError(err)) {
+        alert(err.message)
+      } else {
+        alert("게시글 생성 중 오류가 발생했습니다.")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -136,6 +170,7 @@ export default function WritePage() {
       formData.content.substring(0, start) +
       insertion +
       formData.content.substring(end)
+
     setFormData({ ...formData, content: newContent })
   }
 
@@ -145,7 +180,6 @@ export default function WritePage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/">
@@ -176,7 +210,6 @@ export default function WritePage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Title */}
         <div className="space-y-2">
           <Input
             id="title"
@@ -189,10 +222,11 @@ export default function WritePage() {
           />
         </div>
 
-        {/* Category & Tags */}
         <div className="flex flex-wrap gap-4">
           <div className="w-full sm:w-48">
-            <Label htmlFor="category" className="sr-only">카테고리</Label>
+            <Label htmlFor="category" className="sr-only">
+              카테고리
+            </Label>
             <Select
               value={formData.category}
               onValueChange={(value) => setFormData({ ...formData, category: value })}
@@ -201,16 +235,18 @@ export default function WritePage() {
                 <SelectValue placeholder="카테고리 선택" />
               </SelectTrigger>
               <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={String(category.id)}>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={String(category.id)}>
                     {category.name}
-              </SelectItem>
-              ))}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div className="flex-1">
-            <Label htmlFor="tags" className="sr-only">태그</Label>
+            <Label htmlFor="tags" className="sr-only">
+              태그
+            </Label>
             <Input
               id="tags"
               type="text"
@@ -222,7 +258,6 @@ export default function WritePage() {
           </div>
         </div>
 
-        {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-secondary p-2">
           <Button
             type="button"
@@ -300,7 +335,6 @@ export default function WritePage() {
           </Button>
         </div>
 
-        {/* Content */}
         {isPreview ? (
           <div className="min-h-[400px] rounded-lg border border-border bg-card p-6">
             <div className="prose prose-invert max-w-none">
@@ -313,7 +347,9 @@ export default function WritePage() {
           </div>
         ) : (
           <div className="space-y-2">
-            <Label htmlFor="content" className="sr-only">내용</Label>
+            <Label htmlFor="content" className="sr-only">
+              내용
+            </Label>
             <Textarea
               id="content"
               placeholder="내용을 작성하세요. 마크다운 문법을 지원합니다."
@@ -326,7 +362,6 @@ export default function WritePage() {
           </div>
         )}
 
-        {/* Helper Text */}
         <p className="text-xs text-muted-foreground">
           마크다운 문법을 지원합니다. 코드 블록은 ```언어명 으로 시작하세요.
         </p>

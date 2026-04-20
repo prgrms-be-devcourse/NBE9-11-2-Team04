@@ -4,6 +4,7 @@ import com.back.devc.domain.interaction.report.dto.ReportRequestDTO;
 import com.back.devc.domain.interaction.report.repository.ReportRepository;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
+import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.entity.Post;
@@ -38,6 +39,7 @@ class UserReportServiceTest {
     @Mock private MemberRepository memberRepository;
     @Mock private PostRepository postRepository;
     @Mock private CommentRepository commentRepository;
+    @Mock private NotificationService notificationService;
 
     private Member reporter;
     private Member postAuthor;
@@ -109,6 +111,7 @@ class UserReportServiceTest {
                             "PENDING".equals(report.getStatus()) &&
                             "ABUSE".equals(report.getReasonType())
             ));
+            verify(notificationService, times(1)).createPostReportNotification(10L, 1L);
         }
 
         @Test
@@ -213,6 +216,7 @@ class UserReportServiceTest {
                             report.getTargetId().equals(20L) &&
                             "PENDING".equals(report.getStatus())
             ));
+            verify(notificationService, times(1)).createCommentReportNotification(20L, 1L);
         }
 
         @Test

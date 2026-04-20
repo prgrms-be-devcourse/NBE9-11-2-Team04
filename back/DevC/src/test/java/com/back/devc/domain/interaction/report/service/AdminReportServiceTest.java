@@ -1,5 +1,6 @@
 package com.back.devc.domain.interaction.report.service;
 
+import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.domain.interaction.report.dto.AdminReportRequestDTO;
 import com.back.devc.domain.interaction.report.dto.ReportResponseDTO;
 import com.back.devc.domain.interaction.report.entity.Report;
@@ -48,8 +49,10 @@ class AdminReportServiceTest {
 
     @Mock private ReportRepository reportRepository;
     @Mock private MemberRepository memberRepository;
+    @Mock private NotificationService notificationService;
     @Mock private PostRepository postRepository;
     @Mock private CommentRepository commentRepository;
+
 
     private Member admin;
     private Member postAuthor;
@@ -187,6 +190,7 @@ class AdminReportServiceTest {
             adminReportService.approveReport(99L, dto);
 
             verify(report).processReport(admin, "RESOLVED");
+            verify(notificationService).createPostReportNotification(10L, 99L);
             verify(post).delete();
             verify(postAuthor).updateStatus(MemberStatus.WARNED);
         }
@@ -271,6 +275,7 @@ class AdminReportServiceTest {
             adminReportService.approveReport(99L, dto);
 
             verify(report).processReport(admin, "RESOLVED");
+            verify(notificationService).createCommentReportNotification(20L, 99L);
             verify(comment).softDelete();
             verify(postAuthor).updateStatus(MemberStatus.WARNED);
         }
@@ -374,6 +379,12 @@ class AdminReportServiceTest {
         }
     }
 
+    /**
+     * 현재 AdminReportService.rejectReport(...)는 rejectReport(...) 엔티티 메서드가 아니라
+     * processReport(admin, "REJECTED")를 호출해 반려 상태를 처리한다.
+     *
+     * 따라서 성공 테스트도 실제 서비스 구현에 맞춰 processReport 호출 여부를 검증한다.
+     */
     // ════════════════════════════════════════════════════════════
     // 신고 반려 (rejectReport)
     // ════════════════════════════════════════════════════════════
@@ -392,7 +403,7 @@ class AdminReportServiceTest {
 
             adminReportService.rejectReport(99L, dto);
 
-            verify(report).rejectReport(admin, "허위 신고로 판단됩니다.");
+            verify(report).processReport(admin, "REJECTED");
         }
 
         @Test
@@ -406,7 +417,7 @@ class AdminReportServiceTest {
 
             adminReportService.rejectReport(99L, dto);
 
-            verify(report).rejectReport(admin, null);
+            verify(report).processReport(admin, "REJECTED");
         }
 
         @Test

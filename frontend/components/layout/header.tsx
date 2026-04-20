@@ -15,6 +15,7 @@ import {
 import {
   AUTH_CHANGED_EVENT,
   clearLoginSession,
+  getAccessToken,
   getAuthSnapshot,
   persistLoginSession,
 } from "@/lib/auth-storage"
@@ -27,22 +28,6 @@ const categories = [
 ]
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
-
-function getAuthHeaders() {
-  if (typeof window === "undefined") {
-    return undefined
-  }
-
-  const token = window.localStorage.getItem("accessToken")
-
-  if (!token || token === "oauth-cookie-session") {
-    return undefined
-  }
-
-  return {
-    Authorization: `Bearer ${token}`,
-  }
-}
 
 type HeaderNotificationItem = {
   notificationId: number
@@ -101,7 +86,7 @@ export function Header() {
 
           if (me?.email || me?.nickname) {
             persistLoginSession(
-              "oauth-cookie-session",
+              undefined,
               me?.nickname ?? null,
               me?.email ?? null
             )
@@ -151,10 +136,15 @@ export function Header() {
         return
       }
       try {
+        const accessToken = getAccessToken()
+        const headers = accessToken
+          ? { Authorization: `Bearer ${accessToken}` }
+          : undefined
+
         const response = await fetch(`${API_BASE_URL}/api/notifications`, {
           cache: "no-store",
           credentials: "include",
-          headers: getAuthHeaders(),
+          headers,
         })
 
         if (!response.ok) {
