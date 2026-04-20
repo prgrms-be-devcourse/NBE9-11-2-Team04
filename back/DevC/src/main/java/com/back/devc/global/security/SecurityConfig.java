@@ -64,7 +64,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/me").authenticated()
                         .requestMatchers("/api/users/me/likes").authenticated()
                         .requestMatchers("/api/mypage/**").authenticated()
-                        .requestMatchers("/api/report/**").authenticated()
                         .requestMatchers("/api/posts/*/likes").authenticated()
                         .requestMatchers("/api/posts/*/bookmarks").authenticated()
                         .anyRequest().permitAll()

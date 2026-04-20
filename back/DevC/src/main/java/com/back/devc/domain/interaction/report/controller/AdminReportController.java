@@ -35,7 +35,9 @@ public class AdminReportController {
             Pageable pageable
     ) {
 
-        getAuthenticatedUserId(principal);
+        if (principal == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
 
         Page<ReportResponseDTO> reports =
                 adminReportService.getPendingReports(pageable);
@@ -53,7 +55,11 @@ public class AdminReportController {
             @RequestBody AdminReportRequestDTO requestDto,
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
-        adminReportService.approveReport(getAuthenticatedUserId(principal), requestDto);
+        if (principal == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+
+        adminReportService.approveReport(principal.userId(), requestDto);
 
         return ResponseEntity.ok(SuccessResponse.of("REPORT_APPROVE_200", "신고 승인 및 제재 완료", null));
     }
@@ -66,21 +72,12 @@ public class AdminReportController {
             @RequestBody AdminReportRequestDTO requestDto,
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
-        adminReportService.rejectReport(getAuthenticatedUserId(principal), requestDto);
-
-        return ResponseEntity.ok(SuccessResponse.of("REPORT_REJECT_200", "신고 반려 완료", null));
-    }
-    /**
-     * 관리자 신고 컨트롤러에서 공통으로 사용하는 로그인 사용자 식별 메서드.
-     *
-     * JwtAuthenticationFilter가 정상적으로 principal을 세팅한 경우 userId를 반환하고,
-     * 인증 정보가 없으면 관리자 요청이라도 인증 실패로 간주해 UNAUTHORIZED 예외를 반환한다.
-     */
-    private Long getAuthenticatedUserId(JwtPrincipal principal) {
-        // 토큰이 없거나 필터에서 principal을 세팅하지 못한 요청은 인증 실패로 처리한다.
         if (principal == null) {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
-        return principal.userId();
+
+        adminReportService.rejectReport(principal.userId(), requestDto);
+
+        return ResponseEntity.ok(SuccessResponse.of("REPORT_REJECT_200", "신고 반려 완료", null));
     }
 }
