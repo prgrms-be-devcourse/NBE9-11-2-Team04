@@ -30,21 +30,12 @@ public class OAuth2MemberService {
     private final PasswordEncoder passwordEncoder;
 
     public OAuthPendingSignup buildPendingSignup(String provider, OAuth2User oauth2User) {
-        String normalized = normalizeProvider(provider);
-
-        if ("github".equals(normalized)) {
-            return buildGithubPendingSignup(oauth2User);
-        }
-
-        if ("kakao".equals(normalized)) {
-            return buildKakaoPendingSignup(oauth2User);
-        }
-
-        if ("google".equals(normalized)) {
-            return buildGooglePendingSignup(oauth2User);
-        }
-
-        throw new ApiException(ErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
+        return switch (toAuthProvider(provider)) {
+            case GITHUB -> buildGithubPendingSignup(oauth2User);
+            case KAKAO -> buildKakaoPendingSignup(oauth2User);
+            case GOOGLE -> buildGooglePendingSignup(oauth2User);
+            default -> throw new ApiException(ErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
+        };
     }
 
     public Optional<Member> findMemberByProviderUserId(String provider, String providerUserId) {
@@ -96,6 +87,24 @@ public class OAuth2MemberService {
         String login = valueAsString(oauth2User.getAttribute("name")).trim();
 
         return new OAuthPendingSignup("google", providerUserId, email, login);
+    }
+
+    @Transactional
+    public Member completeSignup(OAuthPendingSignup pending, String nickname) {
+        if (pending == null || pending.providerUserId() == null || pending.providerUserId().isBlank()) {
+            throw new ApiException(ErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED);
+        }
+
+        AuthProvider provider = toAuthProvider(pending.provider());
+        ProviderSpec spec = providerSpec(provider);
+
+        return completeSignupByProvider(
+                provider,
+                pending,
+                nickname,
+                spec.fallbackEmailDomain(),
+                spec.localPrefix()
+        );
     }
 
     @Transactional
@@ -165,22 +174,24 @@ public class OAuth2MemberService {
         return memberRepository.save(newMember);
     }
 
+    private ProviderSpec providerSpec(AuthProvider provider) {
+        return switch (provider) {
+            case GITHUB -> new ProviderSpec(GITHUB_EMAIL_DOMAIN, "github_");
+            case KAKAO -> new ProviderSpec(KAKAO_EMAIL_DOMAIN, "kakao_");
+            case GOOGLE -> new ProviderSpec(GOOGLE_EMAIL_DOMAIN, "google_");
+            default -> throw new ApiException(ErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
+        };
+    }
+
     private AuthProvider toAuthProvider(String provider) {
         String normalized = normalizeProvider(provider);
 
-        if ("github".equals(normalized)) {
-            return AuthProvider.GITHUB;
-        }
-
-        if ("kakao".equals(normalized)) {
-            return AuthProvider.KAKAO;
-        }
-
-        if ("google".equals(normalized)) {
-            return AuthProvider.GOOGLE;
-        }
-
-        throw new ApiException(ErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
+        return switch (normalized) {
+            case "github" -> AuthProvider.GITHUB;
+            case "kakao" -> AuthProvider.KAKAO;
+            case "google" -> AuthProvider.GOOGLE;
+            default -> throw new ApiException(ErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
+        };
     }
 
     private String normalizeProvider(String provider) {
@@ -213,5 +224,8 @@ public class OAuth2MemberService {
 
     private String valueAsString(Object value) {
         return value == null ? "" : String.valueOf(value);
+    }
+
+    private record ProviderSpec(String fallbackEmailDomain, String localPrefix) {
     }
 }

@@ -31,7 +31,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 @RestController
@@ -131,7 +130,7 @@ public class OAuth2Controller {
             throw new ApiException(ErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED);
         }
 
-        Member member = completeByProvider(pending, request.nickname());
+        Member member = oAuth2MemberService.completeSignup(pending, request.nickname());
         session.removeAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY);
 
         String accessToken = jwtProvider.createAccessToken(member);
@@ -150,19 +149,5 @@ public class OAuth2Controller {
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, body));
-    }
-
-    private Member completeByProvider(OAuthPendingSignup pending, String nickname) {
-        String provider = pending.provider() == null ? "" : pending.provider().trim().toLowerCase(Locale.ROOT);
-
-        if ("github".equals(provider)) {
-            return oAuth2MemberService.completeGithubSignup(pending, nickname);
-        } else if ("kakao".equals(provider)) {
-            return oAuth2MemberService.completeKakaoSignup(pending, nickname);
-        } else if ("google".equals(provider)) {
-            return oAuth2MemberService.completeGoogleSignup(pending, nickname);
-        }
-
-        throw new ApiException(ErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
     }
 }
