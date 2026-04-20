@@ -141,29 +141,38 @@ async function fetchReports(): Promise<Report[]> {
   const json = await res.json()
   return json.data.content
 }
-
-
 async function processReportApi(params: {
   reportId: number
   action: "RESOLVE" | "REJECT"
   adminNote: string
   sanctionType?: string
 }) {
-  const res = await fetch(
-    `${API_BASE}/api/admin/reports/${params.reportId}/process`,
-    {
-      method: "PATCH",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(params),
-    }
-  )
+  const endpoint =
+    params.action === "RESOLVE"
+      ? `${API_BASE}/api/admin/reports/approve`
+      : `${API_BASE}/api/admin/reports/reject`
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      reportId: params.reportId,
+      adminNote: params.adminNote,
+      sanctionType: params.sanctionType,
+    }),
+  })
+
+  const text = await res.text()
+  console.log("STATUS:", res.status)
+  console.log("RESPONSE:", text)
 
   if (!res.ok) {
-    throw new Error("신고 처리 실패")
+    throw new Error(`신고 처리 실패 (${res.status})`)
   }
 
-  return res.json()
+  return text ? JSON.parse(text) : null
 }
+
 
 /* =========================
    PAGE
@@ -246,7 +255,8 @@ export default function ReportsManagementPage() {
       )
 
       setProcessDialog({ open: false, report: null, action: null })
-    } catch {
+    } catch (e) {
+      console.error(e)
       alert("처리 실패")
     }
   }
@@ -405,9 +415,9 @@ export default function ReportsManagementPage() {
               <SelectValue placeholder="제재 선택" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="warn">경고</SelectItem>
-              <SelectItem value="ban">차단</SelectItem>
-              <SelectItem value="delete">삭제</SelectItem>
+              <SelectItem value="WARNED">경고</SelectItem>
+              <SelectItem value="BLACKLISTED">차단</SelectItem>
+              <SelectItem value="WITHDRAWN">삭제</SelectItem>
             </SelectContent>
           </Select>
 
