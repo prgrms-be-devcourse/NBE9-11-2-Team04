@@ -22,6 +22,8 @@ type PostPageResponse = {
   }[]
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
+
 const formatTimeAgo = (dateString: string) => {
   const date = new Date(dateString)
   const diff = Date.now() - date.getTime()
@@ -57,7 +59,7 @@ export default function LatestPage() {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await fetch("http://localhost:8080/api/posts?sort=LATEST", {
+        const res = await fetch(`${API_BASE_URL}/api/posts?sort=LATEST`, {
           headers: getAuthHeaders(),
           cache: "no-store",
         })
