@@ -18,38 +18,24 @@ export default function OAuthCallbackPage() {
     const code = searchParams.get("code")
 
     const run = async () => {
-      // ❌ OAuth 실패 케이스
       if (errorCode) {
         router.replace(`/login?oauth=error&errorCode=${errorCode}`)
         return
       }
 
-      // ✅ 핵심: code만 있으면 실행 (🔥 수정된 부분)
       if (code) {
         const usedCodeKey = `oauth_code_used:${code}`
 
-        // 중복 실행 방지
         if (sessionStorage.getItem(usedCodeKey) === "1") {
           return
         }
 
         try {
           const data = await exchangeOAuthCode({ code })
-
-          console.log("🔥 OAuth 최종 데이터:", data)
-
           sessionStorage.setItem(usedCodeKey, "1")
 
-          // 🔥 토큰 저장
-          persistLoginSession(
-            data.accessToken,
-            data.nickname,
-            data.email
-          )
+          persistLoginSession(data.accessToken, data.nickname, data.email)
 
-          console.log("🔥 저장된 토큰:", localStorage.getItem("accessToken"))
-
-          // 이동
           router.replace("/mypage")
           router.refresh()
           return
@@ -60,7 +46,6 @@ export default function OAuthCallbackPage() {
         }
       }
 
-      // ❌ code도 없으면 로그인 페이지
       router.replace("/login")
     }
 
