@@ -3,6 +3,7 @@ package com.back.devc.domain.admin.dashboard.service;
 import com.back.devc.domain.admin.dashboard.dto.DashboardResponseDto;
 import com.back.devc.domain.admin.dashboard.dto.DashboardResponseDto.ReportReasonCount;
 import com.back.devc.domain.admin.dashboard.repository.AdminDashboardRepository;
+import com.back.devc.domain.interaction.report.entity.ReportStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -36,8 +37,8 @@ public class AdminDashboardService {
         // 3. 게시글 신고
         // =========================
         Long postReportTotal = adminDashboardRepository.countTodayPostReports(today);
-        Long postReportPending = adminDashboardRepository.countTodayPostReportsByStatus(today, "PENDING");
-        Long postReportResolved = adminDashboardRepository.countTodayPostReportsByStatus(today, "RESOLVED");
+        Long postReportPending = adminDashboardRepository.countTodayPostReportsByStatus(today, ReportStatus.PENDING);
+        Long postReportResolved = adminDashboardRepository.countTodayPostReportsByStatus(today, ReportStatus.RESOLVED);
         java.util.List<ReportReasonCount> postReportReasons =
                 adminDashboardRepository.countTodayPostReportsByReason(today);
 
@@ -45,8 +46,8 @@ public class AdminDashboardService {
         // 4. 댓글 신고
         // =========================
         Long commentReportTotal = adminDashboardRepository.countTodayCommentReports(today);
-        Long commentReportPending = adminDashboardRepository.countTodayCommentReportsByStatus(today, "PENDING");
-        Long commentReportResolved = adminDashboardRepository.countTodayCommentReportsByStatus(today, "RESOLVED");
+        Long commentReportPending = adminDashboardRepository.countTodayCommentReportsByStatus(today, ReportStatus.PENDING);
+        Long commentReportResolved = adminDashboardRepository.countTodayCommentReportsByStatus(today, ReportStatus.RESOLVED);
         java.util.List<ReportReasonCount> commentReportReasons =
                 adminDashboardRepository.countTodayCommentReportsByReason(today);
 

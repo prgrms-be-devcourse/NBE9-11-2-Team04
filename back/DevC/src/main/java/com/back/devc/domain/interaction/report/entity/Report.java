@@ -34,27 +34,26 @@ public class Report {
     @Column(name = "report_id")
     private Long reportId;
 
-    // 1. 신고자 (FK: members 테이블의 user_id 참조)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reporter_user_id", nullable = false)
     private Member reporter;
 
     @Column(name = "target_type", nullable = false, length = 20)
-    private String targetType; // POST, COMMENT 구분
+    private String targetType;
 
     @Column(name = "target_id", nullable = false)
-    private Long targetId; // 신고 대상(게시글 또는 댓글)의 PK
+    private Long targetId;
 
     @Column(name = "reason_type", nullable = false, length = 50)
-    private String reasonType; // 신고 종류 - ABUSE, SPAM, HATE, ETC
+    private String reasonType;
 
     @Column(name = "reason_detail", columnDefinition = "TEXT")
     private String reasonDetail;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private String status = "PENDING"; // PENDING, RESOLVED, REJECTED
+    private ReportStatus status;
 
-    // 2. 처리 관리자 (FK: members 테이블의 user_id 참조)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "processed_by")
     private Member processedByAdmin;
@@ -67,25 +66,36 @@ public class Report {
     private LocalDateTime createdAt;
 
     @Builder
-    public Report(Member reporter, String targetType, Long targetId, String reasonType, String reasonDetail) {
+    public Report(Member reporter,
+                  String targetType,
+                  Long targetId,
+                  String reasonType,
+                  String reasonDetail) {
+
         this.reporter = reporter;
         this.targetType = targetType;
         this.targetId = targetId;
         this.reasonType = reasonType;
         this.reasonDetail = reasonDetail;
-        this.status = "PENDING"; // 초기값 강제
+
+        this.status = ReportStatus.PENDING; // ✅ 초기값 고정
     }
 
     /**
-     * 신고 처리 비즈니스 로직 : 상태 변경
+     * 신고 처리
      */
-    public void processReport(Member admin, String finalStatus) {
+    public void processReport(Member admin) {
         this.processedByAdmin = admin;
-        this.status = finalStatus;
+        this.status = ReportStatus.RESOLVED;
         this.processedAt = LocalDateTime.now();
     }
 
-    // TODO: 신고 반려 시 사유 작성(미구현 - 테이블 구조 변경 필요)
-    public void rejectReport(Member admin, String reasonReject) {
+    /**
+     * 신고 반려
+     */
+    public void rejectReport(Member admin) {
+        this.processedByAdmin = admin;
+        this.status = ReportStatus.REJECTED;
+        this.processedAt = LocalDateTime.now();
     }
 }
