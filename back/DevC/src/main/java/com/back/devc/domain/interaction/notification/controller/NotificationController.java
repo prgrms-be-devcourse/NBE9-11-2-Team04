@@ -15,7 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.core.Authentication;
 
 /**
- * 알림 조회/읽음 처리 API 컨트롤러.
+ * 알림 조회/읽음 처리 API 컨트롤러
  *
  * 이 컨트롤러는 현재 로그인한 사용자를 기준으로만 알림을 조회하고 읽음 처리
  *

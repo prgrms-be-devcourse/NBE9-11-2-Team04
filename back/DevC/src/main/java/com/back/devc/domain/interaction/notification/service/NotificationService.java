@@ -20,18 +20,18 @@ public interface NotificationService {
     void createBookmarkNotification(Long postId, Long actorUserId);
 
     /**
-     * 관리자 처리 후 게시글 신고 결과 알림 생성.
+     * 관리자 처리 후 게시글 신고 결과 알림 생성
      *
      * 신고 대상 게시글의 작성자가 알림 수신자가 되며,
-     * 알림 메시지에는 신고자를 노출하지 않는다.
+     * 알림 메시지에는 신고자를 노출하지 않음
      */
     void createPostReportNotification(Long postId, Long adminUserId);
 
     /**
-     * 관리자 처리 후 댓글 신고 결과 알림 생성.
+     * 관리자 처리 후 댓글 신고 결과 알림 생성
      *
      * 신고 대상 댓글의 작성자가 알림 수신자가 되며,
-     * 알림 메시지에는 신고자를 노출하지 않는다.
+     * 알림 메시지에는 신고자를 노출하지 않음
      */
     void createCommentReportNotification(Long commentId, Long adminUserId);
 
