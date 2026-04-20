@@ -1,5 +1,6 @@
 package com.back.devc.domain.auth.controller;
 
+import com.back.devc.domain.member.member.controller.MemberController;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import org.junit.jupiter.api.Test;
@@ -163,7 +164,7 @@ public class ApiAuthControllerTest {
                                 .header("Authorization", "Bearer " + token)
                 )
                 .andDo(print())
-                .andExpect(handler().handlerType(com.back.devc.domain.member.member.controller.UserController.class))
+                .andExpect(handler().handlerType(MemberController.class))
                 .andExpect(handler().methodName("me"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("USER_200_ME_SUCCESS"))

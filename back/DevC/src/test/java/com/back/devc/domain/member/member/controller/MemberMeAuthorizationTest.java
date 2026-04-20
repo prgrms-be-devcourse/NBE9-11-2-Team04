@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @Transactional
-class UserMeAuthorizationTest {
+class MemberMeAuthorizationTest {
 
     @Autowired
     private MockMvc mvc;
@@ -58,7 +58,7 @@ class UserMeAuthorizationTest {
                                 .header("Authorization", "Bearer " + accessToken)
                 )
                 .andDo(print())
-                .andExpect(handler().handlerType(UserController.class))
+                .andExpect(handler().handlerType(MemberController.class))
                 .andExpect(handler().methodName("me"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("USER_200_ME_SUCCESS"))
