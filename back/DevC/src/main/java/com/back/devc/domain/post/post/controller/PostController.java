@@ -10,10 +10,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
+import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
 
 @RestController
 @RequiredArgsConstructor
@@ -58,7 +57,7 @@ public class PostController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        Long loginUserId = principal != null ? principal.userId() : null;
+        Long loginUserId = principal != null ? getAuthenticatedUserId(principal) : null;
 
         Page<PostListResponse> result = postService.getPosts(
                 loginUserId,
@@ -101,17 +100,4 @@ public class PostController {
         return ResponseEntity.ok(new PostDeleteResponse(postId, "삭제되었습니다."));
     }
 
-    /**
-     * 게시글 컨트롤러에서 공통으로 사용하는 로그인 사용자 식별 메서드
-     *
-     * JwtAuthenticationFilter가 정상적으로 principal을 세팅한 경우 userId를 반환하고,
-     * 인증 정보가 없으면 RuntimeException 대신 401 UNAUTHORIZED를 반환하도록 방어
-     */
-    private Long getAuthenticatedUserId(JwtPrincipal principal) {
-        // 토큰이 없거나 필터에서 principal을 세팅하지 못한 요청은 인증 실패로 처리한다.
-        if (principal == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증이 필요합니다.");
-        }
-        return principal.userId();
-    }
 }

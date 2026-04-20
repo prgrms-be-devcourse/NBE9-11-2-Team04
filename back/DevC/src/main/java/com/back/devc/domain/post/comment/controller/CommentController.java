@@ -1,7 +1,6 @@
 package com.back.devc.domain.post.comment.controller;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
+import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
 import com.back.devc.domain.post.comment.dto.CommentCreateRequest;
 import com.back.devc.domain.post.comment.dto.CommentDeleteResponse;
 import com.back.devc.domain.post.comment.dto.CommentListResponse;
@@ -88,17 +87,4 @@ public class CommentController {
         return ResponseEntity.ok(commentService.getComments(postId));
     }
 
-    /**
-     * 댓글 컨트롤러에서 공통으로 사용하는 로그인 사용자 식별 메서드.
-     *
-     * JwtAuthenticationFilter가 정상적으로 principal을 세팅한 경우 userId를 반환하고,
-     * 인증 정보가 없으면 비로그인 요청으로 간주해 401 UNAUTHORIZED를 반환한다.
-     */
-    private Long getAuthenticatedUserId(JwtPrincipal principal) {
-        // 토큰이 없거나 필터에서 principal을 세팅하지 못한 요청은 인증 실패로 처리한다.
-        if (principal == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증이 필요합니다.");
-        }
-        return principal.userId();
-    }
 }

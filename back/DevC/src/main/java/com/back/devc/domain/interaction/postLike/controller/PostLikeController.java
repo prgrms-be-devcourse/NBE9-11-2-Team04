@@ -5,10 +5,9 @@ import com.back.devc.domain.interaction.postLike.dto.PostLikeResponse;
 import com.back.devc.domain.interaction.postLike.service.PostLikeService;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -42,10 +41,4 @@ public class PostLikeController {
         return postLikeService.getLikedPosts(getAuthenticatedUserId(principal));
     }
 
-    private Long getAuthenticatedUserId(JwtPrincipal principal) {
-        if (principal == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증이 필요합니다.");
-        }
-        return principal.userId();
-    }
 }
