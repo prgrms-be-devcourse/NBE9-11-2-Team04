@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { ChangeEvent, FormEvent, useEffect, useState } from "react"
 import Link from "next/link"
@@ -267,7 +267,9 @@ export default function MyPageEditPage() {
               </Button>
             </div>
 
-            <p className="leading-relaxed text-muted-foreground">내 정보를 입력하세요</p>
+            <p className="leading-relaxed text-muted-foreground">
+              내 정보를 입력하세요
+            </p>
           </div>
         </div>
 
