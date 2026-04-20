@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Search, X, SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,14 +44,12 @@ const categoryMap: Record<string, number> = {
 }
 
 const sortOptions = [
-  //{ value: "relevance", label: "관련도순" },
   { value: "latest", label: "최신순" },
   { value: "popular", label: "인기순" },
   { value: "comments", label: "댓글순" },
 ]
 
 const sortMap: Record<string, string> = {
-  //relevance: "RELEVANCE",
   latest: "LATEST",
   popular: "LIKES",
   comments: "COMMENT",
@@ -127,80 +125,120 @@ export default function SearchPage() {
   const [selectedCategory, setSelectedCategory] = useState("전체")
   const [searchType, setSearchType] = useState("TITLE_OR_CONTENT")
   const [recentSearches, setRecentSearches] = useState<string[]>([])
+  const [error, setError] = useState<string | null>(null)
 
+  const handleSearch = useCallback(
+    async (searchQuery: string, signal?: AbortSignal) => {
+      const trimmed = searchQuery.trim()
 
-  const handleSearch = async (searchQuery: string) => {
-    const trimmed = searchQuery.trim()
+      if (!trimmed) {
+        setResults([])
+        setError(null)
+        setIsSearching(false)
+        return
+      }
+
+      try {
+        setIsSearching(true)
+        setError(null)
+
+        const categoryId =
+          selectedCategory === "전체" ? null : categoryMap[selectedCategory]
+
+        const queryParams = new URLSearchParams({
+          keyword: trimmed,
+          searchType,
+          sort: sortMap[sortBy],
+          ...(categoryId != null ? { categoryId: String(categoryId) } : {}),
+        })
+
+        const response = await fetch(
+          `${API_BASE_URL}/api/posts?${queryParams.toString()}`,
+          {
+            method: "GET",
+            signal,
+            cache: "no-store",
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error("검색 요청에 실패했습니다.")
+        }
+
+        const data = await response.json()
+
+        const mapped: Post[] = Array.isArray(data.content)
+          ? data.content.map((post: any) => ({
+              id: String(post.postId),
+              title: post.title,
+              excerpt: post.content,
+              author: {
+                name: post.nickName,
+                userId: post.userId,
+              },
+              category:
+                categories.find((c) => categoryMap[c] === post.categoryId) || "",
+              createdAt: formatTimeAgo(post.createdAt),
+              likes: post.likeCount,
+              comments: post.commentCount,
+              views: post.viewCount,
+              tags: [],
+              liked: post.liked,
+              bookmarked: post.bookmarked,
+            }))
+          : []
+
+        setResults(mapped)
+
+        const nextHistory = saveSearchHistory(trimmed)
+        setRecentSearches(nextHistory)
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return
+        }
+
+        console.error(err)
+        setResults([])
+        setError("검색 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.")
+      } finally {
+        if (!signal?.aborted) {
+          setIsSearching(false)
+        }
+      }
+    },
+    [sortBy, selectedCategory, searchType]
+  )
+
+  useEffect(() => {
+    setRecentSearches(getSearchHistory())
+  }, [])
+
+  useEffect(() => {
+    const trimmed = query.trim()
 
     if (!trimmed) {
       setResults([])
+      setError(null)
+      setIsSearching(false)
       return
     }
 
-    setIsSearching(true)
+    const controller = new AbortController()
 
-    try {
-      const categoryId =
-        selectedCategory === "전체"
-          ? null
-          : categoryMap[selectedCategory]
-
-      const queryParams = new URLSearchParams({
-        keyword: trimmed,
-        searchType: searchType,
-        sort: sortMap[sortBy],
-        ...(categoryId != null ? { categoryId: String(categoryId) } : {}),
-      })
-
-      const res = await fetch(
-        `${API_BASE_URL}/api/posts?${queryParams}`
-      )
-
-      if (!res.ok) throw new Error("검색 실패")
-
-      const data = await res.json()
-
-      const mapped: Post[] = data.content.map((post: any) => ({
-        id: String(post.postId),
-        title: post.title,
-        excerpt: post.content,
-        author: { name: post.nickName },
-        category:
-          categories.find(
-            (c) => categoryMap[c] === post.categoryId
-          ) || "",
-          createdAt: formatTimeAgo(post.createdAt),
-        likes: post.likeCount,
-        comments: post.commentCount,
-        views: post.viewCount,
-        tags: [],
-      }))
-
-      setResults(mapped)
-    } catch (e) {
-      console.error(e)
-      setResults([])
-    } finally {
-      setIsSearching(false)
-    }
-
-    const nextHistory = saveSearchHistory(trimmed)
-    setRecentSearches(nextHistory)
-  }
-
-  useEffect(() => {
     const debounce = setTimeout(() => {
-      if (query.trim()) {
-        handleSearch(query)
-      }
+      handleSearch(trimmed, controller.signal)
     }, 300)
-  
-    return () => clearTimeout(debounce)
-  }, [query, selectedCategory, sortBy, searchType])
+
+    return () => {
+      clearTimeout(debounce)
+      controller.abort()
+    }
+  }, [query, sortBy, selectedCategory, searchType, handleSearch])
 
   const clearSearch = () => {
     setQuery("")
     setResults([])
+    setError(null)
   }
 
   const removeRecentSearch = (search: string) => {
@@ -236,6 +274,7 @@ export default function SearchPage() {
             />
             {query && (
               <button
+                type="button"
                 onClick={clearSearch}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
@@ -260,7 +299,6 @@ export default function SearchPage() {
               </SheetHeader>
 
               <div className="mt-6 space-y-6">
-
                 <div className="space-y-2">
                   <Label>검색 범위</Label>
                   <Select value={searchType} onValueChange={setSearchType}>
@@ -297,6 +335,7 @@ export default function SearchPage() {
                     {categories.map((category) => (
                       <Button
                         key={category}
+                        type="button"
                         variant={selectedCategory === category ? "default" : "outline"}
                         size="sm"
                         onClick={() => setSelectedCategory(category)}
@@ -306,18 +345,137 @@ export default function SearchPage() {
                     ))}
                   </div>
                 </div>
-
               </div>
             </SheetContent>
           </Sheet>
         </div>
       </div>
 
+      {!query && recentSearches.length > 0 && (
+        <div className="mb-8">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              최근 검색어
+            </h2>
+            <button
+              type="button"
+              onClick={clearAllRecentSearches}
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              전체 삭제
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {recentSearches.map((search) => (
+              <div
+                key={search}
+                className="flex items-center gap-1 rounded-full border border-border bg-secondary px-3 py-1.5"
+              >
+                <button
+                  type="button"
+                  onClick={() => handleRecentSearchClick(search)}
+                  className="text-sm text-foreground hover:text-primary"
+                >
+                  {search}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeRecentSearch(search)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {query && (
-        <div className="grid gap-6">
-          {results.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {isSearching ? "검색 중..." : `"${query}" 검색 결과 ${results.length}건`}
+            </p>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {sortOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {error ? (
+            <div className="rounded-lg border border-border bg-card p-12 text-center">
+              <h3 className="mb-2 text-lg font-semibold text-foreground">
+                오류가 발생했습니다
+              </h3>
+              <p className="text-sm text-muted-foreground">{error}</p>
+            </div>
+          ) : isSearching ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-40 animate-pulse rounded-lg bg-secondary"
+                />
+              ))}
+            </div>
+          ) : results.length > 0 ? (
+            <div className="grid gap-6">
+              {results.map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-border bg-card p-12 text-center">
+              <Search className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+              <h3 className="mb-2 text-lg font-semibold text-foreground">
+                검색 결과가 없습니다
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                다른 키워드로 검색해보세요
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!query && (
+        <div>
+          <h2 className="mb-4 text-sm font-semibold text-muted-foreground">
+            인기 태그
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {[
+              "취업",
+              "신입채용",
+              "이직",
+              "연봉협상",
+              "코딩테스트",
+              "포트폴리오",
+              "ai",
+              "frontend",
+              "backend",
+              "개발자생활",
+            ].map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => handleRecentSearchClick(tag)}
+                className="rounded-full border border-border bg-secondary px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
+              >
+                #{tag}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

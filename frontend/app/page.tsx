@@ -1,12 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { PostCard, type Post } from "@/components/post-card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { TrendingUp, Clock, Users } from "lucide-react"
+import {
+  AUTH_CHANGED_EVENT,
+  getAccessToken,
+} from "@/lib/auth-storage"
 
-
-const feedPosts: Post[] = []
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
 
 type PostPageResponse = {
   content: {
@@ -19,176 +21,136 @@ type PostPageResponse = {
     likeCount: number
     commentCount: number
     createdAt: string
+    liked: boolean
+    bookmarked: boolean
   }[]
+  totalPages: number
+  totalElements: number
+  size: number
+  number: number
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
+function formatTimeAgo(dateString: string) {
+  const now = new Date()
+  const created = new Date(dateString)
+  const diffMs = now.getTime() - created.getTime()
 
-const formatTimeAgo = (dateString: string) => {
-  const date = new Date(dateString)
-  const diff = Date.now() - date.getTime()
+  const diffMinutes = Math.floor(diffMs / (1000 * 60))
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
-  const minutes = Math.floor(diff / 1000 / 60)
-  if (minutes < 1) return "방금 전"
-  if (minutes < 60) return `${minutes}분 전`
+  if (diffMinutes < 1) return "방금 전"
+  if (diffMinutes < 60) return `${diffMinutes}분 전`
+  if (diffHours < 24) return `${diffHours}시간 전`
+  if (diffDays < 7) return `${diffDays}일 전`
 
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}시간 전`
-
-  const days = Math.floor(hours / 24)
-  return `${days}일 전`
+  return created.toLocaleDateString("ko-KR")
 }
 
-export default function HomePage() {
-  const [activeTab, setActiveTab] = useState("popular")
-  const [posts, setPosts] = useState<Post[]>([])
-  const [loading, setLoading] = useState(true)
-
-  const getPostsForTab = () => {
-    if (activeTab === "feed") {
-      return feedPosts
-    }
-    return posts
+function getAuthHeaders(): HeadersInit {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
   }
 
-  useEffect(() => {
-    const fetchPosts = async () => {
+  const token = getAccessToken()
+  if (token && token !== "oauth-cookie-session") {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  return headers
+}
+
+export default function PostsPage() {
+  const [posts, setPosts] = useState<Post[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const loadPosts = useCallback(async () => {
+    try {
       setLoading(true)
+      setError(null)
 
-      try {
-        let url = ""
+      const response = await fetch(`${API_BASE_URL}/api/posts`, {
+        method: "GET",
+        credentials: "include",
+        headers: getAuthHeaders(),
+        cache: "no-store",
+      })
 
-        if (activeTab === "popular") {
-          url = `${API_BASE_URL}/api/posts?sort=LIKES`
-        } else if (activeTab === "latest") {
-          url = `${API_BASE_URL}/api/posts?sort=LATEST`
-        }else {
-          setLoading(false) /*여기는 feed부분입니다*/
-          return
-        }
-
-        const response = await fetch(url)
-        
-        if (!response.ok) {
-          throw new Error("게시글을 불러오지 못했습니다.")
-        }
-
-        const data: PostPageResponse = await response.json()
-
-        const mapped: Post[] = data.content.map((post) => ({
-          id: String(post.postId),
-          title: post.title,
-          excerpt: post.content,
-          author: {
-            name: post.nickName,
-          },
-          category: String(post.categoryId),
-          createdAt: formatTimeAgo(post.createdAt),
-          likes: post.likeCount,
-          comments: post.commentCount,
-          views: post.viewCount,
-          tags: [],
-        }))
-
-        setPosts(mapped)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
+      if (!response.ok) {
+        throw new Error("게시글 목록을 불러오지 못했습니다.")
       }
+
+      const data: PostPageResponse = await response.json()
+
+      const mapped: Post[] = data.content.map((post) => ({
+        id: String(post.postId),
+        title: post.title,
+        excerpt: post.content,
+        author: {
+          name: post.nickName,
+        },
+        category: String(post.categoryId),
+        createdAt: formatTimeAgo(post.createdAt),
+        likes: post.likeCount,
+        comments: post.commentCount,
+        views: post.viewCount,
+        tags: [],
+        liked: Boolean(post.liked),
+        bookmarked: Boolean(post.bookmarked),
+      }))
+
+      setPosts(mapped)
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "알 수 없는 오류가 발생했습니다."
+      )
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadPosts()
+  }, [loadPosts])
+
+  useEffect(() => {
+    const handleAuthChanged = () => {
+      void loadPosts()
     }
 
-    fetchPosts()
-  }, [activeTab])
+    window.addEventListener(AUTH_CHANGED_EVENT, handleAuthChanged)
+    return () => {
+      window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChanged)
+    }
+  }, [loadPosts])
+
+  if (loading) {
+    return <div className="px-4 py-10">로딩 중...</div>
+  }
+
+  if (error) {
+    return <div className="px-4 py-10 text-destructive">{error}</div>
+  }
 
   return (
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Hero Section */}
-        <section className="mb-12 text-center">
-          <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-            개발자들의 <span className="text-primary">지식 허브</span>
-          </h1>
-          <p className="mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            최신 기술 트렌드, 실무 경험, 개발 노하우를 함께 나눠보세요.
-            <br />
-            함께 성장하는 개발자 커뮤니티입니다.
-          </p>
-        </section>
-
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-8 grid w-full max-w-md mx-auto grid-cols-3 bg-secondary">
-            <TabsTrigger
-                value="popular"
-                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <TrendingUp className="h-4 w-4" />
-              <span className="hidden sm:inline">인기글</span>
-            </TabsTrigger>
-            <TabsTrigger
-                value="latest"
-                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <Clock className="h-4 w-4" />
-              <span className="hidden sm:inline">최신글</span>
-            </TabsTrigger>
-            <TabsTrigger
-                value="feed"
-                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">피드</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="popular" className="mt-0">
-            {loading ? (
-                <div className="text-center py-10 text-muted-foreground">
-                  로딩중...
-                </div>
-            ) : (
-                <div className="grid gap-6">
-                  {getPostsForTab().map((post) => (
-                      <PostCard key={post.id} post={post} />
-                  ))}
-                </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="latest" className="mt-0">
-            {loading ? (
-                <div className="text-center py-10 text-muted-foreground">
-                  로딩중...
-                </div>
-            ) : (
-                <div className="grid gap-6">
-                  {getPostsForTab().map((post) => (
-                      <PostCard key={post.id} post={post} />
-                  ))}
-                </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="feed" className="mt-0">
-            {feedPosts.length > 0 ? (
-                <div className="grid gap-6">
-                  {getPostsForTab().map((post) => (
-                      <PostCard key={post.id} post={post} />
-                  ))}
-                </div>
-            ) : (
-                <div className="rounded-lg border border-border bg-card p-12 text-center">
-                  <Users className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                  <h3 className="mb-2 text-lg font-semibold text-foreground">
-                    즐겨찾기한 사용자가 없습니다
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    관심있는 작성자를 즐겨찾기하면 이곳에서 글을 모아볼 수 있습니다.
-                  </p>
-                </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
+    <main className="mx-auto max-w-6xl px-4 py-10">
+      <section className="space-y-4">
+        {posts.length === 0 ? (
+          <div className="rounded-lg border border-border bg-card p-6 text-center text-muted-foreground">
+            게시글이 없습니다.
+          </div>
+        ) : (
+          posts.map((post) => (
+            <PostCard
+              key={`${post.id}-${post.liked}-${post.bookmarked}-${post.likes}`}
+              post={post}
+            />
+          ))
+        )}
+      </section>
+    </main>
   )
 }

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
@@ -130,7 +130,9 @@ export default function PostDetailPage() {
       alert("게시글 신고가 접수되었습니다.")
       window.dispatchEvent(new CustomEvent("notifications-updated"))
     } catch (err) {
-      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
+      setError(
+        err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
+      )
     } finally {
       setReportLoading(false)
     }

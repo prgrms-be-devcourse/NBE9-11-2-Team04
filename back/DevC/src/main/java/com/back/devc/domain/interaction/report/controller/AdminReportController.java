@@ -3,6 +3,8 @@ package com.back.devc.domain.interaction.report.controller;
 import com.back.devc.domain.interaction.report.dto.AdminReportRequestDTO;
 import com.back.devc.domain.interaction.report.dto.ReportResponseDTO;
 import com.back.devc.domain.interaction.report.service.AdminReportService;
+import com.back.devc.global.exception.ApiException;
+import com.back.devc.global.exception.ErrorCode;
 import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
 
 import com.back.devc.global.exception.ApiException;

@@ -42,7 +42,9 @@ export function PostCard({ post }: PostCardProps) {
             >
               {post.category}
             </Link>
-            <span className="text-xs text-muted-foreground">{post.createdAt}</span>
+            <span className="text-xs text-muted-foreground">
+              {post.createdAt}
+            </span>
           </div>
 
           <Link href={`/posts/${post.id}`}>
@@ -94,7 +96,6 @@ export function PostCard({ post }: PostCardProps) {
                 </span>
               </div>
             )}
-
             <div className="flex items-center gap-4 text-muted-foreground">
               <div className="flex items-center gap-1">
                 <MessageCircle className="h-4 w-4" />
