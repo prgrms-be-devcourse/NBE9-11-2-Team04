@@ -119,9 +119,7 @@ public class PostService {
                         : postRepository.findByContentContainingAndIsDeletedFalse(kw, pageable);
             } else {
                 result = (categoryId != null)
-                        ? postRepository.findByCategoryCategoryIdAndTitleContainingOrContentContainingAndIsDeletedFalse(
-                        categoryId, kw, kw, pageable
-                )
+                        ? postRepository.searchPosts(categoryId, kw, pageable)
                         : postRepository.findByTitleContainingOrContentContainingAndIsDeletedFalse(
                         kw, kw, pageable
                 );

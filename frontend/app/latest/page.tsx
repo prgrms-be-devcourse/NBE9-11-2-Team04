@@ -8,6 +8,7 @@ import { getAccessToken } from "@/lib/auth-storage"
 type PostPageResponse = {
   content: {
     postId: number
+    userId?: number
     title: string
     content: string
     nickName: string
@@ -29,14 +30,14 @@ const formatTimeAgo = (dateString: string) => {
   const diff = Date.now() - date.getTime()
 
   const minutes = Math.floor(diff / 1000 / 60)
-  if (minutes < 1) return "방금 전"
-  if (minutes < 60) return `${minutes}분 전`
+  if (minutes < 1) return "just now"
+  if (minutes < 60) return `${minutes}m ago`
 
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}시간 전`
+  if (hours < 24) return `${hours}h ago`
 
   const days = Math.floor(hours / 24)
-  return `${days}일 전`
+  return `${days}d ago`
 }
 
 function getAuthHeaders(): HeadersInit {
@@ -59,6 +60,7 @@ export default function LatestPage() {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
+<<<<<<< HEAD
         const res = await fetch(`${API_BASE_URL}/api/posts?sort=LATEST`, {
           headers: getAuthHeaders(),
           credentials: "include",
@@ -70,6 +72,18 @@ export default function LatestPage() {
         }
 
         const data: PostPageResponse = await res.json()
+=======
+        const response = await fetch(`${API_BASE_URL}/api/posts?sort=LATEST`, {
+          headers: getAuthHeaders(),
+          cache: "no-store",
+        })
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch latest posts.")
+        }
+
+        const data: PostPageResponse = await response.json()
+>>>>>>> d4c6f5cb1d86df9bff843513859b0a781d7629e0
 
         const mapped: Post[] = data.content.map((post) => ({
           id: String(post.postId),
@@ -77,6 +91,7 @@ export default function LatestPage() {
           excerpt: post.content,
           author: {
             name: post.nickName,
+            userId: post.userId,
           },
           category: String(post.categoryId),
           createdAt: formatTimeAgo(post.createdAt),
@@ -107,16 +122,12 @@ export default function LatestPage() {
         </div>
         <div>
           <h1 className="text-3xl font-bold">최신글</h1>
-          <p className="text-muted-foreground">
-            방금 올라온 따끈따끈한 글들입니다
-          </p>
+          <p className="text-muted-foreground">방금 올라온 따끈따끈한 글들입니다</p>
         </div>
       </div>
 
       {loading ? (
-        <div className="py-10 text-center text-muted-foreground">
-          로딩중...
-        </div>
+        <div className="py-10 text-center text-muted-foreground">Loading...</div>
       ) : (
         <div className="grid gap-6">
           {posts.map((post) => (

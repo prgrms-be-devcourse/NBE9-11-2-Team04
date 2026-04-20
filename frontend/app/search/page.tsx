@@ -21,10 +21,12 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 
 const SEARCH_HISTORY_KEY = "searchHistory"
 const MAX_RECENT_SEARCHES = 5
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
 
 const categories = [
   "전체",
@@ -34,23 +36,47 @@ const categories = [
   "자유 주제",
 ]
 
+const categoryMap: Record<string, number> = {
+  "IT 기술 정보": 1,
+  "취업 시장 정보": 2,
+  "개발자 트렌드": 3,
+  "자유 주제": 4,
+}
+
 const sortOptions = [
-  { value: "relevance", label: "관련도순" },
   { value: "latest", label: "최신순" },
   { value: "popular", label: "인기순" },
   { value: "comments", label: "댓글순" },
 ]
 
+const sortMap: Record<string, string> = {
+  latest: "LATEST",
+  popular: "LIKES",
+  comments: "COMMENT",
+}
+
+const formatTimeAgo = (dateString: string) => {
+  const date = new Date(dateString)
+  const diff = Date.now() - date.getTime()
+
+  const minutes = Math.floor(diff / 1000 / 60)
+  if (minutes < 1) return "방금 전"
+  if (minutes < 60) return `${minutes}분 전`
+
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}시간 전`
+
+  const days = Math.floor(hours / 24)
+  return `${days}일 전`
+}
+
 function getSearchHistory(): string[] {
   if (typeof window === "undefined") return []
-
   const raw = localStorage.getItem(SEARCH_HISTORY_KEY)
   if (!raw) return []
-
   try {
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
-
     return parsed.filter(
       (item): item is string => typeof item === "string" && item.trim().length > 0
     )
@@ -95,14 +121,11 @@ export default function SearchPage() {
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<Post[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const [sortBy, setSortBy] = useState("relevance")
+  const [sortBy, setSortBy] = useState("latest")
   const [selectedCategory, setSelectedCategory] = useState("전체")
+  const [searchType, setSearchType] = useState("TITLE_OR_CONTENT")
   const [recentSearches, setRecentSearches] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    setRecentSearches(getSearchHistory())
-  }, [])
 
   const handleSearch = useCallback(
     async (searchQuery: string, signal?: AbortSignal) => {
@@ -119,20 +142,24 @@ export default function SearchPage() {
         setIsSearching(true)
         setError(null)
 
-        const params = new URLSearchParams({
-          q: trimmed,
-          sortBy,
+        const categoryId =
+          selectedCategory === "전체" ? null : categoryMap[selectedCategory]
+
+        const queryParams = new URLSearchParams({
+          keyword: trimmed,
+          searchType,
+          sort: sortMap[sortBy],
+          ...(categoryId != null ? { categoryId: String(categoryId) } : {}),
         })
 
-        if (selectedCategory !== "전체") {
-          params.set("category", selectedCategory)
-        }
-
-        const response = await fetch(`/api/posts/search?${params.toString()}`, {
-          method: "GET",
-          signal,
-          cache: "no-store",
-        })
+        const response = await fetch(
+          `${API_BASE_URL}/api/posts?${queryParams.toString()}`,
+          {
+            method: "GET",
+            signal,
+            cache: "no-store",
+          }
+        )
 
         if (!response.ok) {
           throw new Error("검색 요청에 실패했습니다.")
@@ -140,7 +167,28 @@ export default function SearchPage() {
 
         const data = await response.json()
 
-        setResults(Array.isArray(data.posts) ? data.posts : [])
+        const mapped: Post[] = Array.isArray(data.content)
+          ? data.content.map((post: any) => ({
+              id: String(post.postId),
+              title: post.title,
+              excerpt: post.content,
+              author: {
+                name: post.nickName,
+                userId: post.userId,
+              },
+              category:
+                categories.find((c) => categoryMap[c] === post.categoryId) || "",
+              createdAt: formatTimeAgo(post.createdAt),
+              likes: post.likeCount,
+              comments: post.commentCount,
+              views: post.viewCount,
+              tags: [],
+              liked: post.liked,
+              bookmarked: post.bookmarked,
+            }))
+          : []
+
+        setResults(mapped)
 
         const nextHistory = saveSearchHistory(trimmed)
         setRecentSearches(nextHistory)
@@ -158,8 +206,12 @@ export default function SearchPage() {
         }
       }
     },
-    [sortBy, selectedCategory]
+    [sortBy, selectedCategory, searchType]
   )
+
+  useEffect(() => {
+    setRecentSearches(getSearchHistory())
+  }, [])
 
   useEffect(() => {
     const trimmed = query.trim()
@@ -181,7 +233,7 @@ export default function SearchPage() {
       clearTimeout(debounce)
       controller.abort()
     }
-  }, [query, sortBy, selectedCategory, handleSearch])
+  }, [query, sortBy, selectedCategory, searchType, handleSearch])
 
   const clearSearch = () => {
     setQuery("")
@@ -248,6 +300,20 @@ export default function SearchPage() {
 
               <div className="mt-6 space-y-6">
                 <div className="space-y-2">
+                  <Label>검색 범위</Label>
+                  <Select value={searchType} onValueChange={setSearchType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="TITLE">제목</SelectItem>
+                      <SelectItem value="CONTENT">내용</SelectItem>
+                      <SelectItem value="TITLE_OR_CONTENT">제목 + 내용</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label>정렬</Label>
                   <Select value={sortBy} onValueChange={setSortBy}>
                     <SelectTrigger>
@@ -273,31 +339,10 @@ export default function SearchPage() {
                         variant={selectedCategory === category ? "default" : "outline"}
                         size="sm"
                         onClick={() => setSelectedCategory(category)}
-                        className={
-                          selectedCategory === category
-                            ? "bg-primary text-primary-foreground"
-                            : ""
-                        }
                       >
                         {category}
                       </Button>
                     ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>기간</Label>
-                  <div className="space-y-2">
-                    {["전체 기간", "오늘", "이번 주", "이번 달", "올해"].map(
-                      (period) => (
-                        <div key={period} className="flex items-center gap-2">
-                          <Checkbox id={period} />
-                          <Label htmlFor={period} className="font-normal">
-                            {period}
-                          </Label>
-                        </div>
-                      )
-                    )}
                   </div>
                 </div>
               </div>

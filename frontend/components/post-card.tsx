@@ -10,6 +10,7 @@ export interface Post {
   author: {
     name: string
     avatar?: string
+    userId?: number
   }
   category: string
   createdAt: string
@@ -26,6 +27,10 @@ interface PostCardProps {
 }
 
 export function PostCard({ post }: PostCardProps) {
+  const authorProfileHref = post.author.userId
+    ? `/users/${post.author.userId}`
+    : undefined
+
   return (
     <article className="group rounded-lg border border-border bg-card p-6 transition-all hover:border-primary/50 hover:bg-card/80">
       <div className="flex items-start justify-between gap-4">
@@ -66,21 +71,31 @@ export function PostCard({ post }: PostCardProps) {
           )}
 
           <div className="flex items-center justify-between">
-            <Link
-              href={`/user/${post.author.name}`}
-              className="flex items-center gap-2"
-            >
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={post.author.avatar} alt={post.author.name} />
-                <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
-                  {post.author.name.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-                {post.author.name}
-              </span>
-            </Link>
-
+            {authorProfileHref ? (
+              <Link href={authorProfileHref} className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={post.author.avatar} alt={post.author.name} />
+                  <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
+                    {post.author.name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                  {post.author.name}
+                </span>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={post.author.avatar} alt={post.author.name} />
+                  <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
+                    {post.author.name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm text-muted-foreground">
+                  {post.author.name}
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-4 text-muted-foreground">
               <div className="flex items-center gap-1">
                 <MessageCircle className="h-4 w-4" />

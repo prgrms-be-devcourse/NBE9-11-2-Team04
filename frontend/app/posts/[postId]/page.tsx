@@ -1,6 +1,7 @@
 ﻿"use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import { useParams } from "next/navigation"
 import CommentSection from "@/components/comment/CommentSection"
 import InteractionButtons from "@/components/interaction-buttons"
@@ -23,8 +24,7 @@ type PostDetailResponse = {
   liked?: boolean
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
 
 function getAuthHeaders(): HeadersInit {
   const headers: Record<string, string> = {
@@ -77,9 +77,7 @@ export default function PostDetailPage() {
         const data: PostDetailResponse = await response.json()
         setPost(data)
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
-        )
+        setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
       } finally {
         setLoading(false)
       }
@@ -123,7 +121,7 @@ export default function PostDetailPage() {
             message = "이미 신고한 게시글입니다."
           }
         } catch {
-          // 응답 본문이 JSON이 아니면 기본 메시지를 그대로 사용
+          // keep default message
         }
 
         throw new Error(message)
@@ -144,9 +142,7 @@ export default function PostDetailPage() {
     return (
       <main className="mx-auto max-w-4xl px-4 py-10">
         <div className="rounded-xl border border-border bg-card p-6 text-center">
-          <h1 className="text-xl font-semibold text-foreground">
-            잘못된 게시글 경로입니다.
-          </h1>
+          <h1 className="text-xl font-semibold text-foreground">잘못된 게시글 경로입니다.</h1>
         </div>
       </main>
     )
@@ -161,13 +157,17 @@ export default function PostDetailPage() {
           <div className="text-destructive">{error}</div>
         ) : (
           <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              {post?.title}
-            </h1>
+            <h1 className="text-2xl font-bold text-foreground">{post?.title}</h1>
+            {post?.userId ? (
+              <div className="mt-2 text-sm text-muted-foreground">
+                작성자:{" "}
+                <Link href={`/users/${post.userId}`} className="font-medium text-foreground hover:underline">
+                  {post.writerName}
+                </Link>
+              </div>
+            ) : null}
 
-            <div className="mt-6 whitespace-pre-wrap rounded-lg bg-muted/30 p-4 text-sm">
-              {post?.content}
-            </div>
+            <div className="mt-6 whitespace-pre-wrap rounded-lg bg-muted/30 p-4 text-sm">{post?.content}</div>
 
             <div className="mt-6">
               <InteractionButtons
