@@ -1,7 +1,9 @@
 package com.back.devc.domain.interaction.report.controller;
 
 import com.back.devc.domain.interaction.report.dto.AdminReportRequestDTO;
+import com.back.devc.domain.interaction.report.dto.ReportGroupResponseDTO;
 import com.back.devc.domain.interaction.report.dto.ReportResponseDTO;
+import com.back.devc.domain.interaction.report.entity.ReportStatus;
 import com.back.devc.domain.interaction.report.service.AdminReportService;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
@@ -29,13 +31,29 @@ public class AdminReportController {
 
     private final AdminReportService adminReportService;
 
-    /**
-     * 대기 중인 신고 목록 조회 (PENDING 상태만)
-     */
-    @GetMapping("/pending")
-    public ResponseEntity<SuccessResponse<Page<ReportResponseDTO>>> getPendingReports(
-            @AuthenticationPrincipal JwtPrincipal principal,
+    /* =========================
+       개별 로그 - Raw
+    ========================= */
+    @GetMapping("/raw")
+    public ResponseEntity<SuccessResponse<Page<ReportResponseDTO>>> getReports(
+            @RequestParam(required = false) ReportStatus status,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable
+    ) {
+        Page<ReportResponseDTO> reports = adminReportService.getReports(status, pageable);
+        return ResponseEntity.ok(
+                SuccessResponse.of("ADMIN_200", "신고 목록 조회 성공", reports)
+        );
+    }
+
+    /* =========================
+       GROUPED REPORTS - 같은 타겟에 대한 신고들을 그룹핑하여 조회
+    ========================= */
+    @GetMapping("/groups")
+    public ResponseEntity<SuccessResponse<Page<ReportGroupResponseDTO>>> getGrouped(
+            @AuthenticationPrincipal JwtPrincipal principal,
+            @RequestParam(required = false) ReportStatus status,
+            @PageableDefault(size = 20, sort = "latestCreatedAt", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
 
@@ -43,19 +61,17 @@ public class AdminReportController {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
-        Page<ReportResponseDTO> reports =
-                adminReportService.getPendingReports(pageable);
-
+        Page<ReportGroupResponseDTO> result = adminReportService.getGroupedReports(status, pageable);
         return ResponseEntity.ok(
-                SuccessResponse.of("ADMIN_200", "신고 대기 목록 조회 성공", reports)
+                SuccessResponse.of("ADMIN_200", "그룹 신고 조회 성공", result)
         );
     }
 
-    /**
-     * 신고 승인 및 제재 처리
-     */
-    @PostMapping("/approve")
-    public ResponseEntity<SuccessResponse<Void>> approveReport(
+    /* =========================
+       GROUP APPROVE
+    ========================= */
+    @PostMapping("/groups/approve")
+    public ResponseEntity<SuccessResponse<Void>> approveGroup(
             @RequestBody AdminReportRequestDTO requestDto,
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
@@ -63,16 +79,17 @@ public class AdminReportController {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
-        adminReportService.approveReport(principal.userId(), requestDto);
-
-        return ResponseEntity.ok(SuccessResponse.of("REPORT_APPROVE_200", "신고 승인 및 제재 완료", null));
+        adminReportService.approveReportGroup(getAuthenticatedUserId(principal), requestDto);
+        return ResponseEntity.ok(
+                SuccessResponse.of("REPORT_APPROVE_200", "그룹 신고 승인 완료", null)
+        );
     }
 
-    /**
-     * 신고 반려
-     */
-    @PostMapping("/reject")
-    public ResponseEntity<SuccessResponse<Void>> rejectReport(
+    /* =========================
+       GROUP REJECT
+    ========================= */
+    @PostMapping("/groups/reject")
+    public ResponseEntity<SuccessResponse<Void>> rejectGroup(
             @RequestBody AdminReportRequestDTO requestDto,
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
@@ -80,8 +97,14 @@ public class AdminReportController {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
-        adminReportService.rejectReport(principal.userId(), requestDto);
+        adminReportService.rejectReportGroup(getAuthenticatedUserId(principal), requestDto);
+        return ResponseEntity.ok(
+                SuccessResponse.of("REPORT_REJECT_200", "그룹 신고 반려 완료", null)
+        );
+    }
 
-        return ResponseEntity.ok(SuccessResponse.of("REPORT_REJECT_200", "신고 반려 완료", null));
+    private Long getAuthenticatedUserId(JwtPrincipal principal) {
+        if (principal == null) throw new ApiException(ErrorCode.UNAUTHORIZED);
+        return principal.userId();
     }
 }

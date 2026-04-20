@@ -1,6 +1,7 @@
 package com.back.devc.domain.admin.dashboard.repository;
 
 import com.back.devc.domain.admin.dashboard.dto.DashboardResponseDto.ReportReasonCount;
+import com.back.devc.domain.interaction.report.entity.ReportStatus;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -99,7 +100,7 @@ public class AdminDashboardRepositoryImpl implements AdminDashboardRepository {
     }
 
     @Override
-    public Long countTodayPostReportsByStatus(LocalDate today, String status) {
+    public Long countTodayPostReportsByStatus(LocalDate today, ReportStatus status) {
         return em.createQuery("""
                 select count(r)
                 from Report r
@@ -148,7 +149,7 @@ public class AdminDashboardRepositoryImpl implements AdminDashboardRepository {
     }
 
     @Override
-    public Long countTodayCommentReportsByStatus(LocalDate today, String status) {
+    public Long countTodayCommentReportsByStatus(LocalDate today, ReportStatus status) {
         return em.createQuery("""
                 select count(r)
                 from Report r
