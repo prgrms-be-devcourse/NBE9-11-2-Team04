@@ -21,6 +21,8 @@ type PostPageResponse = {
   }[]
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
+
 const formatTimeAgo = (dateString: string) => {
   const date = new Date(dateString)
   const diff = Date.now() - date.getTime()
@@ -56,16 +58,15 @@ export default function LatestPage() {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await fetch("http://localhost:8080/api/posts?sort=LATEST", {
-          headers: getAuthHeaders(),
-          cache: "no-store",
-        })
 
-        if (!res.ok) {
-          throw new Error("최신글을 불러오지 못했습니다.")
+        const response = await fetch(`${API_BASE_URL}/api/posts?sort=LATEST`)
+
+        if (!response.ok) {
+          throw new Error("게시글을 불러오지 못했습니다.")
         }
 
-        const data: PostPageResponse = await res.json()
+        const data: PostPageResponse = await response.json()
+
 
         const mapped: Post[] = data.content.map((post) => ({
           id: String(post.postId),

@@ -100,7 +100,7 @@ function getAuthFetchOptions(): Pick<RequestInit, "credentials" | "headers"> {
     }
 }
 
-function getCurrentUserId(): number | null {
+function getCurrentUserIdFromToken(): number | null {
     if (typeof window === "undefined") {
         return null
     }
@@ -120,6 +120,47 @@ function getCurrentUserId(): number | null {
         }
 
         const rawUserId = decoded.userId ?? decoded.user_id ?? decoded.id ?? decoded.sub
+
+        if (typeof rawUserId === "number") {
+            return rawUserId
+        }
+
+        if (typeof rawUserId === "string") {
+            const parsedUserId = Number(rawUserId)
+            return Number.isNaN(parsedUserId) ? null : parsedUserId
+        }
+
+        return null
+    } catch {
+        return null
+    }
+}
+
+/**
+ * OAuth 로그인 사용자는 localStorage 기반 JWT가 없을 수 있어서,
+ * 쿠키 인증으로 현재 사용자 정보를 다시 조회해 currentUserId 를 동기화한다.
+ */
+async function fetchCurrentUserIdFromServer(): Promise<number | null> {
+    try {
+        const response = await fetch("http://localhost:8080/api/users/me", {
+            ...getAuthFetchOptions(),
+            method: "GET",
+        })
+
+        if (!response.ok) {
+            return null
+        }
+
+        const data = (await response.json()) as {
+            userId?: number | string
+            id?: number | string
+            data?: {
+                userId?: number | string
+                id?: number | string
+            }
+        }
+
+        const rawUserId = data.userId ?? data.id ?? data.data?.userId ?? data.data?.id
 
         if (typeof rawUserId === "number") {
             return rawUserId
@@ -245,21 +286,44 @@ export default function CommentSection({ postId }: CommentSectionProps) {
     }, [loadComments])
 
     useEffect(() => {
+        let cancelled = false
+
         const syncCurrentUserId = () => {
-            setCurrentUserId(getCurrentUserId())
+            void (async () => {
+                const tokenUserId = getCurrentUserIdFromToken()
+
+                if (tokenUserId !== null) {
+                    if (!cancelled) {
+                        setCurrentUserId(tokenUserId)
+                    }
+                    return
+                }
+
+                const serverUserId = await fetchCurrentUserIdFromServer()
+                if (!cancelled) {
+                    setCurrentUserId(serverUserId)
+                }
+            })()
+        }
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === "visible") {
+                syncCurrentUserId()
+            }
         }
 
         syncCurrentUserId()
 
         window.addEventListener("storage", syncCurrentUserId)
         window.addEventListener("focus", syncCurrentUserId)
-        document.addEventListener("visibilitychange", syncCurrentUserId)
+        document.addEventListener("visibilitychange", handleVisibilityChange)
         window.addEventListener("auth-changed", syncCurrentUserId as EventListener)
 
         return () => {
+            cancelled = true
             window.removeEventListener("storage", syncCurrentUserId)
             window.removeEventListener("focus", syncCurrentUserId)
-            document.removeEventListener("visibilitychange", syncCurrentUserId)
+            document.removeEventListener("visibilitychange", handleVisibilityChange)
             window.removeEventListener("auth-changed", syncCurrentUserId as EventListener)
         }
     }, [])
@@ -411,7 +475,24 @@ export default function CommentSection({ postId }: CommentSectionProps) {
             })
 
             if (!response.ok) {
-                throw new Error("댓글 신고에 실패했습니다.")
+                let message = "댓글 신고에 실패했습니다."
+
+                try {
+                    const errorData = await response.json()
+                    message =
+                        errorData?.message ??
+                        errorData?.resultMessage ??
+                        errorData?.msg ??
+                        message
+
+                    if (typeof message === "string" && message.includes("이미 신고")) {
+                        message = "이미 신고한 댓글입니다."
+                    }
+                } catch {
+                    // 응답 본문이 JSON이 아니면 기본 메시지를 그대로 사용
+                }
+
+                throw new Error(message)
             }
 
             alert("댓글 신고가 접수되었습니다.")
