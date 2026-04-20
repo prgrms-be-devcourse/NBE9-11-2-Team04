@@ -38,6 +38,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     List<Post> findAllByOrderByCreatedAtDesc();
     List<Post> findAllByMember(Member member);
+    List<Post> findTop20ByMemberAndIsDeletedFalseOrderByCreatedAtDesc(Member member);
 
     Optional<Post> findByPostIdAndIsDeletedFalse(Long id);
     List<Post> findByIsDeletedFalse();

@@ -111,7 +111,7 @@ function getCurrentUserIdFromToken(): number | null {
     }
 
     try {
-        const payload = token.split(".")[1]
+        const payload = token!.split(".")[1]
         const decoded = JSON.parse(atob(payload)) as {
             userId?: number | string
             user_id?: number | string
@@ -177,11 +177,19 @@ async function fetchCurrentUserIdFromServer(): Promise<number | null> {
     }
 }
 
-function getJsonAuthHeaders(): Record<string, string> {
-    return {
-        "Content-Type": "application/json",
-        ...(getAuthFetchOptions().headers ?? {}),
+function getJsonAuthHeaders(): Headers {
+    const headers = new Headers()
+    headers.set("Content-Type", "application/json")
+
+    const authHeaders = getAuthFetchOptions().headers
+    if (authHeaders) {
+        const normalized = new Headers(authHeaders)
+        normalized.forEach((value, key) => {
+            headers.set(key, value)
+        })
     }
+
+    return headers
 }
 
 

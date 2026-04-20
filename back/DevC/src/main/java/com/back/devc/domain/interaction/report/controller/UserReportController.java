@@ -2,6 +2,8 @@ package com.back.devc.domain.interaction.report.controller;
 
 import com.back.devc.domain.interaction.report.dto.ReportRequestDTO;
 import com.back.devc.domain.interaction.report.service.UserReportService;
+import com.back.devc.global.exception.ApiException;
+import com.back.devc.global.exception.ErrorCode;
 import com.back.devc.global.response.SuccessCode;
 import com.back.devc.global.response.SuccessResponse;
 import com.back.devc.global.security.jwt.JwtPrincipal;
@@ -46,4 +48,10 @@ public class UserReportController {
         return ResponseEntity.ok(SuccessResponse.of(SuccessCode.REPORT_SUCCESS, null));
     }
 
+    private Long getAuthenticatedUserId(JwtPrincipal principal) {
+        if (principal == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+        return principal.userId();
+    }
 }

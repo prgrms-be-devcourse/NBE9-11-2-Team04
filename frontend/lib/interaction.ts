@@ -12,28 +12,28 @@ export type BookmarkResponse = {
 }
 
 export async function likePost(postId: number): Promise<LikeResponse> {
-  return apiFetch<LikeResponse>(`/posts/${postId}/likes`, {
+  return apiFetch<LikeResponse>(`/api/posts/${postId}/likes`, {
     method: "POST",
     auth: true,
   })
 }
 
 export async function unlikePost(postId: number): Promise<LikeResponse> {
-  return apiFetch<LikeResponse>(`/posts/${postId}/likes`, {
+  return apiFetch<LikeResponse>(`/api/posts/${postId}/likes`, {
     method: "DELETE",
     auth: true,
   })
 }
 
 export async function bookmarkPost(postId: number): Promise<BookmarkResponse> {
-  return apiFetch<BookmarkResponse>(`/posts/${postId}/bookmarks`, {
+  return apiFetch<BookmarkResponse>(`/api/posts/${postId}/bookmarks`, {
     method: "POST",
     auth: true,
   })
 }
 
 export async function unbookmarkPost(postId: number): Promise<BookmarkResponse> {
-  return apiFetch<BookmarkResponse>(`/posts/${postId}/bookmarks`, {
+  return apiFetch<BookmarkResponse>(`/api/posts/${postId}/bookmarks`, {
     method: "DELETE",
     auth: true,
   })
