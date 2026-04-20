@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
 import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
 
 @RestController
@@ -41,9 +42,7 @@ public class PostController {
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long postid
     ) {
-
-        Long loginUserId = principal != null ? getAuthenticatedUserId(principal) : null;
-
+        Long loginUserId = principal != null ? principal.userId() : null;
         return ResponseEntity.ok(postService.findDetailById(postid, loginUserId));
     }
 
@@ -78,7 +77,6 @@ public class PostController {
             @PathVariable Long postId,
             @RequestBody @Valid PostUpdateRequest postUpdateRequest
     ) {
-
         Post post = postService.update(
                 getAuthenticatedUserId(principal),
                 postId,
@@ -93,11 +91,10 @@ public class PostController {
     @DeleteMapping("/{postId}")
     public ResponseEntity<PostDeleteResponse> delete(
             @AuthenticationPrincipal JwtPrincipal principal,
-            @PathVariable Long postId) {
-
+            @PathVariable Long postId
+    ) {
         postService.delete(getAuthenticatedUserId(principal), postId);
 
         return ResponseEntity.ok(new PostDeleteResponse(postId, "삭제되었습니다."));
     }
-
 }

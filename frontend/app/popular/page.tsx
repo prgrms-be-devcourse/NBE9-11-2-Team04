@@ -16,10 +16,13 @@ type PostPageResponse = {
     likeCount: number
     commentCount: number
     createdAt: string
+    liked?: boolean
+    bookmarked?: boolean
   }[]
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
 
 const formatTimeAgo = (dateString: string) => {
   const date = new Date(dateString)
@@ -43,11 +46,14 @@ export default function PopularPage() {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/posts?sort=LIKES`)
+        const response = await fetch(`${API_BASE_URL}/api/posts?sort=LIKES`, {
+          credentials: "include",
+        })
 
         if (!response.ok) {
           throw new Error("게시글을 불러오지 못했습니다.")
         }
+
         const data: PostPageResponse = await response.json()
 
         const mapped: Post[] = data.content.map((post) => ({
@@ -64,6 +70,8 @@ export default function PopularPage() {
           comments: post.commentCount,
           views: post.viewCount,
           tags: [],
+          liked: post.liked ?? false,
+          bookmarked: post.bookmarked ?? false,
         }))
 
         setPosts(mapped)
@@ -79,7 +87,6 @@ export default function PopularPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Header */}
       <div className="mb-8 flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
           <TrendingUp className="h-5 w-5 text-primary" />
@@ -92,16 +99,12 @@ export default function PopularPage() {
         </div>
       </div>
 
-      {/* Posts */}
       {loading ? (
-        <div className="text-center py-10 text-muted-foreground">
-          로딩중...
-        </div>
+        <div className="py-10 text-center text-muted-foreground">로딩중...</div>
       ) : (
         <div className="grid gap-6">
           {posts.map((post, index) => (
             <div key={post.id} className="relative">
-              {/* 순위 뱃지 */}
               <div className="absolute -left-2 -top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
                 {index + 1}
               </div>

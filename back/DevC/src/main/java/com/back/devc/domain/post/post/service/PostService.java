@@ -121,8 +121,8 @@ public class PostService {
                 result = (categoryId != null)
                         ? postRepository.searchPosts(categoryId, kw, pageable)
                         : postRepository.findByTitleContainingOrContentContainingAndIsDeletedFalse(
-                                kw, kw, pageable
-                        );
+                        kw, kw, pageable
+                );
             }
         } else {
             if (categoryId != null) {

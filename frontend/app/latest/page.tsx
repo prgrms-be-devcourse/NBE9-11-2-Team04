@@ -22,7 +22,15 @@ type PostPageResponse = {
   }[]
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
+
+const categoryLabelMap: Record<number, string> = {
+  1: "IT 기술 정보",
+  2: "취업 시장 정보",
+  3: "개발자 트렌드",
+  4: "자유 주제",
+}
 
 const formatTimeAgo = (dateString: string) => {
   const date = new Date(dateString)
@@ -59,16 +67,17 @@ export default function LatestPage() {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/posts?sort=LATEST`, {
+        const res = await fetch(`${API_BASE_URL}/api/posts?sort=LATEST`, {
           headers: getAuthHeaders(),
+          credentials: "include",
           cache: "no-store",
         })
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch latest posts.")
+        if (!res.ok) {
+          throw new Error("최신글을 불러오지 못했습니다.")
         }
 
-        const data: PostPageResponse = await response.json()
+        const data: PostPageResponse = await res.json()
 
         const mapped: Post[] = data.content.map((post) => ({
           id: String(post.postId),
@@ -78,7 +87,7 @@ export default function LatestPage() {
             name: post.nickName,
             userId: post.userId,
           },
-          category: String(post.categoryId),
+          category: categoryLabelMap[post.categoryId] ?? String(post.categoryId),
           createdAt: formatTimeAgo(post.createdAt),
           likes: post.likeCount,
           comments: post.commentCount,
