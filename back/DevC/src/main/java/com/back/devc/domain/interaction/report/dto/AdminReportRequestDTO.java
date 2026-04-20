@@ -1,17 +1,38 @@
 package com.back.devc.domain.interaction.report.dto;
 
-import jakarta.validation.constraints.NotNull;
+import com.back.devc.domain.interaction.report.entity.SanctionType;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
 @Getter
-@Setter
+@NoArgsConstructor
 public class AdminReportRequestDTO {
 
-    @NotNull(message = "신고 ID는 필수입니다.")
+    /**
+     * 그룹 처리 시 targetId 값을 이 필드로 전달한다.
+     * (단건 처리 시에는 실제 reportId)
+     */
     private Long reportId;
 
-    private String sanctionType;  // 제재 유형 (WARNING, TEMP_BAN, PERM_BAN)
+    /**
+     * 그룹 처리 시 필수. "POST" | "COMMENT"
+     */
+    private String targetType;
 
-    private String rejectReason;  // 반려 사유 - 반려 시 사용
+    /**
+     * 관리자 메모 (선택)
+     */
+    private String adminNote;
+
+    /**
+     * 제재 유형: WARNED | SUSPENDED | BLACKLISTED
+     * 반려(reject) 시에는 null 허용
+     */
+    private SanctionType sanctionType;
+
+    /**
+     * SUSPENDED 선택 시 정지 기간(일). 1 | 3 | 7 | 30
+     * sanctionType이 SUSPENDED가 아니면 무시된다.
+     */
+    private Integer suspensionDays;
 }

@@ -2,8 +2,11 @@ package com.back.devc.domain.interaction.report.service;
 
 import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.domain.interaction.report.dto.AdminReportRequestDTO;
+import com.back.devc.domain.interaction.report.dto.ReportGroupResponseDTO;
 import com.back.devc.domain.interaction.report.dto.ReportResponseDTO;
 import com.back.devc.domain.interaction.report.entity.Report;
+import com.back.devc.domain.interaction.report.entity.ReportStatus;
+import com.back.devc.domain.interaction.report.entity.SanctionType;
 import com.back.devc.domain.interaction.report.repository.ReportRepository;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.entity.MemberStatus;
@@ -20,6 +23,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -29,103 +36,232 @@ public class AdminReportService {
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
-    // 신고가 관리자에 의해 처리된 뒤, 신고 대상 작성자에게 결과 알림을 보내기 위해 사용하는 서비스
     private final NotificationService notificationService;
 
-    /**
-     * 대기 중인 신고 목록 조회
-     */
+    // 1. 단건 신고 조회
     @Transactional(readOnly = true)
-    public Page<ReportResponseDTO> getPendingReports(Pageable pageable) {
-        return reportRepository.findAllByStatus("PENDING", pageable)
-                .map(this::toDtoWithTargetInfo);
+    public Page<ReportResponseDTO> getReports(ReportStatus status, Pageable pageable) {
+        Page<Report> reports = (status == null)
+                ? reportRepository.findAll(pageable)
+                : reportRepository.findAllByStatus(status, pageable);
+
+        return reports.map(this::toDtoWithTargetInfo);
     }
 
-    /**
-     * 신고 승인 처리
-     * 1. 신고 상태를 RESOLVED로 변경
-     * 2. 대상 콘텐츠(게시글 또는 댓글) soft delete
-     * 3. 신고 대상 회원의 status 제재 처리 (ACTIVE → WARNED → BLACKLISTED)
-     */
+    // 2. 단건 승인 처리
     public void approveReport(Long adminId, AdminReportRequestDTO dto) {
         Report report = findReportOrThrow(dto.getReportId());
         Member admin = findMemberOrThrow(adminId);
 
-        // 이미 처리된 신고인지 검증
         validatePendingStatus(report);
 
-        // 1. 신고 상태 변경 (RESOLVED)
-        report.processReport(admin, "RESOLVED");
-        // 관리자 승인 처리 후, 신고 대상 작성자에게 신고 처리 결과 알림을 생성
-        if ("POST".equals(report.getTargetType())) {
-            notificationService.createPostReportNotification(report.getTargetId(), adminId);
-        }
-        if ("COMMENT".equals(report.getTargetType())) {
-            notificationService.createCommentReportNotification(report.getTargetId(), adminId);
-        }
-
-        // 2. 대상 콘텐츠 삭제 및 작성자 제재
-        if ("POST".equals(report.getTargetType())) {
-            Post post = postRepository.findById(report.getTargetId())
-                    .orElseThrow(() -> new ApiException(ErrorCode.POST_NOT_FOUND));
-
-            // soft delete
-            post.delete();
-            sanctionMember(post.getMember());
-
-        } else if ("COMMENT".equals(report.getTargetType())) {
-            Comment comment = commentRepository.findById(report.getTargetId())
-                    .orElseThrow(() -> new ApiException(ErrorCode.COMMENT_NOT_FOUND));
-
-            comment.softDelete();
-
-            // 작성자 제재
-            // 댓글 작성자는 userId로 관리되므로 UserId로 조회
-            Member commentAuthor = memberRepository.findById(comment.getUserId())
-                    .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
-            sanctionMember(commentAuthor);
-        }
+        report.processReport(admin);
+        handleTargetAction(report, admin, true, dto.getSanctionType(), dto.getSuspensionDays());
     }
 
-    /**
-     * 신고 반려 처리
-     */
+    // 3. 단건 반려
     public void rejectReport(Long adminId, AdminReportRequestDTO dto) {
         Report report = findReportOrThrow(dto.getReportId());
         Member admin = findMemberOrThrow(adminId);
 
         validatePendingStatus(report);
 
-        report.processReport(admin, "REJECTED");
-        // 관리자 반려 처리 후에도, 신고 대상 작성자에게 신고 처리 결과 알림을 생성
+        report.rejectReport(admin);
+        handleTargetAction(report, admin, false, null, null);
+    }
+
+    // 4. 그룹(게시글/댓글 사용자별) 조회
+    @Transactional(readOnly = true)
+    public Page<ReportGroupResponseDTO> getGroupedReports(ReportStatus status, Pageable pageable) {
+        Page<Object[]> result = reportRepository.findGroupedReports(status, pageable);
+
+        return result.map(row -> {
+            String targetType = (String) row[0];
+            Long targetId = (Long) row[1];
+            Long reportCount = (Long) row[2];
+            LocalDateTime latestCreatedAt = (LocalDateTime) row[3];
+
+            String targetNickname = null;
+            String targetTitle = null;
+            String targetContent = null;
+
+            List<String> reasonTypes = new ArrayList<>();
+            List<Report> reports = reportRepository.findAllByTargetTypeAndTargetId(targetType, targetId);
+
+            for (Report r : reports) {
+                reasonTypes.add(r.getReasonType());
+            }
+
+            if ("POST".equals(targetType)) {
+                Post post = postRepository.findById(targetId).orElse(null);
+                if (post != null) {
+                    targetNickname = post.getMember().getNickname();
+                    targetTitle = post.getTitle();
+                    targetContent = post.getContent();
+                }
+            } else if ("COMMENT".equals(targetType)) {
+                Comment comment = commentRepository.findById(targetId).orElse(null);
+                if (comment != null) {
+                    targetContent = comment.getContent();
+                    Member m = memberRepository.findById(comment.getUserId()).orElse(null);
+                    if (m != null) targetNickname = m.getNickname();
+                }
+            }
+
+            return new ReportGroupResponseDTO(
+                    targetType, targetId, targetNickname, targetTitle, targetContent,
+                    reportCount, reasonTypes, ReportStatus.PENDING, latestCreatedAt
+            );
+        });
+    }
+
+    // 5. 그룹 승인 처리
+    public void approveReportGroup(Long adminId, AdminReportRequestDTO dto) {
+        Member admin = findMemberOrThrow(adminId);
+
+        // targetType, targetId는 DTO에서 가져옴 (reportId가 그룹 대표 targetId로 사용됨)
+        String targetType = dto.getTargetType();
+        Long targetId = dto.getReportId(); // 프론트에서 targetId를 reportId로 전달
+
+        List<Report> reports = reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
+                targetType, targetId, ReportStatus.PENDING);
+
+        if (reports.isEmpty()) return;
+
+        for (Report report : reports) {
+            report.processReport(admin);
+        }
+
+        handleGroupTargetAction(targetType, targetId, admin, true, dto.getSanctionType(), dto.getSuspensionDays());
+    }
+
+    // 6. 그룹 반려 처리
+    public void rejectReportGroup(Long adminId, AdminReportRequestDTO dto) {
+        Member admin = findMemberOrThrow(adminId);
+
+        String targetType = dto.getTargetType();
+        Long targetId = dto.getReportId();
+
+        List<Report> reports = reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
+                targetType, targetId, ReportStatus.PENDING);
+
+        if (reports.isEmpty()) return;
+
+        for (Report report : reports) {
+            report.rejectReport(admin);
+        }
+
+        handleGroupTargetAction(targetType, targetId, admin, false, null, null);
+    }
+
+    /* =========================================================
+     * 공통 처리 로직
+     * ========================================================= */
+
+    private void handleTargetAction(Report report, Member admin, boolean approved,
+                                    SanctionType sanctionType, Integer suspensionDays) {
+        notify(report, admin);
+        if (approved) {
+            deleteTarget(report.getTargetType(), report.getTargetId());
+            applyTargetMemberSanction(report.getTargetType(), report.getTargetId(), sanctionType, suspensionDays);
+        }
+    }
+
+    private void handleGroupTargetAction(String targetType, Long targetId, Member admin,
+                                         boolean approved, SanctionType sanctionType, Integer suspensionDays) {
+        notifyGroup(targetType, targetId, admin);
+        if (approved) {
+            deleteTarget(targetType, targetId);
+            applyTargetMemberSanction(targetType, targetId, sanctionType, suspensionDays);
+        }
+    }
+
+    /**
+     * 대상 게시글/댓글을 삭제(soft delete) 처리한다.
+     */
+    private void deleteTarget(String targetType, Long targetId) {
+        if ("POST".equals(targetType)) {
+            postRepository.findById(targetId).ifPresent(post -> {
+                if (!post.isDeleted()) post.delete();
+            });
+        } else if ("COMMENT".equals(targetType)) {
+            commentRepository.findById(targetId).ifPresent(comment -> {
+                if (!comment.isDeleted()) comment.softDelete();
+            });
+        }
+    }
+
+    /**
+     * 대상 게시글/댓글의 작성자를 찾아 관리자가 선택한 제재를 직접 적용한다.
+     * 자동 escalate 방식을 제거하고 관리자가 명시적으로 선택한 SanctionType을 따른다.
+     */
+    private void applyTargetMemberSanction(String targetType, Long targetId,
+                                           SanctionType sanctionType, Integer suspensionDays) {
+        if (sanctionType == null) return;
+
+        Member member = null;
+
+        if ("POST".equals(targetType)) {
+            Post post = postRepository.findById(targetId).orElse(null);
+            if (post != null) member = post.getMember();
+        } else if ("COMMENT".equals(targetType)) {
+            Comment comment = commentRepository.findById(targetId).orElse(null);
+            if (comment != null) member = memberRepository.findById(comment.getUserId()).orElse(null);
+        }
+
+        if (member == null) return;
+        applySanction(member, sanctionType, suspensionDays);
+    }
+
+    /**
+     * 관리자가 선택한 제재 유형에 따라 회원 상태를 직접 설정한다.
+     *
+     * - WARNED      : 경고 상태로 변경 (이미 상위 제재 상태면 변경하지 않음)
+     * - SUSPENDED   : suspensionDays 기간만큼 정지, suspendedUntil 설정
+     * - BLACKLISTED : 영구 차단
+     */
+    private void applySanction(Member member, SanctionType sanctionType, Integer suspensionDays) {
+        switch (sanctionType) {
+            case WARNED -> {
+                // 이미 정지/차단 상태라면 경고로 되돌리지 않는다 (하향 방지)
+                if (member.getStatus() == MemberStatus.ACTIVE) {
+                    member.updateStatus(MemberStatus.WARNED);
+                }
+            }
+            case SUSPENDED -> {
+                int days = (suspensionDays != null && suspensionDays > 0) ? suspensionDays : 1;
+                member.updateStatus(MemberStatus.SUSPENDED);
+                member.setSuspendedUntil(LocalDateTime.now().plusDays(days));
+            }
+            case BLACKLISTED -> {
+                member.updateStatus(MemberStatus.BLACKLISTED);
+                member.setSuspendedUntil(null); // 영구 차단은 기간 불필요
+            }
+        }
+    }
+
+    /* =========================================================
+     * 알림 및 편의 메서드
+     * ========================================================= */
+
+    private void notify(Report report, Member admin) {
         if ("POST".equals(report.getTargetType())) {
-            notificationService.createPostReportNotification(report.getTargetId(), adminId);
-        }
-        if ("COMMENT".equals(report.getTargetType())) {
-            notificationService.createCommentReportNotification(report.getTargetId(), adminId);
+            notificationService.createPostReportNotification(report.getTargetId(), admin.getUserId());
+        } else if ("COMMENT".equals(report.getTargetType())) {
+            notificationService.createCommentReportNotification(report.getTargetId(), admin.getUserId());
         }
     }
 
-    /**
-     * 회원 제재 처리
-     * ACTIVE → WARNED → BLACKLISTED 순으로 단계 상승
-     */
-    private void sanctionMember(Member member) {
-        MemberStatus currentStatus = member.getStatus();
-
-        if (currentStatus == MemberStatus.ACTIVE) {
-            member.updateStatus(MemberStatus.WARNED);
-        } else if (currentStatus == MemberStatus.WARNED) {
-            member.updateStatus(MemberStatus.BLACKLISTED);
+    private void notifyGroup(String targetType, Long targetId, Member admin) {
+        if ("POST".equals(targetType)) {
+            notificationService.createPostReportNotification(targetId, admin.getUserId());
+        } else if ("COMMENT".equals(targetType)) {
+            notificationService.createCommentReportNotification(targetId, admin.getUserId());
         }
-        // BLACKLISTED는 이미 최고 단계이므로 추가 변경 없음
     }
 
-    /**
-     * PENDING 상태인지 검증 (중복 처리 방지)
-     */
     private void validatePendingStatus(Report report) {
-        if (!"PENDING".equals(report.getStatus())) {
+        if (report.getStatus() != ReportStatus.PENDING) {
             throw new ApiException(ErrorCode.REPORT_ALREADY_PROCESSED);
         }
     }
@@ -140,39 +276,27 @@ public class AdminReportService {
                 .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
     }
 
-
     private ReportResponseDTO toDtoWithTargetInfo(Report report) {
-
         String targetNickname = null;
         String targetTitle = null;
         String targetContent = null;
 
         if ("POST".equals(report.getTargetType())) {
-            Post post = postRepository.findById(report.getTargetId())
-                    .orElse(null);
-
+            Post post = postRepository.findById(report.getTargetId()).orElse(null);
             if (post != null) {
                 targetNickname = post.getMember().getNickname();
                 targetTitle = post.getTitle();
                 targetContent = post.getContent();
             }
-        }
-
-        if ("COMMENT".equals(report.getTargetType())) {
-            Comment comment = commentRepository.findById(report.getTargetId())
-                    .orElse(null);
-
+        } else if ("COMMENT".equals(report.getTargetType())) {
+            Comment comment = commentRepository.findById(report.getTargetId()).orElse(null);
             if (comment != null) {
-                targetNickname = comment.getId().toString(); // nickname 가져오려면 service 단에서 userId로 member 조회 필요
+                targetNickname = memberRepository.findById(comment.getUserId())
+                        .map(Member::getNickname).orElse(null);
                 targetContent = comment.getContent();
             }
         }
 
-        return ReportResponseDTO.of(
-                report,
-                targetNickname,
-                targetTitle,
-                targetContent
-        );
+        return ReportResponseDTO.of(report, targetNickname, targetTitle, targetContent);
     }
 }

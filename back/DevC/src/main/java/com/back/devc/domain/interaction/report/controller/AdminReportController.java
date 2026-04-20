@@ -1,7 +1,9 @@
 package com.back.devc.domain.interaction.report.controller;
 
 import com.back.devc.domain.interaction.report.dto.AdminReportRequestDTO;
+import com.back.devc.domain.interaction.report.dto.ReportGroupResponseDTO;
 import com.back.devc.domain.interaction.report.dto.ReportResponseDTO;
+import com.back.devc.domain.interaction.report.entity.ReportStatus;
 import com.back.devc.domain.interaction.report.service.AdminReportService;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
@@ -25,62 +27,68 @@ public class AdminReportController {
 
     private final AdminReportService adminReportService;
 
-    /**
-     * 대기 중인 신고 목록 조회 (PENDING 상태만)
-     */
-    @GetMapping("/pending")
-    public ResponseEntity<SuccessResponse<Page<ReportResponseDTO>>> getPendingReports(
-            @AuthenticationPrincipal JwtPrincipal principal,
+    /* =========================
+       RAW REPORT (개별 로그)
+    ========================= */
+    @GetMapping("/raw")
+    public ResponseEntity<SuccessResponse<Page<ReportResponseDTO>>> getReports(
+            @RequestParam(required = false) ReportStatus status,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
-
-        getAuthenticatedUserId(principal);
-
-        Page<ReportResponseDTO> reports =
-                adminReportService.getPendingReports(pageable);
-
+        Page<ReportResponseDTO> reports = adminReportService.getReports(status, pageable);
         return ResponseEntity.ok(
-                SuccessResponse.of("ADMIN_200", "신고 대기 목록 조회 성공", reports)
+                SuccessResponse.of("ADMIN_200", "신고 목록 조회 성공", reports)
         );
     }
 
-    /**
-     * 신고 승인 및 제재 처리
-     */
-    @PostMapping("/approve")
-    public ResponseEntity<SuccessResponse<Void>> approveReport(
+    /* =========================
+       GROUPED REPORT (핵심)
+    ========================= */
+    @GetMapping("/groups")
+    public ResponseEntity<SuccessResponse<Page<ReportGroupResponseDTO>>> getGrouped(
+            @RequestParam(required = false) ReportStatus status,
+            @PageableDefault(size = 20, sort = "latestCreatedAt", direction = Sort.Direction.DESC)
+            Pageable pageable
+    ) {
+        Page<ReportGroupResponseDTO> result = adminReportService.getGroupedReports(status, pageable);
+        return ResponseEntity.ok(
+                SuccessResponse.of("ADMIN_200", "그룹 신고 조회 성공", result)
+        );
+    }
+
+    /* =========================
+       GROUP APPROVE
+       Body: { reportId(=targetId), targetType, sanctionType, suspensionDays, adminNote }
+    ========================= */
+    @PostMapping("/groups/approve")
+    public ResponseEntity<SuccessResponse<Void>> approveGroup(
             @RequestBody AdminReportRequestDTO requestDto,
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
-        adminReportService.approveReport(getAuthenticatedUserId(principal), requestDto);
-
-        return ResponseEntity.ok(SuccessResponse.of("REPORT_APPROVE_200", "신고 승인 및 제재 완료", null));
+        adminReportService.approveReportGroup(getAuthenticatedUserId(principal), requestDto);
+        return ResponseEntity.ok(
+                SuccessResponse.of("REPORT_APPROVE_200", "그룹 신고 승인 완료", null)
+        );
     }
 
-    /**
-     * 신고 반려
-     */
-    @PostMapping("/reject")
-    public ResponseEntity<SuccessResponse<Void>> rejectReport(
+    /* =========================
+       GROUP REJECT
+       Body: { reportId(=targetId), targetType, adminNote }
+    ========================= */
+    @PostMapping("/groups/reject")
+    public ResponseEntity<SuccessResponse<Void>> rejectGroup(
             @RequestBody AdminReportRequestDTO requestDto,
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
-        adminReportService.rejectReport(getAuthenticatedUserId(principal), requestDto);
-
-        return ResponseEntity.ok(SuccessResponse.of("REPORT_REJECT_200", "신고 반려 완료", null));
+        adminReportService.rejectReportGroup(getAuthenticatedUserId(principal), requestDto);
+        return ResponseEntity.ok(
+                SuccessResponse.of("REPORT_REJECT_200", "그룹 신고 반려 완료", null)
+        );
     }
-    /**
-     * 관리자 신고 컨트롤러에서 공통으로 사용하는 로그인 사용자 식별 메서드.
-     *
-     * JwtAuthenticationFilter가 정상적으로 principal을 세팅한 경우 userId를 반환하고,
-     * 인증 정보가 없으면 관리자 요청이라도 인증 실패로 간주해 UNAUTHORIZED 예외를 반환한다.
-     */
+
     private Long getAuthenticatedUserId(JwtPrincipal principal) {
-        // 토큰이 없거나 필터에서 principal을 세팅하지 못한 요청은 인증 실패로 처리한다.
-        if (principal == null) {
-            throw new ApiException(ErrorCode.UNAUTHORIZED);
-        }
+        if (principal == null) throw new ApiException(ErrorCode.UNAUTHORIZED);
         return principal.userId();
     }
 }

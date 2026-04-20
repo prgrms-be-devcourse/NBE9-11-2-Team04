@@ -1,18 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import {
-  CheckCircle,
-  XCircle,
-  FileText,
-  MessageSquare,
-  User,
-  MoreHorizontal,
-  Eye,
-} from "lucide-react"
+import { Eye, MoreHorizontal } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   DropdownMenu,
@@ -43,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Label } from "@/components/ui/label"
 
 /* =========================
    API CONFIG
@@ -51,60 +43,45 @@ import {
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "")
 
 /* =========================
-   TYPES (BACKEND DTO MATCH)
+   TYPES
 ========================= */
 
-type ReportType = "POST" | "COMMENT"
 type ReportStatus = "PENDING" | "RESOLVED" | "REJECTED"
+type SanctionType = "WARNED" | "SUSPENDED" | "BLACKLISTED"
 
-interface Report {
-  reportId: number
-
-  reporterEmail: string
-  reporterNickname: string
-
-  targetType: ReportType
+interface ReportGroup {
+  targetType: "POST" | "COMMENT"
   targetId: number
-
   targetNickname: string
   targetTitle?: string
   targetContent?: string
-
-  reasonType: string
-  reasonDetail: string
-
+  reportCount: number
+  reasonTypes: string[]
   status: ReportStatus
-
-  createdAt: string
-  processedAt?: string
+  latestCreatedAt: string
 }
 
 /* =========================
    LABELS
 ========================= */
 
-
-
-const typeLabels: Record<ReportType, { label: string; icon: any }> = {
-  POST: { label: "게시글", icon: FileText },
-  COMMENT: { label: "댓글", icon: MessageSquare },
+const typeLabels: Record<string, string> = {
+  POST: "게시글",
+  COMMENT: "댓글",
 }
 
-const statusLabels: Record<
-  ReportStatus,
-  { label: string; className: string }
-> = {
+const statusLabels: Record<string, { label: string; className: string }> = {
   PENDING: {
     label: "대기",
-    className: "bg-yellow-500/10 text-yellow-500",
+    className: "bg-gray-500/10 text-gray-500",
   },
   RESOLVED: {
-    label: "처리완료",
+    label: "완료",
     className: "bg-green-500/10 text-green-500",
   },
   REJECTED: {
     label: "반려",
-    className: "bg-muted text-muted-foreground",
+    className: "bg-red-500/10 text-red-500",
   },
 }
 
@@ -118,93 +95,88 @@ function getAuthHeaders(): HeadersInit {
   }
 
   if (typeof window !== "undefined") {
-    const token = window.localStorage.getItem("accessToken")
-    if (token) {
-      headers.Authorization = `Bearer ${token}`
-    }
+    const token = localStorage.getItem("accessToken")
+    if (token) headers.Authorization = `Bearer ${token}`
   }
 
   return headers
 }
 
+async function fetchGroupedReports(status: ReportStatus): Promise<ReportGroup[]> {
+  const res = await fetch(
+    `${API_BASE}/api/admin/reports/groups?status=${status}&page=0&size=10`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    }
+  )
 
-async function fetchReports(): Promise<Report[]> {
-  const res = await fetch(`${API_BASE}/api/admin/reports/pending`, {
-    method: "GET",
-    headers: getAuthHeaders(),
-  })
-
-  if (!res.ok) {
-    throw new Error("신고 조회 실패")
-  }
+  if (!res.ok) throw new Error("그룹 신고 조회 실패")
 
   const json = await res.json()
   return json.data.content
 }
-async function processReportApi(params: {
-  reportId: number
+
+async function processReportGroup(params: {
+  targetId: number
+  targetType: "POST" | "COMMENT"
   action: "RESOLVE" | "REJECT"
   adminNote: string
-  sanctionType?: string
+  sanctionType?: SanctionType
+  suspensionDays?: number
 }) {
   const endpoint =
     params.action === "RESOLVE"
-      ? `${API_BASE}/api/admin/reports/approve`
-      : `${API_BASE}/api/admin/reports/reject`
+      ? `${API_BASE}/api/admin/reports/groups/approve`
+      : `${API_BASE}/api/admin/reports/groups/reject`
 
   const res = await fetch(endpoint, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({
-      reportId: params.reportId,
+      reportId: params.targetId,
+      targetType: params.targetType,
       adminNote: params.adminNote,
-      sanctionType: params.sanctionType,
+      sanctionType: params.sanctionType ?? null,
+      suspensionDays: params.suspensionDays ?? null,
     }),
   })
 
+  if (!res.ok) throw new Error("처리 실패")
+
   const text = await res.text()
-  console.log("STATUS:", res.status)
-  console.log("RESPONSE:", text)
-
-  if (!res.ok) {
-    throw new Error(`신고 처리 실패 (${res.status})`)
-  }
-
   return text ? JSON.parse(text) : null
 }
-
 
 /* =========================
    PAGE
 ========================= */
 
 export default function ReportsManagementPage() {
-  const [reports, setReports] = useState<Report[]>([])
+  const [groups, setGroups] = useState<ReportGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [selectedReport, setSelectedReport] = useState<Report | null>(null)
+  const [status, setStatus] = useState<ReportStatus>("PENDING")
+  const [selectedGroup, setSelectedGroup] = useState<ReportGroup | null>(null)
 
-  const [processDialog, setProcessDialog] = useState<{
+  const [dialog, setDialog] = useState<{
     open: boolean
-    report: Report | null
+    group: ReportGroup | null
     action: "RESOLVE" | "REJECT" | null
-  }>({ open: false, report: null, action: null })
+  }>({ open: false, group: null, action: null })
 
   const [adminNote, setAdminNote] = useState("")
-  const [sanctionType, setSanctionType] = useState("")
+  const [sanctionType, setSanctionType] = useState<SanctionType | "">("")
+  const [suspensionDays, setSuspensionDays] = useState("")
 
-  /* =========================
-     LOAD
-  ========================= */
-
-  const loadReports = async () => {
+  const loadGroups = async (s: ReportStatus) => {
     try {
       setLoading(true)
       setError(null)
 
-      const data = await fetchReports()
-      setReports(data)
+      const data = await fetchGroupedReports(s)
+      setGroups(data)
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -213,153 +185,105 @@ export default function ReportsManagementPage() {
   }
 
   useEffect(() => {
-    loadReports()
-  }, [])
+    loadGroups(status)
+  }, [status])
 
-  /* =========================
-     PROCESS
-  ========================= */
-
-  const openProcessDialog = (
-    report: Report,
-    action: "RESOLVE" | "REJECT"
-  ) => {
-    setProcessDialog({ open: true, report, action })
+  const openDialog = (group: ReportGroup, action: "RESOLVE" | "REJECT") => {
+    setDialog({ open: true, group, action })
     setAdminNote("")
     setSanctionType("")
+    setSuspensionDays("")
   }
 
-  const processReport = async () => {
-    if (!processDialog.report || !processDialog.action) return
+  const closeDialog = () => {
+    setDialog({ open: false, group: null, action: null })
+  }
+
+  const handleProcess = async () => {
+    if (!dialog.group || !dialog.action) return
 
     try {
-      await processReportApi({
-        reportId: processDialog.report.reportId,
-        action: processDialog.action,
+      await processReportGroup({
+        targetId: dialog.group.targetId,
+        targetType: dialog.group.targetType,
+        action: dialog.action,
         adminNote,
-        sanctionType,
+        sanctionType: sanctionType || undefined,
+        suspensionDays: suspensionDays ? Number(suspensionDays) : undefined,
       })
 
-      setReports((prev) =>
-        prev.map((r) =>
-          r.reportId === processDialog.report!.reportId
-            ? {
-              ...r,
-              status:
-                processDialog.action === "RESOLVE"
-                  ? "RESOLVED"
-                  : "REJECTED",
-            }
-            : r
-        )
-      )
-
-      setProcessDialog({ open: false, report: null, action: null })
-    } catch (e) {
-      console.error(e)
+      closeDialog()
+      await loadGroups(status)
+    } catch {
       alert("처리 실패")
     }
   }
 
-  /* =========================
-     FILTER
-  ========================= */
-
-  const pendingReports = reports.filter((r) => r.status === "PENDING")
-  const resolvedReports = reports.filter((r) => r.status === "RESOLVED")
-  const rejectedReports = reports.filter((r) => r.status === "REJECTED")
-
-  if (loading) return <div className="p-6">로딩중...</div>
-  if (error) return <div className="p-6 text-red-500">{error}</div>
-
-  /* =========================
-     TABLE (UI 그대로 유지)
-  ========================= */
-
-  const ReportTable = ({
-    data,
-    showActions,
-  }: {
-    data: Report[]
-    showActions: boolean
-  }) => (
+  const GroupTable = ({ data }: { data: ReportGroup[] }) => (
     <div className="border rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>유형</TableHead>
+            <TableHead>대상</TableHead>
+            <TableHead>신고 수</TableHead>
             <TableHead>사유</TableHead>
-            <TableHead>내용</TableHead>
-            <TableHead>신고자</TableHead>
+            <TableHead>피신고자</TableHead>
             <TableHead>상태</TableHead>
-            {showActions && <TableHead>작업</TableHead>}
+            <TableHead>작업</TableHead>
           </TableRow>
         </TableHeader>
 
         <TableBody>
-          {data.map((r) => {
-            const TypeIcon = typeLabels[r.targetType].icon
+          {data.map((g) => {
+            const label = statusLabels[g.status]
 
             return (
-              <TableRow key={r.reportId}>
-                <TableCell>
-                  {typeLabels[r.targetType].label}
-                </TableCell>
-
-                <TableCell>{r.reasonType}</TableCell>
+              <TableRow key={g.targetType + g.targetId}>
+                <TableCell>{typeLabels[g.targetType] ?? "UNKNOWN"}</TableCell>
 
                 <TableCell className="max-w-[300px] truncate">
-                  {r.targetTitle || r.targetContent}
+                  {g.targetTitle || g.targetContent}
                 </TableCell>
 
-                <TableCell>{r.reporterNickname}</TableCell>
+                <TableCell>{g.reportCount}</TableCell>
+
+                <TableCell className="truncate">
+                  {g.reasonTypes.join(", ")}
+                </TableCell>
+
+                <TableCell>{g.targetNickname}</TableCell>
 
                 <TableCell>
-                  <span
-                    className={statusLabels[r.status].className}
-                  >
-                    {statusLabels[r.status].label}
+                  <span className={label?.className ?? ""}>
+                    {label?.label ?? "UNKNOWN"}
                   </span>
                 </TableCell>
 
-                {showActions && (
-                  <TableCell>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => setSelectedReport(r)}
-                    >
-                      <Eye />
-                    </Button>
+                <TableCell className="flex gap-1">
+                  <Button size="icon" variant="ghost" onClick={() => setSelectedGroup(g)}>
+                    <Eye />
+                  </Button>
 
-                    {r.status === "PENDING" && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost">
-                            <MoreHorizontal />
-                          </Button>
-                        </DropdownMenuTrigger>
+                  {g.status === "PENDING" && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="ghost">
+                          <MoreHorizontal />
+                        </Button>
+                      </DropdownMenuTrigger>
 
-                        <DropdownMenuContent>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              openProcessDialog(r, "RESOLVE")
-                            }
-                          >
-                            처리
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              openProcessDialog(r, "REJECT")
-                            }
-                          >
-                            반려
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </TableCell>
-                )}
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => openDialog(g, "RESOLVE")}>
+                          승인 처리
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openDialog(g, "REJECT")}>
+                          반려
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </TableCell>
               </TableRow>
             )
           })}
@@ -368,90 +292,100 @@ export default function ReportsManagementPage() {
     </div>
   )
 
-  /* =========================
-     UI (UNCHANGED)
-  ========================= */
+  if (loading) return <div className="p-6">로딩중...</div>
+  if (error) return <div className="p-6 text-red-500">{error}</div>
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">신고 관리</h1>
 
-      <Tabs defaultValue="pending">
+      <Tabs value={status} onValueChange={(v) => setStatus(v as ReportStatus)}>
         <TabsList>
-          <TabsTrigger value="pending">
-            대기 ({pendingReports.length})
-          </TabsTrigger>
-          <TabsTrigger value="resolved">완료</TabsTrigger>
-          <TabsTrigger value="rejected">반려</TabsTrigger>
+          <TabsTrigger value="PENDING">대기</TabsTrigger>
+          <TabsTrigger value="RESOLVED">완료</TabsTrigger>
+          <TabsTrigger value="REJECTED">반려</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pending">
-          <ReportTable data={pendingReports} showActions />
-        </TabsContent>
-
-        <TabsContent value="resolved">
-          <ReportTable data={resolvedReports} showActions={false} />
-        </TabsContent>
-
-        <TabsContent value="rejected">
-          <ReportTable data={rejectedReports} showActions={false} />
+        <TabsContent value={status}>
+          <GroupTable data={groups} />
         </TabsContent>
       </Tabs>
 
-      {/* PROCESS MODAL (UNCHANGED UI STRUCTURE) */}
-      <Dialog
-        open={processDialog.open}
-        onOpenChange={() =>
-          setProcessDialog({ open: false, report: null, action: null })
-        }
-      >
+      {/* 처리 모달 */}
+      <Dialog open={dialog.open} onOpenChange={closeDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>처리</DialogTitle>
+            <DialogTitle>
+              {dialog.action === "RESOLVE" ? "승인 처리" : "반려 처리"}
+            </DialogTitle>
           </DialogHeader>
 
-          <Select value={sanctionType} onValueChange={setSanctionType}>
-            <SelectTrigger>
-              <SelectValue placeholder="제재 선택" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="WARNED">경고</SelectItem>
-              <SelectItem value="BLACKLISTED">차단</SelectItem>
-              <SelectItem value="WITHDRAWN">삭제</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="space-y-3">
+            {dialog.action === "RESOLVE" && (
+              <>
+                <div>
+                  <Label>제재 유형</Label>
+                  <Select value={sanctionType} onValueChange={(v) => setSanctionType(v as SanctionType)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="WARNED">경고</SelectItem>
+                      <SelectItem value="SUSPENDED">정지</SelectItem>
+                      <SelectItem value="BLACKLISTED">차단</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          <Textarea
-            value={adminNote}
-            onChange={(e) => setAdminNote(e.target.value)}
-          />
+                {sanctionType === "SUSPENDED" && (
+                  <div>
+                    <Label>기간</Label>
+                    <Select value={suspensionDays} onValueChange={setSuspensionDays}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1일</SelectItem>
+                        <SelectItem value="7">7일</SelectItem>
+                        <SelectItem value="30">30일</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </>
+            )}
+
+            <Textarea
+              value={adminNote}
+              onChange={(e) => setAdminNote(e.target.value)}
+              placeholder="메모"
+            />
+          </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() =>
-                setProcessDialog({
-                  open: false,
-                  report: null,
-                  action: null,
-                })
-              }
-            >
+            <Button variant="outline" onClick={closeDialog}>
               취소
             </Button>
-            <Button onClick={processReport}>확인</Button>
+            <Button onClick={handleProcess}>확인</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* DETAIL */}
-      <Dialog
-        open={!!selectedReport}
-        onOpenChange={() => setSelectedReport(null)}
-      >
+      {/* 상세 */}
+      <Dialog open={!!selectedGroup} onOpenChange={() => setSelectedGroup(null)}>
         <DialogContent>
           <DialogTitle>상세</DialogTitle>
-          {selectedReport?.reasonDetail}
+
+          <div className="space-y-2">
+            <div>{selectedGroup?.targetNickname}</div>
+            <div>{selectedGroup?.reportCount}</div>
+            <div>{selectedGroup?.reasonTypes?.join(", ")}</div>
+            <div>
+              {selectedGroup
+                ? statusLabels[selectedGroup.status]?.label ?? "UNKNOWN"
+                : ""}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

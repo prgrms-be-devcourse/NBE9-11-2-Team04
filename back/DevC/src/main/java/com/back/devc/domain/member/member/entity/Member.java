@@ -65,6 +65,9 @@ public class Member {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(nullable = true)
+    private LocalDateTime suspendedUntil;
+
     private Member(
             String email,
             String passwordHash,
@@ -188,4 +191,9 @@ public class Member {
     void preUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    public void setSuspendedUntil(LocalDateTime suspendedUntil) {
+        this.suspendedUntil = suspendedUntil;
+    }
+
 }
