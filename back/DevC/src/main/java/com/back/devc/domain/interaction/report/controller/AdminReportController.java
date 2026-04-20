@@ -28,7 +28,7 @@ public class AdminReportController {
     private final AdminReportService adminReportService;
 
     /* =========================
-       RAW REPORT (개별 로그)
+       개별 로그 - Raw
     ========================= */
     @GetMapping("/raw")
     public ResponseEntity<SuccessResponse<Page<ReportResponseDTO>>> getReports(
@@ -43,7 +43,7 @@ public class AdminReportController {
     }
 
     /* =========================
-       GROUPED REPORT (핵심)
+       GROUPED REPORTS - 같은 타겟에 대한 신고들을 그룹핑하여 조회
     ========================= */
     @GetMapping("/groups")
     public ResponseEntity<SuccessResponse<Page<ReportGroupResponseDTO>>> getGrouped(
@@ -65,7 +65,6 @@ public class AdminReportController {
 
     /* =========================
        GROUP APPROVE
-       Body: { reportId(=targetId), targetType, sanctionType, suspensionDays, adminNote }
     ========================= */
     @PostMapping("/groups/approve")
     public ResponseEntity<SuccessResponse<Void>> approveGroup(
@@ -84,7 +83,6 @@ public class AdminReportController {
 
     /* =========================
        GROUP REJECT
-       Body: { reportId(=targetId), targetType, adminNote }
     ========================= */
     @PostMapping("/groups/reject")
     public ResponseEntity<SuccessResponse<Void>> rejectGroup(

@@ -15,7 +15,7 @@ public class AdminReportRequestDTO {
     private Long reportId;
 
     /**
-     * 그룹 처리 시 필수. "POST" | "COMMENT"
+     * "POST" | "COMMENT"
      */
     private String targetType;
 
