@@ -2,6 +2,8 @@ package com.back.devc.domain.interaction.report.controller;
 
 import com.back.devc.domain.interaction.report.dto.ReportRequestDTO;
 import com.back.devc.domain.interaction.report.service.UserReportService;
+import com.back.devc.global.exception.ApiException;
+import com.back.devc.global.exception.ErrorCode;
 import com.back.devc.global.response.SuccessCode;
 import com.back.devc.global.response.SuccessResponse;
 import com.back.devc.global.security.jwt.JwtPrincipal;
@@ -21,28 +23,28 @@ public class UserReportController {
 
     private final UserReportService reportService;
 
-    /**
-     * 게시글 신고
-     */
     @PostMapping("/post")
     public ResponseEntity<SuccessResponse<Void>> reportPost(
             @RequestBody @Valid ReportRequestDTO requestDto,
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
-        // JWT principal.userId() 사용
-        reportService.reportPost(principal.userId(), requestDto);
+        reportService.reportPost(getAuthenticatedUserId(principal), requestDto);
         return ResponseEntity.ok(SuccessResponse.of(SuccessCode.REPORT_SUCCESS, null));
     }
 
-    /**
-     * 댓글 신고
-     */
     @PostMapping("/comment")
     public ResponseEntity<SuccessResponse<Void>> reportComment(
             @RequestBody @Valid ReportRequestDTO requestDto,
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
-        reportService.reportComment(principal.userId(), requestDto);
+        reportService.reportComment(getAuthenticatedUserId(principal), requestDto);
         return ResponseEntity.ok(SuccessResponse.of(SuccessCode.REPORT_SUCCESS, null));
+    }
+
+    private Long getAuthenticatedUserId(JwtPrincipal principal) {
+        if (principal == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+        return principal.userId();
     }
 }
