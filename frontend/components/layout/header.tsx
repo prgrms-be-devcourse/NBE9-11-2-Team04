@@ -117,11 +117,20 @@ export function Header() {
     }
   }, [])
 
-  const handleLogout = () => {
-    clearLoginSession()
-    setMobileMenuOpen(false)
-    router.push("/")
-    router.refresh()
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      })
+    } catch {
+      // 로그아웃 API 실패여도 로컬 세션은 정리
+    } finally {
+      clearLoginSession()
+      setMobileMenuOpen(false)
+      router.push("/")
+      router.refresh()
+    }
   }
 
   useEffect(() => {
@@ -281,7 +290,7 @@ export function Header() {
               <DropdownMenuSeparator />
 
               {isLoggedIn ? (
-                <DropdownMenuItem onSelect={handleLogout}>로그아웃</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => void handleLogout()}>로그아웃</DropdownMenuItem>
               ) : (
                 <>
                   <DropdownMenuItem asChild>
@@ -360,7 +369,7 @@ export function Header() {
                 {isLoggedIn ? (
                   <>
                     <p className="mb-3 text-sm text-foreground">{nickname || "사용자"}님</p>
-                    <Button type="button" variant="outline" className="w-full" onClick={handleLogout}>
+                    <Button type="button" variant="outline" className="w-full" onClick={() => void handleLogout()}>
                       로그아웃
                     </Button>
                   </>

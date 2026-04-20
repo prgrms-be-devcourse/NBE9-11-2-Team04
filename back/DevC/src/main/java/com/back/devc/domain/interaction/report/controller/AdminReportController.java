@@ -34,7 +34,9 @@ public class AdminReportController {
             Pageable pageable
     ) {
 
-        getAuthenticatedUserId(principal);
+        if (principal == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
 
         Page<ReportResponseDTO> reports =
                 adminReportService.getPendingReports(pageable);
@@ -52,7 +54,11 @@ public class AdminReportController {
             @RequestBody AdminReportRequestDTO requestDto,
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
-        adminReportService.approveReport(getAuthenticatedUserId(principal), requestDto);
+        if (principal == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+
+        adminReportService.approveReport(principal.userId(), requestDto);
 
         return ResponseEntity.ok(SuccessResponse.of("REPORT_APPROVE_200", "신고 승인 및 제재 완료", null));
     }
@@ -65,7 +71,11 @@ public class AdminReportController {
             @RequestBody AdminReportRequestDTO requestDto,
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
-        adminReportService.rejectReport(getAuthenticatedUserId(principal), requestDto);
+        if (principal == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+
+        adminReportService.rejectReport(principal.userId(), requestDto);
 
         return ResponseEntity.ok(SuccessResponse.of("REPORT_REJECT_200", "신고 반려 완료", null));
     }

@@ -5,6 +5,8 @@ import org.springframework.data.domain.Pageable;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.post.post.entity.Post;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +25,18 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             Pageable pageable
     );
 
+    @Query("""
+    SELECT p FROM Post p
+    WHERE p.isDeleted = false
+    AND (:categoryId IS NULL OR p.category.categoryId = :categoryId)
+    AND (p.title LIKE %:kw% OR p.content LIKE %:kw%)
+""")
+    Page<Post> searchPosts(
+            @Param("categoryId") Long categoryId,
+            @Param("kw") String kw,
+            Pageable pageable
+    );
+
 
     Page<Post> findByCategoryCategoryIdAndTitleContainingAndIsDeletedFalse(
             Long categoryId, String title, Pageable pageable
@@ -32,12 +46,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             Long categoryId, String content, Pageable pageable
     );
 
-    Page<Post> findByCategoryCategoryIdAndTitleContainingOrContentContainingAndIsDeletedFalse(
-            Long categoryId, String title, String content, Pageable pageable
-    );
-
     List<Post> findAllByOrderByCreatedAtDesc();
     List<Post> findAllByMember(Member member);
+    List<Post> findTop20ByMemberAndIsDeletedFalseOrderByCreatedAtDesc(Member member);
 
     Optional<Post> findByPostIdAndIsDeletedFalse(Long id);
     List<Post> findByIsDeletedFalse();

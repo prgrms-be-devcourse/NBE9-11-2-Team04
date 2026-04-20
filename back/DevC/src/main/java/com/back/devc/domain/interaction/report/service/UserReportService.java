@@ -25,6 +25,8 @@ public class UserReportService {
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    // 신고 저장 성공 후 대상 작성자에게 신고 알림을 생성하기 위해 사용하는 서비스
+    private final NotificationService notificationService;
 
     public void reportPost(Long reporterId, ReportRequestDTO dto) {
         Member reporter = findMemberOrThrow(reporterId);
@@ -53,6 +55,9 @@ public class UserReportService {
                 .build();
 
         reportRepository.save(report);
+        // 신고 저장이 끝난 뒤 신고된 게시글의 작성자에게 REPORT 알림을 생성
+        // 실제 알림 생성 가능 여부(자기 자신 신고인지, 중복 알림인지 등)는 NotificationService 에서 한 번 더 검증
+        notificationService.createPostReportNotification(dto.getTargetId(), reporterId);
     }
 
     public void reportComment(Long reporterId, ReportRequestDTO dto) {
@@ -82,6 +87,9 @@ public class UserReportService {
                 .build();
 
         reportRepository.save(report);
+        // 신고 저장이 끝난 뒤 신고된 댓글의 작성자에게 REPORT 알림을 생성
+        // 실제 알림 생성 가능 여부(자기 자신 신고인지, 중복 알림인지 등)는 NotificationService 에서 한 번 더 검증
+        notificationService.createCommentReportNotification(dto.getTargetId(), reporterId);
     }
 
     private Member findMemberOrThrow(Long userId) {
