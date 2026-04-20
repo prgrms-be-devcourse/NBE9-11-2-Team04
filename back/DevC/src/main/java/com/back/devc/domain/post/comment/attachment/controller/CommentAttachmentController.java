@@ -5,13 +5,13 @@ import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentListRes
 import com.back.devc.domain.post.comment.attachment.service.CommentAttachmentService;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
+
+import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
 
 import java.util.List;
 
@@ -69,17 +69,4 @@ public class CommentAttachmentController {
         );
     }
 
-    /**
-     * 컨트롤러에서 공통으로 사용하는 로그인 사용자 식별 메서드
-     *
-     * principal 이 없으면 비로그인 요청이므로 401을 반환하고,
-     * 있으면 JwtPrincipal 안의 userId를 꺼내 현재 사용자로 사용
-     */
-    private Long getAuthenticatedUserId(JwtPrincipal principal) {
-        // 인증 없이 첨부파일 관련 API를 호출한 경우 명확하게 401 UNAUTHORIZED 로 응답한다.
-        if (principal == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증이 필요합니다.");
-        }
-        return principal.userId();
-    }
 }
