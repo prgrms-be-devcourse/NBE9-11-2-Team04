@@ -421,7 +421,7 @@ export default function NotificationsPage() {
                           <p className="text-sm text-foreground">{notification.message}</p>
                           {notification.postId ? (
                             <Link
-                              href={`/post/${notification.postId}`}
+                              href={`/posts/${notification.postId}`}
                               className="mt-1 line-clamp-1 text-sm text-primary hover:underline"
                             >
                               게시글 {notification.postId}번으로 이동

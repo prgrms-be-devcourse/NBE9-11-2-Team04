@@ -411,7 +411,24 @@ export default function CommentSection({ postId }: CommentSectionProps) {
             })
 
             if (!response.ok) {
-                throw new Error("댓글 신고에 실패했습니다.")
+                let message = "댓글 신고에 실패했습니다."
+
+                try {
+                    const errorData = await response.json()
+                    message =
+                        errorData?.message ??
+                        errorData?.resultMessage ??
+                        errorData?.msg ??
+                        message
+
+                    if (typeof message === "string" && message.includes("이미 신고")) {
+                        message = "이미 신고한 댓글입니다."
+                    }
+                } catch {
+                    // 응답 본문이 JSON이 아니면 기본 메시지를 그대로 사용
+                }
+
+                throw new Error(message)
             }
 
             alert("댓글 신고가 접수되었습니다.")
