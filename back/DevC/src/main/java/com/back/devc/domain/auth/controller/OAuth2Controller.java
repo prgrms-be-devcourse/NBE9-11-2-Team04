@@ -14,6 +14,7 @@ import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
 import com.back.devc.global.response.SuccessCode;
 import com.back.devc.global.response.SuccessResponse;
+import com.back.devc.global.security.jwt.AuthCookieService;
 import com.back.devc.global.security.jwt.JwtProvider;
 import com.back.devc.global.security.oauth2.OAuth2LoginSuccessHandler;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,8 +23,6 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -32,7 +31,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 @RestController
@@ -44,15 +42,7 @@ public class OAuth2Controller {
     private final OAuthLoginCodeService oAuthLoginCodeService;
     private final MemberRepository memberRepository;
     private final JwtProvider jwtProvider;
-
-    @Value("${custom.jwt.access-cookie-name:access_token}")
-    private String accessCookieName;
-
-    @Value("${custom.jwt.access-cookie-secure:false}")
-    private boolean accessCookieSecure;
-
-    @Value("${custom.jwt.access-cookie-same-site:Lax}")
-    private String accessCookieSameSite;
+    private final AuthCookieService authCookieService;
 
     @Value("${custom.jwt.access-token-expiration-seconds:3600}")
     private long accessTokenExpirationSeconds;
@@ -107,7 +97,7 @@ public class OAuth2Controller {
         }
 
         String accessToken = jwtProvider.createAccessToken(member);
-        setAccessTokenCookie(response, accessToken, accessTokenExpirationSeconds);
+        authCookieService.setAccessTokenCookie(response, accessToken, accessTokenExpirationSeconds);
 
         LoginResponse body = new LoginResponse(
                 member.getUserId(),
@@ -140,11 +130,11 @@ public class OAuth2Controller {
             throw new ApiException(ErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED);
         }
 
-        Member member = completeByProvider(pending, request.nickname());
+        Member member = oAuth2MemberService.completeSignup(pending, request.nickname());
         session.removeAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY);
 
         String accessToken = jwtProvider.createAccessToken(member);
-        setAccessTokenCookie(response, accessToken, accessTokenExpirationSeconds);
+        authCookieService.setAccessTokenCookie(response, accessToken, accessTokenExpirationSeconds);
 
         LoginResponse body = new LoginResponse(
                 member.getUserId(),
@@ -159,31 +149,5 @@ public class OAuth2Controller {
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, body));
-    }
-
-    private Member completeByProvider(OAuthPendingSignup pending, String nickname) {
-        String provider = pending.provider() == null ? "" : pending.provider().trim().toLowerCase(Locale.ROOT);
-
-        if ("github".equals(provider)) {
-            return oAuth2MemberService.completeGithubSignup(pending, nickname);
-        } else if ("kakao".equals(provider)) {
-            return oAuth2MemberService.completeKakaoSignup(pending, nickname);
-        } else if ("google".equals(provider)) {
-            return oAuth2MemberService.completeGoogleSignup(pending, nickname);
-        }
-
-        throw new ApiException(ErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
-    }
-
-    private void setAccessTokenCookie(HttpServletResponse response, String token, long maxAgeSeconds) {
-        ResponseCookie cookie = ResponseCookie.from(accessCookieName, token == null ? "" : token)
-                .httpOnly(true)
-                .secure(accessCookieSecure)
-                .path("/")
-                .maxAge(maxAgeSeconds)
-                .sameSite(accessCookieSameSite)
-                .build();
-
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 }
