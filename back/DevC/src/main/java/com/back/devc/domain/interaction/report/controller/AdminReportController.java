@@ -47,10 +47,16 @@ public class AdminReportController {
     ========================= */
     @GetMapping("/groups")
     public ResponseEntity<SuccessResponse<Page<ReportGroupResponseDTO>>> getGrouped(
+            @AuthenticationPrincipal JwtPrincipal principal,
             @RequestParam(required = false) ReportStatus status,
             @PageableDefault(size = 20, sort = "latestCreatedAt", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
+
+        if (principal == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+
         Page<ReportGroupResponseDTO> result = adminReportService.getGroupedReports(status, pageable);
         return ResponseEntity.ok(
                 SuccessResponse.of("ADMIN_200", "그룹 신고 조회 성공", result)
@@ -66,6 +72,10 @@ public class AdminReportController {
             @RequestBody AdminReportRequestDTO requestDto,
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
+        if (principal == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+
         adminReportService.approveReportGroup(getAuthenticatedUserId(principal), requestDto);
         return ResponseEntity.ok(
                 SuccessResponse.of("REPORT_APPROVE_200", "그룹 신고 승인 완료", null)
@@ -81,6 +91,10 @@ public class AdminReportController {
             @RequestBody AdminReportRequestDTO requestDto,
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
+        if (principal == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+
         adminReportService.rejectReportGroup(getAuthenticatedUserId(principal), requestDto);
         return ResponseEntity.ok(
                 SuccessResponse.of("REPORT_REJECT_200", "그룹 신고 반려 완료", null)

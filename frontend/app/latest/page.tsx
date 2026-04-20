@@ -8,6 +8,7 @@ import { getAccessToken } from "@/lib/auth-storage"
 type PostPageResponse = {
   content: {
     postId: number
+    userId?: number
     title: string
     content: string
     nickName: string
@@ -21,21 +22,29 @@ type PostPageResponse = {
   }[]
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
+
+const categoryLabelMap: Record<number, string> = {
+  1: "IT 기술 정보",
+  2: "취업 시장 정보",
+  3: "개발자 트렌드",
+  4: "자유 주제",
+}
 
 const formatTimeAgo = (dateString: string) => {
   const date = new Date(dateString)
   const diff = Date.now() - date.getTime()
 
   const minutes = Math.floor(diff / 1000 / 60)
-  if (minutes < 1) return "방금 전"
-  if (minutes < 60) return `${minutes}분 전`
+  if (minutes < 1) return "just now"
+  if (minutes < 60) return `${minutes}m ago`
 
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}시간 전`
+  if (hours < 24) return `${hours}h ago`
 
   const days = Math.floor(hours / 24)
-  return `${days}일 전`
+  return `${days}d ago`
 }
 
 function getAuthHeaders(): HeadersInit {
@@ -58,15 +67,17 @@ export default function LatestPage() {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
+        const res = await fetch(`${API_BASE_URL}/api/posts?sort=LATEST`, {
+          headers: getAuthHeaders(),
+          credentials: "include",
+          cache: "no-store",
+        })
 
-        const response = await fetch(`${API_BASE_URL}/api/posts?sort=LATEST`)
-
-        if (!response.ok) {
-          throw new Error("게시글을 불러오지 못했습니다.")
+        if (!res.ok) {
+          throw new Error("최신글을 불러오지 못했습니다.")
         }
 
-        const data: PostPageResponse = await response.json()
-
+        const data: PostPageResponse = await res.json()
 
         const mapped: Post[] = data.content.map((post) => ({
           id: String(post.postId),
@@ -74,8 +85,9 @@ export default function LatestPage() {
           excerpt: post.content,
           author: {
             name: post.nickName,
+            userId: post.userId,
           },
-          category: String(post.categoryId),
+          category: categoryLabelMap[post.categoryId] ?? String(post.categoryId),
           createdAt: formatTimeAgo(post.createdAt),
           likes: post.likeCount,
           comments: post.commentCount,
@@ -104,16 +116,12 @@ export default function LatestPage() {
         </div>
         <div>
           <h1 className="text-3xl font-bold">최신글</h1>
-          <p className="text-muted-foreground">
-            방금 올라온 따끈따끈한 글들입니다
-          </p>
+          <p className="text-muted-foreground">방금 올라온 따끈따끈한 글들입니다</p>
         </div>
       </div>
 
       {loading ? (
-        <div className="py-10 text-center text-muted-foreground">
-          로딩중...
-        </div>
+        <div className="py-10 text-center text-muted-foreground">Loading...</div>
       ) : (
         <div className="grid gap-6">
           {posts.map((post) => (

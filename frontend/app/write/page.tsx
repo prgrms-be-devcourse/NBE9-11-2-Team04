@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import {
   ArrowLeft,
   Save,
@@ -37,6 +38,13 @@ const categories = [
   { id: 4, name: "자유 주제" },
 ]
 
+const categoryMap: Record<string, number> = {
+  tech: 1,
+  "job-market": 2,
+  trend: 3,
+  free: 4,
+}
+
 type SuccessResponse<T> = {
   code?: string
   message?: string
@@ -67,6 +75,9 @@ export default function WritePage() {
     content: "",
   })
 
+  const searchParams = useSearchParams()
+  const categorySlug = searchParams.get("category")
+
   useEffect(() => {
     const auth = getAuthSnapshot()
     if (!auth.isLoggedIn) {
@@ -95,6 +106,20 @@ export default function WritePage() {
 
     void verifyAuth()
   }, [router])
+
+
+  useEffect(() => {
+    if (!categorySlug) return
+  
+    const categoryId = categoryMap[categorySlug]
+  
+    if (categoryId) {
+      setFormData((prev) => ({
+        ...prev,
+        category: String(categoryId),
+      }))
+    }
+  }, [categorySlug])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

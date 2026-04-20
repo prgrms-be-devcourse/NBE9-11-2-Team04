@@ -1,6 +1,7 @@
 ﻿"use client"
 
 import { useEffect, useMemo, useState } from "react"
+import type React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { PostCard, type Post } from "@/components/post-card"
@@ -76,20 +77,15 @@ type LocalProfileData = {
 
 const defaultUserData = {
   avatar: "",
-  bio: "자기 소개를 입력하세요",
-  location: "위치",
-  website: "https://kimdev.blog",
-  github: "Kimdev",
-  twitter: "Kimdev",
   joinedAt: "2024년 1월",
 }
 
 const emptyProfileData: LocalProfileData = {
-  bio: defaultUserData.bio,
-  location: defaultUserData.location,
-  website: defaultUserData.website,
-  github: defaultUserData.github,
-  twitter: defaultUserData.twitter,
+  bio: "",
+  location: "",
+  website: "",
+  github: "",
+  twitter: "",
 }
 
 function normalizeWebsiteUrl(value: string) {
@@ -296,11 +292,11 @@ export default function MyPage() {
         const savedProfile = getCurrentUserProfile()
 
         setProfileData({
-          bio: savedProfile?.bio?.trim() || defaultUserData.bio,
-          location: savedProfile?.location?.trim() || defaultUserData.location,
-          website: savedProfile?.website?.trim() || defaultUserData.website,
-          github: savedProfile?.github?.trim() || defaultUserData.github,
-          twitter: savedProfile?.twitter?.trim() || defaultUserData.twitter,
+          bio: savedProfile?.bio?.trim() ?? "",
+          location: savedProfile?.location?.trim() ?? "",
+          website: savedProfile?.website?.trim() ?? "",
+          github: savedProfile?.github?.trim() ?? "",
+          twitter: savedProfile?.twitter?.trim() ?? "",
         })
 
         setIsAuthReady(true)
@@ -386,11 +382,11 @@ export default function MyPage() {
       setDisplayEmail(email)
       setDisplayUsername(username)
       setProfileData({
-        bio: profile?.bio?.trim() || defaultUserData.bio,
-        location: profile?.location?.trim() || defaultUserData.location,
-        website: profile?.website?.trim() || defaultUserData.website,
-        github: profile?.github?.trim() || defaultUserData.github,
-        twitter: profile?.twitter?.trim() || defaultUserData.twitter,
+        bio: profile?.bio?.trim() ?? "",
+        location: profile?.location?.trim() ?? "",
+        website: profile?.website?.trim() ?? "",
+        github: profile?.github?.trim() ?? "",
+        twitter: profile?.twitter?.trim() ?? "",
       })
     }
 
@@ -521,23 +517,29 @@ export default function MyPage() {
               </Link>
             </div>
 
-            <p className="mb-4 leading-relaxed text-foreground">{profileData.bio}</p>
+            {profileData.bio ? (
+              <p className="mb-4 leading-relaxed text-foreground">{profileData.bio}</p>
+            ) : null}
 
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <MapPin className="h-4 w-4" />
-                {profileData.location}
-              </div>
+              {profileData.location ? (
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  {profileData.location}
+                </div>
+              ) : null}
 
-              <a
-                href={websiteHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-primary"
-              >
-                <LinkIcon className="h-4 w-4" />
-                {profileData.website.replace(/^https?:\/\//, "")}
-              </a>
+              {websiteHref ? (
+                <a
+                  href={websiteHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 hover:text-primary"
+                >
+                  <LinkIcon className="h-4 w-4" />
+                  {profileData.website.replace(/^https?:\/\//, "")}
+                </a>
+              ) : null}
 
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
@@ -545,25 +547,31 @@ export default function MyPage() {
               </div>
             </div>
 
-            <div className="mt-4 flex gap-3">
-              <a
-                href={githubHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Github className="h-5 w-5" />
-              </a>
+            {(githubHref || twitterHref) && (
+              <div className="mt-4 flex gap-3">
+                {githubHref ? (
+                  <a
+                    href={githubHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <Github className="h-5 w-5" />
+                  </a>
+                ) : null}
 
-              <a
-                href={twitterHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Twitter className="h-5 w-5" />
-              </a>
-            </div>
+                {twitterHref ? (
+                  <a
+                    href={twitterHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <Twitter className="h-5 w-5" />
+                  </a>
+                ) : null}
+              </div>
+            )}
           </div>
         </div>
 

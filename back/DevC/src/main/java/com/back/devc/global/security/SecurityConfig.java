@@ -64,6 +64,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/me").authenticated()
                         .requestMatchers("/api/users/me/likes").authenticated()
                         .requestMatchers("/api/mypage/**").authenticated()
+                        .requestMatchers("/api/report/**").authenticated()
                         .requestMatchers("/api/posts/*/likes").authenticated()
                         .requestMatchers("/api/posts/*/bookmarks").authenticated()
                         .anyRequest().permitAll()
@@ -85,7 +86,16 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
                 .cors(Customizer.withDefaults())
-                .csrf(csrf -> csrf.disable());
+                .csrf(csrf -> csrf.disable())
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessHandler((request, response, authentication) -> {
+                            response.setStatus(200);
+                        })
+                        .invalidateHttpSession(true)
+                        .clearAuthentication(true)
+                        .deleteCookies("JSESSIONID")
+                );
 
         return http.build();
     }

@@ -17,6 +17,7 @@ type NotificationItem = {
   notificationId: number
   userId: number
   actorUserId: number
+  actorNickname?: string
   postId: number | null
   commentId: number | null
   type: string
@@ -412,9 +413,12 @@ export default function NotificationsPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start gap-2">
                         <Avatar className="h-6 w-6">
-                          <AvatarImage src={undefined} alt={`${notification.actorUserId}번 사용자`} />
+                          <AvatarImage
+                            src={undefined}
+                            alt={notification.actorNickname ?? `${notification.actorUserId}번 사용자`}
+                          />
                           <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
-                            U{notification.actorUserId}
+                            {notification.actorNickname?.trim()?.slice(0, 2) || `U${notification.actorUserId}`}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
@@ -424,7 +428,7 @@ export default function NotificationsPage() {
                               href={`/posts/${notification.postId}`}
                               className="mt-1 line-clamp-1 text-sm text-primary hover:underline"
                             >
-                              게시글 {notification.postId}번으로 이동
+                              게시글로 이동
                             </Link>
                           ) : null}
                           <p className="mt-1 text-xs text-muted-foreground">

@@ -7,6 +7,7 @@ import com.back.devc.domain.interaction.notification.repository.NotificationRepo
 import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.repository.PostRepository;
+import com.back.devc.domain.member.member.repository.MemberRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,8 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     // 답글 알림 생성 시 부모 댓글 상태(존재 여부, 삭제 여부, 작성자)를 확인할 때 사용
     private final CommentRepository commentRepository;
+    // actorUserId로 회원 닉네임을 조회해 알림 메시지/응답에 사용
+    private final MemberRepository memberRepository;
     // 게시글 작성자(userId)를 찾아 "알림 수신자"를 결정할 때 사용
     private final PostRepository postRepository;
 
@@ -61,13 +64,15 @@ public class NotificationServiceImpl implements NotificationService {
             return;
         }
 
+        String actorNickname = findMemberNickname(actorUserId);
+
         saveNotification(
                 postOwnerId,
                 actorUserId,
                 postId,
                 commentId,
                 "COMMENT",
-                actorUserId + "번 사용자가 게시글에 댓글을 남겼습니다."
+                actorNickname + "님이 게시글에 댓글을 남겼습니다."
         );
     }
 
@@ -96,13 +101,15 @@ public class NotificationServiceImpl implements NotificationService {
             return;
         }
 
+        String actorNickname = findMemberNickname(actorUserId);
+
         saveNotification(
                 receiverUserId,
                 actorUserId,
                 parentComment.getPostId(),
                 replyCommentId,
                 "REPLY",
-                actorUserId + "번 사용자가 회원님의 댓글에 답글을 남겼습니다."
+                actorNickname + "님이 회원님의 댓글에 답글을 남겼습니다."
         );
     }
 
@@ -130,13 +137,15 @@ public class NotificationServiceImpl implements NotificationService {
             return;
         }
 
+        String actorNickname = findMemberNickname(actorUserId);
+
         saveNotification(
                 postOwnerId,
                 actorUserId,
                 postId,
                 null,
                 "LIKE",
-                actorUserId + "번 사용자가 회원님의 게시글을 좋아합니다."
+                actorNickname + "님이 회원님의 게시글을 좋아합니다."
         );
     }
 
@@ -164,13 +173,15 @@ public class NotificationServiceImpl implements NotificationService {
             return;
         }
 
+        String actorNickname = findMemberNickname(actorUserId);
+
         saveNotification(
                 postOwnerId,
                 actorUserId,
                 postId,
                 null,
                 "BOOKMARK",
-                actorUserId + "번 사용자가 회원님의 게시글을 북마크했습니다."
+                actorNickname + "님이 회원님의 게시글을 북마크했습니다."
         );
     }
 
@@ -356,12 +367,24 @@ public class NotificationServiceImpl implements NotificationService {
         notificationRepository.save(notification);
     }
 
+    // actorUserId로 회원 닉네임을 조회하는 공통 메서드
+    private String findMemberNickname(Long userId) {
+        return memberRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId))
+                .getNickname();
+    }
+
     // Entity -> Response DTO 변환 메서드
     private NotificationResponse toResponse(Notification notification) {
+        String actorNickname = notification.getActorUserId() != null
+                ? findMemberNickname(notification.getActorUserId())
+                : null;
+
         return new NotificationResponse(
                 notification.getId(),
                 notification.getUserId(),
                 notification.getActorUserId(),
+                actorNickname,
                 notification.getPostId(),
                 notification.getCommentId(),
                 notification.getType(),

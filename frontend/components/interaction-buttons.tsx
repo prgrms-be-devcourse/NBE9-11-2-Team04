@@ -1,11 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import type React from "react"
 import { Heart, Bookmark } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getAccessToken } from "@/lib/auth-storage"
 
-const BASE_URL = "http://localhost:8080"
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
 
 type InteractionButtonsProps = {
   postId: number
@@ -15,12 +17,14 @@ type InteractionButtonsProps = {
 }
 
 type LikeResponse = {
+  postId: number
   liked: boolean
   likeCount: number
   message?: string
 }
 
 type BookmarkResponse = {
+  postId: number
   bookmarked: boolean
   message?: string
 }
@@ -44,6 +48,19 @@ async function parseResponse(res: Response) {
   return rawText
 }
 
+function getAuthHeaders(): HeadersInit {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  }
+
+  const token = getAccessToken()
+  if (token && token !== "oauth-cookie-session") {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  return headers
+}
+
 export default function InteractionButtons({
   postId,
   initialLiked = false,
@@ -53,28 +70,35 @@ export default function InteractionButtons({
   const [liked, setLiked] = useState(initialLiked)
   const [bookmarked, setBookmarked] = useState(initialBookmarked)
   const [likeCount, setLikeCount] = useState(initialLikeCount)
-  const [loading, setLoading] = useState(false)
+  const [likeLoading, setLikeLoading] = useState(false)
+  const [bookmarkLoading, setBookmarkLoading] = useState(false)
 
-  // ✅ 좋아요 토글
-  const handleLike = async () => {
-    const token = getAccessToken()
-    if (!token) {
-      alert("로그인이 필요한 서비스입니다.")
-      return
-    }
+  useEffect(() => {
+    setLiked(initialLiked)
+  }, [initialLiked])
 
-    if (loading) return
-    setLoading(true)
+  useEffect(() => {
+    setBookmarked(initialBookmarked)
+  }, [initialBookmarked])
+
+  useEffect(() => {
+    setLikeCount(initialLikeCount)
+  }, [initialLikeCount])
+
+  const handleLike = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (likeLoading) return
+    setLikeLoading(true)
 
     try {
       const method = liked ? "DELETE" : "POST"
 
-      const res = await fetch(`${BASE_URL}/api/posts/${postId}/likes`, {
+      const res = await fetch(`${API_BASE_URL}/api/posts/${postId}/likes`, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-          authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
+        headers: getAuthHeaders(),
       })
 
       const parsed = await parseResponse(res)
@@ -88,38 +112,34 @@ export default function InteractionButtons({
       }
 
       const data = parsed as LikeResponse
+      setLiked(Boolean(data.liked))
+      setLikeCount(
+        typeof data.likeCount === "number" ? data.likeCount : likeCount
+      )
 
-      // 🔥 서버 기준으로 상태 동기화
-      setLiked(data.liked)
-      setLikeCount(data.likeCount)
+      window.dispatchEvent(new CustomEvent("notifications-updated"))
     } catch (error: any) {
       console.error("좋아요 처리 실패:", error)
       alert(error.message || "좋아요 처리 실패")
     } finally {
-      setLoading(false)
+      setLikeLoading(false)
     }
   }
 
-  // ✅ 북마크 토글
-  const handleBookmark = async () => {
-    const token = getAccessToken()
-    if (!token) {
-      alert("로그인이 필요한 서비스입니다.")
-      return
-    }
+  const handleBookmark = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
 
-    if (loading) return
-    setLoading(true)
+    if (bookmarkLoading) return
+    setBookmarkLoading(true)
 
     try {
       const method = bookmarked ? "DELETE" : "POST"
 
-      const res = await fetch(`${BASE_URL}/api/posts/${postId}/bookmarks`, {
+      const res = await fetch(`${API_BASE_URL}/api/posts/${postId}/bookmarks`, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-          authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
+        headers: getAuthHeaders(),
       })
 
       const parsed = await parseResponse(res)
@@ -133,28 +153,31 @@ export default function InteractionButtons({
       }
 
       const data = parsed as BookmarkResponse
+      setBookmarked(Boolean(data.bookmarked))
 
-      // 🔥 서버 기준으로 상태 동기화
-      setBookmarked(data.bookmarked)
+      window.dispatchEvent(new CustomEvent("notifications-updated"))
     } catch (error: any) {
       console.error("북마크 처리 실패:", error)
       alert(error.message || "북마크 처리 실패")
     } finally {
-      setLoading(false)
+      setBookmarkLoading(false)
     }
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div
+      className="flex items-center gap-2"
+      onClick={(e) => e.stopPropagation()}
+    >
       <Button
         type="button"
         variant={liked ? "default" : "outline"}
         size="sm"
         onClick={handleLike}
-        disabled={loading}
+        disabled={likeLoading}
         className="gap-1"
       >
-        <Heart className="h-4 w-4" />
+        <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
         <span>{likeCount}</span>
       </Button>
 
@@ -163,9 +186,9 @@ export default function InteractionButtons({
         variant={bookmarked ? "default" : "outline"}
         size="icon"
         onClick={handleBookmark}
-        disabled={loading}
+        disabled={bookmarkLoading}
       >
-        <Bookmark className="h-4 w-4" />
+        <Bookmark className={`h-4 w-4 ${bookmarked ? "fill-current" : ""}`} />
         <span className="sr-only">북마크</span>
       </Button>
     </div>

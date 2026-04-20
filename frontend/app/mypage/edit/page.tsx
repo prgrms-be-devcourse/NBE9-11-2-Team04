@@ -263,7 +263,7 @@ export default function MyPageEditPage() {
             </div>
 
             <p className="leading-relaxed text-muted-foreground">
-              이메일과 닉네임은 DB에 저장되고, 소개/위치/링크 정보는 브라우저에 저장됩니다.
+              내 정보를 입력하세요
             </p>
           </div>
         </div>
