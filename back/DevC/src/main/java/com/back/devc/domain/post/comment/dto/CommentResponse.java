@@ -1,31 +1,70 @@
 package com.back.devc.domain.post.comment.dto;
 
 import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentResponse;
-
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter
 @Builder
-@AllArgsConstructor
-public class CommentResponse {
+public record CommentResponse(
+        Long commentId,
+        Long postId,
+        Long userId,
+        String nickname,
+        Long parentCommentId,
+        String content,
+        boolean isDeleted,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt,
+        List<CommentResponse> replies,
+        List<CommentAttachmentResponse> attachments
+) {
 
-    private Long commentId;
-    private Long postId;
-    private Long userId;
-    private String nickname;
-    private Long parentCommentId;
-    private String content;
-    private boolean isDeleted;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    private List<CommentResponse> replies;
-    private List<CommentAttachmentResponse> attachments;
+    public Long getCommentId() {
+        return commentId;
+    }
+
+    public Long getPostId() {
+        return postId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public Long getParentCommentId() {
+        return parentCommentId;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public List<CommentResponse> getReplies() {
+        return replies;
+    }
+
+    public List<CommentAttachmentResponse> getAttachments() {
+        return attachments;
+    }
 
     public static CommentResponse of(
             Long commentId,

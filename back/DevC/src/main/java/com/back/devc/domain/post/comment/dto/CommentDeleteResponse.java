@@ -1,12 +1,15 @@
 package com.back.devc.domain.post.comment.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+public record CommentDeleteResponse(
+        Long commentId,
+        String message
+) {
 
-@Getter
-@AllArgsConstructor
-public class CommentDeleteResponse {
+    public Long getCommentId() {
+        return commentId;
+    }
 
-    private Long commentId;
-    private String message;
+    public String getMessage() {
+        return message;
+    }
 }

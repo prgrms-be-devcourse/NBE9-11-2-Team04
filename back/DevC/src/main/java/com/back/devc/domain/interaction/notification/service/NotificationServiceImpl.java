@@ -15,14 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@Service
-@RequiredArgsConstructor
-@Transactional(readOnly = true)
 /**
  * 알림 비즈니스 로직 구현체
  *
  * 이 서비스는 "누가(receiver) 어떤 행동(actor)을 알림으로 받아야 하는지"를 결정하고,
- * 그 결과를 Notification 엔티티로 저장하는 역할
+ * 그 결과를 Notification 엔티티로 저장하는 역할을 한다.
  *
  * 현재 이 프로젝트에서 다루는 알림 종류
  * - COMMENT : 내 게시글에 다른 사용자가 댓글을 남긴 경우
@@ -32,10 +29,13 @@ import java.util.List;
  * - REPORT  : 관리자 처리 후 내 게시글/댓글이 신고된 사실을 안내하는 경우
  *
  * 구현 시 주의한 점
- * - 자기 자신이 한 행동은 알림을 만들지 않음
- * - soft delete 된 부모 댓글에는 답글 알림을 만들지 않음
- * - 좋아요 알림은 취소 후 다시 눌렀을 때 중복 생성되지 않도록 한 번만 만듦
+ * - 자기 자신이 한 행동은 알림을 만들지 않는다.
+ * - soft delete 된 부모 댓글에는 답글 알림을 만들지 않는다.
+ * - 좋아요 알림은 취소 후 다시 눌렀을 때 중복 생성되지 않도록 한 번만 만든다.
  */
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class NotificationServiceImpl implements NotificationService {
 
     // 알림 저장/조회에 사용하는 JPA Repository.
