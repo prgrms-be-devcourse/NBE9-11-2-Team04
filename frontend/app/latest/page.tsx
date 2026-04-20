@@ -8,6 +8,7 @@ import { getAccessToken } from "@/lib/auth-storage"
 type PostPageResponse = {
   content: {
     postId: number
+    userId?: number
     title: string
     content: string
     nickName: string
@@ -73,6 +74,7 @@ export default function LatestPage() {
           excerpt: post.content,
           author: {
             name: post.nickName,
+            userId: post.userId,
           },
           category: String(post.categoryId),
           createdAt: formatTimeAgo(post.createdAt),

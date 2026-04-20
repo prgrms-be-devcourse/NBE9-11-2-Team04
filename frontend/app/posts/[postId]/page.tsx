@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import { useParams } from "next/navigation"
 import CommentSection from "@/components/comment/CommentSection"
 import InteractionButtons from "@/components/interaction-buttons"
@@ -147,6 +148,17 @@ export default function PostDetailPage() {
             <h1 className="text-2xl font-bold text-foreground">
               {post?.title}
             </h1>
+            {post?.userId ? (
+              <div className="mt-2 text-sm text-muted-foreground">
+                작성자:{" "}
+                <Link
+                  href={`/users/${post.userId}`}
+                  className="font-medium text-foreground hover:underline"
+                >
+                  {post.writerName}
+                </Link>
+              </div>
+            ) : null}
 
             <div className="mt-6 whitespace-pre-wrap rounded-lg bg-muted/30 p-4 text-sm">
               {post?.content}
