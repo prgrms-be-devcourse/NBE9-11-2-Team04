@@ -3,35 +3,45 @@
 import { useState } from "react"
 import { Heart, Bookmark } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { getAccessToken } from "@/lib/auth-storage"
 
 const BASE_URL = "http://localhost:8080"
-
-function getAuthHeaders(): Record<string, string> {
-  if (typeof window === "undefined") {
-    return {
-      "Content-Type": "application/json",
-    }
-  }
-
-  const token = window.localStorage.getItem("accessToken")
-
-  if (!token) {
-    return {
-      "Content-Type": "application/json",
-    }
-  }
-
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  }
-}
 
 type InteractionButtonsProps = {
   postId: number
   initialLiked?: boolean
   initialBookmarked?: boolean
   initialLikeCount?: number
+}
+
+type LikeResponse = {
+  liked: boolean
+  likeCount: number
+  message?: string
+}
+
+type BookmarkResponse = {
+  bookmarked: boolean
+  message?: string
+}
+
+async function parseResponse(res: Response) {
+  const contentType = res.headers.get("content-type") || ""
+  const rawText = await res.text()
+
+  if (contentType.includes("application/json")) {
+    try {
+      return JSON.parse(rawText)
+    } catch {
+      throw new Error("서버 JSON 응답을 읽는 중 오류가 발생했습니다.")
+    }
+  }
+
+  if (rawText.includes("<!DOCTYPE html>") || rawText.includes("<html")) {
+    throw new Error("서버가 JSON 대신 HTML을 반환했습니다. API 주소를 확인해주세요.")
+  }
+
+  return rawText
 }
 
 export default function InteractionButtons({
@@ -45,7 +55,14 @@ export default function InteractionButtons({
   const [likeCount, setLikeCount] = useState(initialLikeCount)
   const [loading, setLoading] = useState(false)
 
+  // ✅ 좋아요 토글
   const handleLike = async () => {
+    const token = getAccessToken()
+    if (!token) {
+      alert("로그인이 필요한 서비스입니다.")
+      return
+    }
+
     if (loading) return
     setLoading(true)
 
@@ -54,25 +71,43 @@ export default function InteractionButtons({
 
       const res = await fetch(`${BASE_URL}/api/posts/${postId}/likes`, {
         method,
-        headers: getAuthHeaders(),
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
       })
 
+      const parsed = await parseResponse(res)
+
       if (!res.ok) {
-        throw new Error("좋아요 처리 실패")
+        const message =
+          typeof parsed === "string"
+            ? parsed || "좋아요 처리 실패"
+            : parsed?.message || "좋아요 처리 실패"
+        throw new Error(message)
       }
 
-      const data = await res.json()
+      const data = parsed as LikeResponse
+
+      // 🔥 서버 기준으로 상태 동기화
       setLiked(data.liked)
       setLikeCount(data.likeCount)
-    } catch (error) {
-      console.error(error)
-      alert("좋아요 처리 실패")
+    } catch (error: any) {
+      console.error("좋아요 처리 실패:", error)
+      alert(error.message || "좋아요 처리 실패")
     } finally {
       setLoading(false)
     }
   }
 
+  // ✅ 북마크 토글
   const handleBookmark = async () => {
+    const token = getAccessToken()
+    if (!token) {
+      alert("로그인이 필요한 서비스입니다.")
+      return
+    }
+
     if (loading) return
     setLoading(true)
 
@@ -81,18 +116,29 @@ export default function InteractionButtons({
 
       const res = await fetch(`${BASE_URL}/api/posts/${postId}/bookmarks`, {
         method,
-        headers: getAuthHeaders(),
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
       })
 
+      const parsed = await parseResponse(res)
+
       if (!res.ok) {
-        throw new Error("북마크 처리 실패")
+        const message =
+          typeof parsed === "string"
+            ? parsed || "북마크 처리 실패"
+            : parsed?.message || "북마크 처리 실패"
+        throw new Error(message)
       }
 
-      const data = await res.json()
+      const data = parsed as BookmarkResponse
+
+      // 🔥 서버 기준으로 상태 동기화
       setBookmarked(data.bookmarked)
-    } catch (error) {
-      console.error(error)
-      alert("북마크 처리 실패")
+    } catch (error: any) {
+      console.error("북마크 처리 실패:", error)
+      alert(error.message || "북마크 처리 실패")
     } finally {
       setLoading(false)
     }

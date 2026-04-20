@@ -3,6 +3,7 @@ export const AUTH_NICKNAME_KEY = "nickname"
 export const AUTH_EMAIL_KEY = "email"
 export const AUTH_CHANGED_EVENT = "auth-changed"
 export const AUTH_PROFILES_KEY = "userProfiles"
+export const OAUTH_COOKIE_SESSION_TOKEN = "oauth-cookie-session"
 
 export type AuthSnapshot = {
   token: string | null
@@ -24,12 +25,23 @@ export type UserProfile = {
 
 type UserProfileMap = Record<string, UserProfile>
 
+export function sanitizeAccessToken(token: string | null | undefined): string | null {
+  if (!token) return null
+
+  const trimmedToken = token.trim()
+  if (!trimmedToken || trimmedToken === OAUTH_COOKIE_SESSION_TOKEN) {
+    return null
+  }
+
+  return trimmedToken
+}
+
 export function getAuthSnapshot(): AuthSnapshot {
   if (typeof window === "undefined") {
     return { token: null, nickname: null, email: null, isLoggedIn: false }
   }
 
-  const token = localStorage.getItem(AUTH_TOKEN_KEY)
+  const token = sanitizeAccessToken(localStorage.getItem(AUTH_TOKEN_KEY))
   const nickname = localStorage.getItem(AUTH_NICKNAME_KEY)
   const email = localStorage.getItem(AUTH_EMAIL_KEY)
 
@@ -37,7 +49,8 @@ export function getAuthSnapshot(): AuthSnapshot {
     token,
     nickname,
     email,
-    isLoggedIn: Boolean(token || email),
+    // 핵심 변경: 이메일 존재 여부가 아니라 "유효한 토큰 존재"로 로그인 판정
+    isLoggedIn: Boolean(token),
   }
 }
 
@@ -46,7 +59,7 @@ export function getAccessToken(): string | null {
     return null
   }
 
-  return localStorage.getItem(AUTH_TOKEN_KEY)
+  return sanitizeAccessToken(localStorage.getItem(AUTH_TOKEN_KEY))
 }
 
 function notifyAuthChanged() {
@@ -75,7 +88,7 @@ function writeProfileMap(profileMap: UserProfileMap) {
 /**
  * accessToken:
  * - string 전달: 그 값으로 갱신
- * - null 전달: 토큰 삭제
+ * - null 전달: 토큰 제거
  * - undefined 전달: 기존 토큰 유지
  */
 export function persistLoginSession(
@@ -86,10 +99,15 @@ export function persistLoginSession(
   if (typeof window === "undefined") return
 
   if (accessToken !== undefined) {
-    if (accessToken && accessToken.trim().length > 0) {
-      localStorage.setItem(AUTH_TOKEN_KEY, accessToken)
+    if (accessToken === OAUTH_COOKIE_SESSION_TOKEN) {
+      // Placeholder value must not overwrite or clear an existing access token.
     } else {
-      localStorage.removeItem(AUTH_TOKEN_KEY)
+      const normalizedToken = sanitizeAccessToken(accessToken)
+      if (normalizedToken) {
+        localStorage.setItem(AUTH_TOKEN_KEY, normalizedToken)
+      } else {
+        localStorage.removeItem(AUTH_TOKEN_KEY)
+      }
     }
   }
 

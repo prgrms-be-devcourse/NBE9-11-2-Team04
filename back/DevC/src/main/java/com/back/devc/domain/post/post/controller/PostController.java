@@ -6,18 +6,14 @@ import com.back.devc.domain.post.post.service.PostService;
 import com.back.devc.domain.post.post.type.PostSearchType;
 import com.back.devc.domain.post.post.type.PostSortType;
 import com.back.devc.global.security.jwt.JwtPrincipal;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -27,7 +23,7 @@ public class PostController {
     private final PostService postService;
 
     @PostMapping
-    public  ResponseEntity<PostCreateResponse> create(
+    public ResponseEntity<PostCreateResponse> create(
             @AuthenticationPrincipal JwtPrincipal principal,
             @RequestBody @Valid PostCreateRequest request
     ) {
@@ -41,7 +37,6 @@ public class PostController {
         return ResponseEntity.ok(PostCreateResponse.from(post));
     }
 
-    //상세 조회 하는 경우
     @GetMapping("/{postid}")
     public ResponseEntity<PostDetailResponse> detail(
             @AuthenticationPrincipal JwtPrincipal principal,
@@ -53,11 +48,9 @@ public class PostController {
         return ResponseEntity.ok(postService.findDetailById(postid, loginUserId));
     }
 
-    //게시글 조회 (좋아요,최신순,조회수)
-    //카테고리 파라미터를 넣으면 -> 카테고리 + (좋아요,최신순,조회수) 정렬가능하다
-    //게시글 검색기능 추가 (검색어, searchType : TITLE, CONTENT, TITLE_OR_CONTENT )
     @GetMapping
     public ResponseEntity<Page<PostListResponse>> list(
+            @AuthenticationPrincipal JwtPrincipal principal,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) PostSearchType searchType,
@@ -65,15 +58,21 @@ public class PostController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+        Long loginUserId = principal != null ? principal.userId() : null;
 
-        Page<Post> result = postService.getPosts(categoryId,keyword,searchType,sort, page, size);
-
-        return ResponseEntity.ok(
-                result.map(PostListResponse::new)
+        Page<PostListResponse> result = postService.getPosts(
+                loginUserId,
+                categoryId,
+                keyword,
+                searchType,
+                sort,
+                page,
+                size
         );
+
+        return ResponseEntity.ok(result);
     }
 
-    //수정 하는 경우
     @PutMapping("/{postId}")
     public ResponseEntity<PostUpdateResponse> update(
             @AuthenticationPrincipal JwtPrincipal principal,
@@ -90,7 +89,6 @@ public class PostController {
         );
 
         return ResponseEntity.ok(PostUpdateResponse.from(post));
-
     }
 
     @DeleteMapping("/{postId}")
@@ -100,10 +98,7 @@ public class PostController {
 
         postService.delete(getAuthenticatedUserId(principal), postId);
 
-        return ResponseEntity.ok(
-                new PostDeleteResponse(postId, "삭제되었습니다.")
-        );
-
+        return ResponseEntity.ok(new PostDeleteResponse(postId, "삭제되었습니다."));
     }
 
     /**
