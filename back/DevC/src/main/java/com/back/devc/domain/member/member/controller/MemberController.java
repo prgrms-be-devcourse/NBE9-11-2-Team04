@@ -13,8 +13,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -57,13 +57,11 @@ public class MemberController {
             @PathVariable Long userId
     ) {
         PublicProfileResponse response = memberService.getPublicProfile(userId);
-        return ResponseEntity.ok(
-                SuccessResponse.of(
-                        "USER_200_PUBLIC_PROFILE_SUCCESS",
-                        "사용자 공개 프로필 조회에 성공했습니다.",
-                        response
-                )
-        );
+        SuccessCode successCode = SuccessCode.PUBLIC_PROFILE_SUCCESS;
+
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
     }
 
     @DeleteMapping("/me")
