@@ -24,9 +24,6 @@ public class UserReportController {
 
     private final UserReportService reportService;
 
-    /**
-     * 게시글 신고
-     */
     @PostMapping("/post")
     public ResponseEntity<SuccessResponse<Void>> reportPost(
             @RequestBody @Valid ReportRequestDTO requestDto,
@@ -36,9 +33,6 @@ public class UserReportController {
         return ResponseEntity.ok(SuccessResponse.of(SuccessCode.REPORT_SUCCESS, null));
     }
 
-    /**
-     * 댓글 신고
-     */
     @PostMapping("/comment")
     public ResponseEntity<SuccessResponse<Void>> reportComment(
             @RequestBody @Valid ReportRequestDTO requestDto,
