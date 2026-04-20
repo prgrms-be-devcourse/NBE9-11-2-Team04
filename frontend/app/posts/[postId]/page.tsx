@@ -47,12 +47,16 @@ export default function PostDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [reportLoading, setReportLoading] = useState(false)
 
+  // ✅ 추가: 현재 로그인 유저
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+
   const postId = useMemo(() => {
     const rawPostId = params?.postId
     if (Array.isArray(rawPostId)) return Number(rawPostId[0])
     return Number(rawPostId)
   }, [params])
 
+  // 기존 게시글 조회
   useEffect(() => {
     const loadPost = async () => {
       if (!postId || Number.isNaN(postId)) {
@@ -85,6 +89,30 @@ export default function PostDetailPage() {
 
     void loadPost()
   }, [postId])
+
+  // 내 정보 조회
+  useEffect(() => {
+    const loadMe = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/users/me`, {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        })
+
+        if (!res.ok) return
+
+        const data = await res.json()
+        setCurrentUserId(data.data.userId)
+      } catch {
+        // ignore
+      }
+    }
+
+    void loadMe()
+  }, [])
+
+  //작성자 여부 확인
+  const isAuthor = post?.userId && currentUserId === post.userId
 
   const handleReportPost = async () => {
     if (!postId || Number.isNaN(postId)) {
@@ -126,7 +154,6 @@ export default function PostDetailPage() {
 
         throw new Error(message)
       }
-
       alert("게시글 신고가 접수되었습니다.")
       window.dispatchEvent(new CustomEvent("notifications-updated"))
     } catch (err) {
@@ -135,6 +162,30 @@ export default function PostDetailPage() {
       )
     } finally {
       setReportLoading(false)
+    }
+  }
+
+  // 추가: 삭제 기능
+  const handleDeletePost = async () => {
+    if (!postId) return
+
+    if (!confirm("정말 삭제하시겠습니까?")) return
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/posts/${postId}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: getAuthHeaders(),
+      })
+
+      if (!res.ok) {
+        throw new Error("삭제 실패")
+      }
+
+      alert("삭제되었습니다.")
+      window.location.href = "/"
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "오류 발생")
     }
   }
 
@@ -177,6 +228,25 @@ export default function PostDetailPage() {
                 initialLikeCount={post?.likeCount ?? 0}
               />
             </div>
+
+            {/* 추가: 수정/삭제 버튼 */}
+            {isAuthor && (
+              <div className="mt-4 flex items-center gap-2">
+              <Link
+                href={`/write?postId=${postId}`}
+                className="rounded-md border px-4 py-2 text-sm hover:bg-muted">
+
+                수정
+              </Link>
+
+              <button
+                onClick={handleDeletePost}
+                className="rounded-md border border-destructive/40 px-4 py-2 text-sm text-destructive hover:bg-destructive/10"
+              >
+                삭제
+              </button>
+              </div>
+            )}
 
             <button
               type="button"

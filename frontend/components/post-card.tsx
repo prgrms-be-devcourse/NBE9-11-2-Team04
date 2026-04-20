@@ -110,6 +110,7 @@ export function PostCard({ post }: PostCardProps) {
         </div>
 
         <InteractionButtons
+          key={`${post.id}-${post.liked}-${post.bookmarked}-${post.likes}`}
           postId={Number(post.id)}
           initialLiked={post.liked ?? false}
           initialBookmarked={post.bookmarked ?? false}

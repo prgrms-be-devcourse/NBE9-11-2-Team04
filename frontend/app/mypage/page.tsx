@@ -160,7 +160,12 @@ function formatJoinedAt(email?: string | null) {
   return "가입 정보"
 }
 
-function mapMyPostsToPostCard(posts: MyPostResponse[], displayName: string): Post[] {
+function mapMyPostsToPostCard(
+  posts: MyPostResponse[],
+  displayName: string,
+  likedPostIds: Set<number>,
+  bookmarkedPostIds: Set<number>
+): Post[] {
   return posts.map((post) => ({
     id: String(post.postId),
     title: post.title,
@@ -172,8 +177,8 @@ function mapMyPostsToPostCard(posts: MyPostResponse[], displayName: string): Pos
     comments: post.commentCount,
     views: 0,
     tags: [],
-    liked: false,
-    bookmarked: false,
+    liked: likedPostIds.has(post.postId),
+    bookmarked: bookmarkedPostIds.has(post.postId),
   }))
 }
 
@@ -233,6 +238,9 @@ export default function MyPage() {
   const [likeCount, setLikeCount] = useState(0)
   const [commentCount, setCommentCount] = useState(0)
 
+  const [myLikedPostIds, setMyLikedPostIds] = useState<Set<number>>(new Set())
+  const [myBookmarkedPostIds, setMyBookmarkedPostIds] = useState<Set<number>>(new Set())
+
   const websiteHref = useMemo(
     () => normalizeWebsiteUrl(profileData.website),
     [profileData.website]
@@ -247,8 +255,14 @@ export default function MyPage() {
   )
 
   const myPostCards = useMemo(
-    () => mapMyPostsToPostCard(myPosts, displayName),
-    [myPosts, displayName]
+    () =>
+      mapMyPostsToPostCard(
+        myPosts,
+        displayName,
+        myLikedPostIds,
+        myBookmarkedPostIds
+      ),
+    [myPosts, displayName, myLikedPostIds, myBookmarkedPostIds]
   )
   const bookmarkedPostCards = useMemo(
     () => mapBookmarkedPostsToPostCard(bookmarkedPosts),
@@ -332,11 +346,15 @@ export default function MyPage() {
         ])
 
         if (bookmarksRes.status === "fulfilled") {
-          setBookmarkCount(bookmarksRes.value?.length ?? 0)
+          const bookmarks = bookmarksRes.value ?? []
+          setBookmarkCount(bookmarks.length)
+          setMyBookmarkedPostIds(new Set(bookmarks.map((post) => post.postId)))
         }
 
         if (likesRes.status === "fulfilled") {
-          setLikeCount(likesRes.value?.length ?? 0)
+          const likes = likesRes.value ?? []
+          setLikeCount(likes.length)
+          setMyLikedPostIds(new Set(likes.map((post) => post.postId)))
         }
 
         if (commentsRes.status === "fulfilled") {
@@ -416,6 +434,7 @@ export default function MyPage() {
 
         setBookmarkedPosts(res ?? [])
         setBookmarkCount(res?.length ?? 0)
+        setMyBookmarkedPostIds(new Set((res ?? []).map((post) => post.postId)))
       } catch (err) {
         console.error(err)
         setError("북마크 목록을 불러오지 못했습니다.")
@@ -443,6 +462,7 @@ export default function MyPage() {
 
         setLikedPosts(res ?? [])
         setLikeCount(res?.length ?? 0)
+        setMyLikedPostIds(new Set((res ?? []).map((post) => post.postId)))
       } catch (err) {
         console.error(err)
         setError("좋아요 목록을 불러오지 못했습니다.")
