@@ -120,9 +120,7 @@ public class PostService {
             } else {
                 result = (categoryId != null)
                         ? postRepository.searchPosts(categoryId, kw, pageable)
-                        : postRepository.findByTitleContainingOrContentContainingAndIsDeletedFalse(
-                        kw, kw, pageable
-                );
+                        : postRepository.searchByKeyword(kw, pageable);
             }
         } else {
             if (categoryId != null) {
