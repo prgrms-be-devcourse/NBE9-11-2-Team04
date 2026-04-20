@@ -67,12 +67,18 @@ public class MypageService {
         List<Comment> comments = commentRepository.findByUserIdAndIsDeletedFalseOrderByCreatedAtDesc(userId);
 
         return comments.stream()
-                .map(comment -> new MyCommentResponse(
-                        comment.getId(),
-                        comment.getPostId(),
-                        comment.getContent(),
-                        comment.getCreatedAt()
-                ))
+                .map(comment -> {
+                    Post post = postRepository.findById(comment.getPostId())
+                            .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + comment.getPostId()));
+
+                    return new MyCommentResponse(
+                            comment.getId(),
+                            comment.getPostId(),
+                            post.getTitle(),
+                            comment.getContent(),
+                            comment.getCreatedAt()
+                    );
+                })
                 .toList();
     }
 

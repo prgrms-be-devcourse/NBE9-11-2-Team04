@@ -12,6 +12,7 @@ import com.back.devc.domain.post.comment.dto.CommentResponse;
 import com.back.devc.domain.post.comment.dto.CommentUpdateRequest;
 import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
+import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -170,9 +171,13 @@ public class CommentServiceImpl implements CommentService {
     }
 
     private CommentResponse toResponse(Comment comment, Member member) {
+        Post post = postRepository.findById(comment.getPostId())
+                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + comment.getPostId()));
+
         CommentResponse response = CommentResponse.of(
                 comment.getId(),
                 comment.getPostId(),
+                post.getTitle(),
                 comment.getUserId(),
                 MemberDisplayUtil.getDisplayName(member),
                 comment.getParentCommentId(),
