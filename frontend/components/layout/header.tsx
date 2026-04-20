@@ -229,7 +229,7 @@ export function Header() {
             최신글
           </Link>
           <Link href="/feed" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-            피드
+            북마크
           </Link>
         </nav>
 
