@@ -63,6 +63,13 @@ type PostCreateResponse = {
   message: string
 }
 
+type PostDetailResponse = {
+  postId: number
+  title: string
+  content: string
+  categoryId: number
+}
+
 export default function WritePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
@@ -77,6 +84,10 @@ export default function WritePage() {
 
   const searchParams = useSearchParams()
   const categorySlug = searchParams.get("category")
+
+  // ✅ 수정 모드 추가
+  const postId = searchParams.get("postId")
+  const isEditMode = !!postId
 
   useEffect(() => {
     const auth = getAuthSnapshot()
@@ -98,7 +109,6 @@ export default function WritePage() {
           router.replace("/login")
           return
         }
-        // 일시적 네트워크 오류면 페이지 사용 허용
       }
 
       setIsAuthReady(true)
@@ -107,12 +117,11 @@ export default function WritePage() {
     void verifyAuth()
   }, [router])
 
-
   useEffect(() => {
     if (!categorySlug) return
-  
+
     const categoryId = categoryMap[categorySlug]
-  
+
     if (categoryId) {
       setFormData((prev) => ({
         ...prev,
@@ -120,6 +129,35 @@ export default function WritePage() {
       }))
     }
   }, [categorySlug])
+
+  //수정 데이터 로딩
+  useEffect(() => {
+    if (!isEditMode || !postId) return
+
+    const fetchPost = async () => {
+      try {
+        const data = await apiFetch<PostDetailResponse>(
+          `/api/posts/${postId}`,
+          {
+            method: "GET",
+            auth: true,
+          }
+        )
+
+        setFormData({
+          title: data.title,
+          content: data.content,
+          category: String(data.categoryId),
+          tags: "",
+        })
+      } catch (err) {
+        console.error(err)
+        alert("게시글 불러오기 실패")
+      }
+    }
+
+    fetchPost()
+  }, [isEditMode, postId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -132,23 +170,39 @@ export default function WritePage() {
     setIsLoading(true)
 
     try {
-      const data = await apiFetch<PostCreateResponse>("/api/posts", {
-        method: "POST",
-        auth: true,
-        body: JSON.stringify({
-          title: formData.title,
-          content: formData.content,
-          categoryId: Number(formData.category),
-        }),
-      })
+      if (isEditMode && postId) {
+        // 수정 API
+        await apiFetch(`/api/posts/${postId}`, {
+          method: "PUT",
+          auth: true,
+          body: JSON.stringify({
+            title: formData.title,
+            content: formData.content,
+            categoryId: Number(formData.category),
+          }),
+        })
 
-      router.push(`/posts/${data.postId}`)
+        router.push(`/posts/${postId}`)
+      } else {
+        //생성 API
+        const data = await apiFetch<PostCreateResponse>("/api/posts", {
+          method: "POST",
+          auth: true,
+          body: JSON.stringify({
+            title: formData.title,
+            content: formData.content,
+            categoryId: Number(formData.category),
+          }),
+        })
+
+        router.push(`/posts/${data.postId}`)
+      }
     } catch (err) {
       console.error(err)
       if (isApiError(err)) {
         alert(err.message)
       } else {
-        alert("게시글 생성 중 오류가 발생했습니다.")
+        alert("게시글 저장 중 오류가 발생했습니다.")
       }
     } finally {
       setIsLoading(false)
@@ -212,8 +266,12 @@ export default function WritePage() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold text-foreground">글 쓰기</h1>
+
+          <h1 className="text-2xl font-bold text-foreground">
+            {isEditMode ? "글 수정" : "글 쓰기"}
+          </h1>
         </div>
+
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -223,13 +281,20 @@ export default function WritePage() {
             <Eye className="h-4 w-4" />
             {isPreview ? "편집" : "미리보기"}
           </Button>
+
           <Button
             onClick={handleSubmit}
             disabled={isLoading || !formData.title || !formData.content}
             className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <Save className="h-4 w-4" />
-            {isLoading ? "저장 중..." : "저장"}
+            {isEditMode
+              ? isLoading
+                ? "수정 중..."
+                : "수정"
+              : isLoading
+              ? "저장 중..."
+              : "저장"}
           </Button>
         </div>
       </div>
@@ -241,7 +306,9 @@ export default function WritePage() {
             type="text"
             placeholder="제목을 입력하세요"
             value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, title: e.target.value })
+            }
             required
             className="border-none bg-transparent text-3xl font-bold placeholder:text-muted-foreground focus-visible:ring-0"
           />
@@ -252,122 +319,85 @@ export default function WritePage() {
             <Label htmlFor="category" className="sr-only">
               카테고리
             </Label>
+
             <Select
               value={formData.category}
-              onValueChange={(value) => setFormData({ ...formData, category: value })}
+              onValueChange={(value) =>
+                setFormData({ ...formData, category: value })
+              }
             >
               <SelectTrigger className="bg-secondary">
                 <SelectValue placeholder="카테고리 선택" />
               </SelectTrigger>
+
               <SelectContent>
                 {categories.map((category) => (
-                  <SelectItem key={category.id} value={String(category.id)}>
+                  <SelectItem
+                    key={category.id}
+                    value={String(category.id)}
+                  >
                     {category.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
           <div className="flex-1">
             <Label htmlFor="tags" className="sr-only">
               태그
             </Label>
+
             <Input
               id="tags"
               type="text"
               placeholder="태그 입력 (쉼표로 구분)"
               value={formData.tags}
-              onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, tags: e.target.value })
+              }
               className="bg-secondary"
             />
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-secondary p-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => insertMarkdown("bold")}
-            title="굵게"
-          >
+          <Button type="button" variant="ghost" size="icon" onClick={() => insertMarkdown("bold")}>
             <Bold className="h-4 w-4" />
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => insertMarkdown("italic")}
-            title="기울임"
-          >
+          <Button type="button" variant="ghost" size="icon" onClick={() => insertMarkdown("italic")}>
             <Italic className="h-4 w-4" />
           </Button>
+
           <div className="mx-2 h-6 w-px bg-border" />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => insertMarkdown("code")}
-            title="코드"
-          >
+
+          <Button type="button" variant="ghost" size="icon" onClick={() => insertMarkdown("code")}>
             <Code className="h-4 w-4" />
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => insertMarkdown("link")}
-            title="링크"
-          >
+          <Button type="button" variant="ghost" size="icon" onClick={() => insertMarkdown("link")}>
             <Link2 className="h-4 w-4" />
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => insertMarkdown("image")}
-            title="이미지"
-          >
+          <Button type="button" variant="ghost" size="icon" onClick={() => insertMarkdown("image")}>
             <ImagePlus className="h-4 w-4" />
           </Button>
+
           <div className="mx-2 h-6 w-px bg-border" />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => insertMarkdown("quote")}
-            title="인용"
-          >
+
+          <Button type="button" variant="ghost" size="icon" onClick={() => insertMarkdown("quote")}>
             <Quote className="h-4 w-4" />
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => insertMarkdown("list")}
-            title="목록"
-          >
+          <Button type="button" variant="ghost" size="icon" onClick={() => insertMarkdown("list")}>
             <List className="h-4 w-4" />
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => insertMarkdown("ordered")}
-            title="번호 목록"
-          >
+          <Button type="button" variant="ghost" size="icon" onClick={() => insertMarkdown("ordered")}>
             <ListOrdered className="h-4 w-4" />
           </Button>
         </div>
 
         {isPreview ? (
           <div className="min-h-[400px] rounded-lg border border-border bg-card p-6">
-            <div className="prose prose-invert max-w-none">
-              {formData.content ? (
-                <div className="whitespace-pre-wrap text-foreground">{formData.content}</div>
-              ) : (
-                <p className="text-muted-foreground">미리볼 내용이 없습니다.</p>
-              )}
+            <div className="whitespace-pre-wrap text-foreground">
+              {formData.content || "미리볼 내용이 없습니다."}
             </div>
           </div>
         ) : (
@@ -375,11 +405,14 @@ export default function WritePage() {
             <Label htmlFor="content" className="sr-only">
               내용
             </Label>
+
             <Textarea
               id="content"
               placeholder="내용을 작성하세요. 마크다운 문법을 지원합니다."
               value={formData.content}
-              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, content: e.target.value })
+              }
               required
               rows={20}
               className="min-h-[400px] resize-none bg-secondary font-mono text-sm"
