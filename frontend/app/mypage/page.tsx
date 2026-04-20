@@ -76,11 +76,11 @@ type LocalProfileData = {
 
 const defaultUserData = {
   avatar: "",
-  bio: "10년차 풀스택 개발자. React, TypeScript, Node.js를 주로 사용합니다.",
-  location: "서울, 대한민국",
+  bio: "자기 소개를 입력하세요",
+  location: "위치",
   website: "https://kimdev.blog",
-  github: "kimdev",
-  twitter: "kimdev",
+  github: "Kimdev",
+  twitter: "Kimdev",
   joinedAt: "2024년 1월",
 }
 
@@ -176,6 +176,8 @@ function mapMyPostsToPostCard(posts: MyPostResponse[], displayName: string): Pos
     comments: post.commentCount,
     views: 0,
     tags: [],
+    liked: false,
+    bookmarked: false,
   }))
 }
 
@@ -191,6 +193,8 @@ function mapBookmarkedPostsToPostCard(posts: BookmarkedPostResponse[]): Post[] {
     comments: post.commentCount,
     views: 0,
     tags: [],
+    liked: false,
+    bookmarked: true,
   }))
 }
 
@@ -206,6 +210,8 @@ function mapLikedPostsToPostCard(posts: LikedPostResponse[]): Post[] {
     comments: post.commentCount,
     views: 0,
     tags: [],
+    liked: true,
+    bookmarked: false,
   }))
 }
 
@@ -226,6 +232,10 @@ export default function MyPage() {
   const [bookmarkedPosts, setBookmarkedPosts] = useState<BookmarkedPostResponse[]>([])
   const [likedPosts, setLikedPosts] = useState<LikedPostResponse[]>([])
   const [myComments, setMyComments] = useState<MyCommentResponse[]>([])
+
+  const [bookmarkCount, setBookmarkCount] = useState(0)
+  const [likeCount, setLikeCount] = useState(0)
+  const [commentCount, setCommentCount] = useState(0)
 
   const websiteHref = useMemo(
     () => normalizeWebsiteUrl(profileData.website),
@@ -308,6 +318,45 @@ export default function MyPage() {
   useEffect(() => {
     if (!isAuthReady) return
 
+    const fetchCounts = async () => {
+      try {
+        const [bookmarksRes, likesRes, commentsRes] = await Promise.allSettled([
+          apiFetch<BookmarkedPostResponse[]>("/api/mypage/bookmarks", {
+            method: "GET",
+            auth: true,
+          }),
+          apiFetch<LikedPostResponse[]>("/api/mypage/likes", {
+            method: "GET",
+            auth: true,
+          }),
+          apiFetch<MyCommentResponse[]>("/api/mypage/comments", {
+            method: "GET",
+            auth: true,
+          }),
+        ])
+
+        if (bookmarksRes.status === "fulfilled") {
+          setBookmarkCount(bookmarksRes.value?.length ?? 0)
+        }
+
+        if (likesRes.status === "fulfilled") {
+          setLikeCount(likesRes.value?.length ?? 0)
+        }
+
+        if (commentsRes.status === "fulfilled") {
+          setCommentCount(commentsRes.value?.length ?? 0)
+        }
+      } catch (err) {
+        console.error(err)
+      }
+    }
+
+    fetchCounts()
+  }, [isAuthReady])
+
+  useEffect(() => {
+    if (!isAuthReady) return
+
     const syncProfile = () => {
       const auth = getAuthSnapshot()
       const profile = getCurrentUserProfile()
@@ -370,6 +419,7 @@ export default function MyPage() {
         })
 
         setBookmarkedPosts(res ?? [])
+        setBookmarkCount(res?.length ?? 0)
       } catch (err) {
         console.error(err)
         setError("북마크 목록을 불러오지 못했습니다.")
@@ -396,6 +446,7 @@ export default function MyPage() {
         })
 
         setLikedPosts(res ?? [])
+        setLikeCount(res?.length ?? 0)
       } catch (err) {
         console.error(err)
         setError("좋아요 목록을 불러오지 못했습니다.")
@@ -422,6 +473,7 @@ export default function MyPage() {
         })
 
         setMyComments(res ?? [])
+        setCommentCount(res?.length ?? 0)
       } catch (err) {
         console.error(err)
         setError("댓글 목록을 불러오지 못했습니다.")
@@ -521,15 +573,15 @@ export default function MyPage() {
             <p className="text-sm text-muted-foreground">글</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{bookmarkedPosts.length}</p>
+            <p className="text-2xl font-bold text-foreground">{bookmarkCount}</p>
             <p className="text-sm text-muted-foreground">북마크</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{likedPosts.length}</p>
+            <p className="text-2xl font-bold text-foreground">{likeCount}</p>
             <p className="text-sm text-muted-foreground">좋아요</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{myComments.length}</p>
+            <p className="text-2xl font-bold text-foreground">{commentCount}</p>
             <p className="text-sm text-muted-foreground">댓글</p>
           </div>
         </div>
