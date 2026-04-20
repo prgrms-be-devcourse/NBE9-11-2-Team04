@@ -106,8 +106,8 @@ export default function LatestPage() {
           <Clock className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold">Latest</h1>
-          <p className="text-muted-foreground">Fresh posts just published.</p>
+          <h1 className="text-3xl font-bold">최신글</h1>
+          <p className="text-muted-foreground">방금 올라온 따끈따끈한 글들입니다</p>
         </div>
       </div>
 
