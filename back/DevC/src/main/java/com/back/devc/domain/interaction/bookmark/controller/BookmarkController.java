@@ -39,7 +39,6 @@ public class BookmarkController {
      * 인증 정보가 없으면 NPE 대신 401 UNAUTHORIZED를 반환하도록 방어
      */
     private Long getAuthenticatedUserId(JwtPrincipal principal) {
-        // 토큰이 없거나 필터에서 principal을 세팅하지 못한 요청은 인증 실패로 처리
         if (principal == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증이 필요합니다.");
         }

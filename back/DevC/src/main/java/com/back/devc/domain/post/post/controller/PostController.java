@@ -42,9 +42,7 @@ public class PostController {
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long postid
     ) {
-
-        Long loginUserId = principal != null ? getAuthenticatedUserId(principal) : null;
-
+        Long loginUserId = principal != null ? principal.userId() : null;
         return ResponseEntity.ok(postService.findDetailById(postid, loginUserId));
     }
 
@@ -79,7 +77,6 @@ public class PostController {
             @PathVariable Long postId,
             @RequestBody @Valid PostUpdateRequest postUpdateRequest
     ) {
-
         Post post = postService.update(
                 getAuthenticatedUserId(principal),
                 postId,
@@ -94,8 +91,8 @@ public class PostController {
     @DeleteMapping("/{postId}")
     public ResponseEntity<PostDeleteResponse> delete(
             @AuthenticationPrincipal JwtPrincipal principal,
-            @PathVariable Long postId) {
-
+            @PathVariable Long postId
+    ) {
         postService.delete(getAuthenticatedUserId(principal), postId);
 
         return ResponseEntity.ok(new PostDeleteResponse(postId, "삭제되었습니다."));
@@ -108,7 +105,6 @@ public class PostController {
      * 인증 정보가 없으면 RuntimeException 대신 401 UNAUTHORIZED를 반환하도록 방어
      */
     private Long getAuthenticatedUserId(JwtPrincipal principal) {
-        // 토큰이 없거나 필터에서 principal을 세팅하지 못한 요청은 인증 실패로 처리한다.
         if (principal == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증이 필요합니다.");
         }

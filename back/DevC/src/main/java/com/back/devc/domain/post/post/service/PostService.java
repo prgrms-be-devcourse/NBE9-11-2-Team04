@@ -120,11 +120,11 @@ public class PostService {
             } else {
                 result = (categoryId != null)
                         ? postRepository.findByCategoryCategoryIdAndTitleContainingOrContentContainingAndIsDeletedFalse(
-                                categoryId, kw, kw, pageable
-                        )
+                        categoryId, kw, kw, pageable
+                )
                         : postRepository.findByTitleContainingOrContentContainingAndIsDeletedFalse(
-                                kw, kw, pageable
-                        );
+                        kw, kw, pageable
+                );
             }
         } else {
             if (categoryId != null) {
