@@ -22,7 +22,7 @@ public class CategoryInitData {
 
             if (categoryRepository.count() > 0) return;
 
-            List<String> names = List.of("NOTICE", "FREE", "QNA");
+            List<String> names = List.of("tech", "job-market", "trend","free");
 
             for (String name : names) {
                 Category c = new Category(name);
