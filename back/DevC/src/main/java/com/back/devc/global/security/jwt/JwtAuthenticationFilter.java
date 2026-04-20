@@ -70,8 +70,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    // 회원이 존재하고, 상태가 ACTIVE, WARNED, SUSPENDED 중 하나인지 확인
+    // 기존: ACTIVE만 가능에서 기능 체크를 위해 수정하였습니다.
     private boolean isAuthenticatableMember(Member member) {
-        return member != null && member.getStatus() == MemberStatus.ACTIVE;
+        return member != null &&
+                (member.getStatus() == MemberStatus.ACTIVE
+                        || member.getStatus() == MemberStatus.WARNED || member.getStatus() == MemberStatus.SUSPENDED);
     }
 
     private String resolveToken(HttpServletRequest request) {
