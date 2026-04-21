@@ -58,7 +58,6 @@ public class UserReportService {
 
         reportRepository.save(report);
 
-        notify(targetType, dto.targetId(), reporterId);
     }
 
     /* =========================================================
@@ -98,19 +97,6 @@ public class UserReportService {
         if (reportRepository.existsByReporterAndTargetTypeAndTargetId(
                 reporter, type, targetId)) {
             throw new ApiException(ErrorCode.REPORT_ALREADY_EXISTS);
-        }
-    }
-
-    /* =========================================================
-     * Notification
-     * ========================================================= */
-
-    private void notify(TargetType type, Long targetId, Long reporterId) {
-
-        if (type == TargetType.POST) {
-            notificationService.createPostReportNotification(targetId, reporterId);
-        } else {
-            notificationService.createCommentReportNotification(targetId, reporterId);
         }
     }
 

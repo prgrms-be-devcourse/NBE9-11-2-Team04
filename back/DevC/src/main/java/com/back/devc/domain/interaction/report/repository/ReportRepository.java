@@ -40,4 +40,7 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     List<Report> findAllByTargetTypeAndTargetId(TargetType targetType, Long targetId);
 
     boolean existsByReporterAndTargetTypeAndTargetId(Member reporter, TargetType targetType, Long targetId);
+
+    @Query("select r.reasonType from Report r where r.targetType = :targetType and r.targetId = :targetId")
+    List<String> findReasonTypesByTarget(TargetType targetType, Long targetId);
 }
