@@ -13,6 +13,8 @@ export interface Post {
     userId?: number
   }
   category: string
+  categorySlug: string
+  categoryId: number
   createdAt: string
   likes: number
   comments: number
@@ -54,7 +56,7 @@ export function PostCard({ post, onBookmarkToggle }: PostCardProps) {
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex items-center gap-2">
             <Link
-              href={`/category/${post.category.toLowerCase()}`}
+              href={`/category/${post.categorySlug}`}
               className="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
             >
               {post.category}
