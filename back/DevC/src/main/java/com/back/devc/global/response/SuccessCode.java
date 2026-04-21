@@ -28,6 +28,16 @@ public enum SuccessCode {
     NOTIFICATION_200_LIST_SUCCESS(HttpStatus.OK, "NOTIFICATION_200_LIST_SUCCESS", "알림 목록 조회 성공"),
     NOTIFICATION_200_READ_SUCCESS(HttpStatus.OK, "NOTIFICATION_200_READ_SUCCESS", "알림 읽음 처리 성공"),
 
+    //게시글 관련 성공 코드
+
+    POST_201_CREATE_SUCCESS(HttpStatus.CREATED,"POST_201_CREATE_SUCCESS", "게시글 작성 성공"),
+    POST_200_LIST_SUCCESS(HttpStatus.OK,"POST_200_LIST_SUCCESS", "게시글 목록 조회 성공"),
+    POST_200_DETAIL_SUCCESS(HttpStatus.OK,"POST_200_DETAIL_SUCCESS", "게시글 상세 조회 성공"),
+    POST_200_UPDATE_SUCCESS(HttpStatus.OK,"POST_200_UPDATE_SUCCESS", "게시글 수정 성공"),
+    POST_200_DELETE_SUCCESS(HttpStatus.OK,"POST_200_DELETE_SUCCESS", "게시글 삭제 성공"),
+
+
+
     // CommentAttachment SuccessCode
     COMMENT_ATTACHMENT_201_UPLOAD_SUCCESS(HttpStatus.CREATED, "COMMENT_ATTACHMENT_201_UPLOAD_SUCCESS", "댓글 첨부파일 업로드 성공"),
     COMMENT_ATTACHMENT_200_LIST_SUCCESS(HttpStatus.OK, "COMMENT_ATTACHMENT_200_LIST_SUCCESS", "댓글 첨부파일 조회 성공"),

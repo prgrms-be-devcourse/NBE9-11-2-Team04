@@ -20,7 +20,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     Page<Post> findByTitleContainingAndIsDeletedFalse(String title, Pageable pageable);
     Page<Post> findByContentContainingAndIsDeletedFalse(String content, Pageable pageable);
 
-
     @Query("""
     SELECT p FROM Post p
     WHERE p.isDeleted = false
@@ -30,7 +29,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             @Param("kw") String kw,
             Pageable pageable
     );
-
 
     @Query("""
     SELECT p FROM Post p
@@ -67,7 +65,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> findByIsDeletedFalseOrderByLikeCountDesc();
 
     List<Post> findByCategoryCategoryIdAndIsDeletedFalse(long categoryId);
-
 
     long countByMember(Member member);
 }
