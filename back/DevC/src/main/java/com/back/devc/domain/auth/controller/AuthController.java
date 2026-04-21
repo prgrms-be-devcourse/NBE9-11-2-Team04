@@ -44,7 +44,6 @@ public class AuthController {
             HttpServletResponse response
     ) {
         LoginResponse body = authService.login(request);
-
         authCookieService.setAccessTokenCookie(response, body.accessToken(), accessTokenExpirationSeconds);
 
         SuccessCode successCode = SuccessCode.LOGIN_SUCCESS;
@@ -56,6 +55,7 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<SuccessResponse<SignUpResponse>> signUp(@Valid @RequestBody SignUpRequest request) {
         SignUpResponse body = authService.signUp(request);
+
         SuccessCode successCode = SuccessCode.SIGN_UP_SUCCESS;
         return ResponseEntity
                 .status(successCode.getStatus())
