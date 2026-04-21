@@ -4,7 +4,6 @@ import com.back.devc.domain.interaction.bookmark.dto.BookmarkResponse;
 import com.back.devc.domain.interaction.bookmark.dto.BookmarkedPostResponse;
 import com.back.devc.domain.interaction.bookmark.entity.Bookmark;
 import com.back.devc.domain.interaction.bookmark.repository.BookmarkRepository;
-import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.member.member.util.MemberDisplayUtil;
@@ -25,7 +24,6 @@ public class BookmarkService {
     private final BookmarkRepository bookmarkRepository;
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
-    private final NotificationService notificationService;
 
     @Transactional
     public BookmarkResponse createBookmark(Long userId, Long postId) {
@@ -45,8 +43,6 @@ public class BookmarkService {
 
         Bookmark bookmark = new Bookmark(member, post);
         bookmarkRepository.save(bookmark);
-
-        notificationService.createBookmarkNotification(postId, userId);
 
         return new BookmarkResponse(
                 post.getPostId(),
