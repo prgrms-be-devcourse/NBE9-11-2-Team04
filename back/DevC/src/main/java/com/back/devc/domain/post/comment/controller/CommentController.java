@@ -1,6 +1,5 @@
 package com.back.devc.domain.post.comment.controller;
 
-import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
 import com.back.devc.domain.post.comment.dto.CommentCreateRequest;
 import com.back.devc.domain.post.comment.dto.CommentDeleteResponse;
 import com.back.devc.domain.post.comment.dto.CommentListResponse;
@@ -8,13 +7,13 @@ import com.back.devc.domain.post.comment.dto.CommentResponse;
 import com.back.devc.domain.post.comment.dto.CommentUpdateRequest;
 import com.back.devc.domain.post.comment.service.CommentService;
 import com.back.devc.global.security.jwt.JwtPrincipal;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-
+import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
 
 @RestController
 @RequestMapping("/api")
