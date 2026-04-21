@@ -13,9 +13,11 @@ import com.back.devc.global.security.jwt.JwtPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.core.Authentication;
+import com.back.devc.global.response.SuccessResponse;
+import com.back.devc.global.response.SuccessCode;
 
 /**
- * 알림 조회/읽음 처리 API 컨트롤러.
+ * 알림 조회/읽음 처리 API 컨트롤러
  *
  * 이 컨트롤러는 현재 로그인한 사용자를 기준으로만 알림을 조회하고 읽음 처리
  *
@@ -40,6 +42,7 @@ public class NotificationController {
     // OAuth 로그인 사용자는 JwtPrincipal이 없을 수 있어서,
     // email 기반으로 Member를 다시 찾아 userId를 얻을 때 사용
     private final MemberRepository memberRepository;
+
     /**
      * 현재 로그인한 사용자의 알림 목록 조회
      *
@@ -47,9 +50,14 @@ public class NotificationController {
      * - OAuth 로그인 사용자는 OAuth2User에서 email을 꺼낸 뒤 Member를 조회해서 userId를 얻음
      */
     @GetMapping
-    public ResponseEntity<NotificationListResponse> getMyNotifications(Authentication authentication) {
-        return ResponseEntity.ok(notificationService.getMyNotifications(getAuthenticatedUserId(authentication)));
+    public ResponseEntity<SuccessResponse<NotificationListResponse>> getMyNotifications(Authentication authentication) {
+        NotificationListResponse response = notificationService.getMyNotifications(getAuthenticatedUserId(authentication));
+
+        return ResponseEntity.ok(
+                SuccessResponse.of(SuccessCode.NOTIFICATION_LIST_SUCCESS, response)
+        );
     }
+
     /**
      * 현재 로그인한 사용자의 특정 알림을 읽음 처리
      *
@@ -57,12 +65,20 @@ public class NotificationController {
      * 실제 service 계층에서 "이 알림이 현재 로그인한 사용자의 알림인지"를 함께 검증하기 때문
      */
     @PatchMapping("/{notificationId}/read")
-    public ResponseEntity<NotificationResponse> readNotification(
+    public ResponseEntity<SuccessResponse<NotificationResponse>> readNotification(
             Authentication authentication,
             @PathVariable Long notificationId
     ) {
-        return ResponseEntity.ok(notificationService.readNotification(notificationId, getAuthenticatedUserId(authentication)));
+        NotificationResponse response = notificationService.readNotification(
+                notificationId,
+                getAuthenticatedUserId(authentication)
+        );
+
+        return ResponseEntity.ok(
+                SuccessResponse.of(SuccessCode.NOTIFICATION_READ_SUCCESS, response)
+        );
     }
+
     /**
      * SecurityContext에 들어있는 인증 객체에서 현재 로그인 사용자의 userId를 추출
      *
