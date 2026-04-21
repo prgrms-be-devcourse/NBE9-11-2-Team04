@@ -102,87 +102,100 @@ const readFileAsDataUrl = (file: File) =>
     reader.readAsDataURL(file)
   })
 
-const ALLOWED_TAGS = new Set([
-  "p",
-  "br",
-  "strong",
-  "b",
-  "em",
-  "i",
-  "a",
-  "blockquote",
-  "ul",
-  "ol",
-  "li",
-  "pre",
-  "code",
-  "img",
-])
-
-const sanitizeRichTextHtml = (rawHtml: string) => {
-  const parser = new DOMParser()
-  const doc = parser.parseFromString(`<div>${rawHtml}</div>`, "text/html")
-  const root = doc.body.firstElementChild as HTMLElement | null
-  if (!root) return ""
-
-  const elements = Array.from(root.querySelectorAll("*"))
-
-  for (const el of elements) {
-    const tag = el.tagName.toLowerCase()
-
-    if (!ALLOWED_TAGS.has(tag)) {
-      const parent = el.parentNode
-      if (!parent) continue
-      while (el.firstChild) {
-        parent.insertBefore(el.firstChild, el)
-      }
-      parent.removeChild(el)
-      continue
+  const ALLOWED_TAGS = new Set([
+    "p",
+    "br",
+    "strong",
+    "b",
+    "em",
+    "i",
+    "a",
+    "blockquote",
+    "ul",
+    "ol",
+    "li",
+    "pre",
+    "code",
+    "img",
+  ])
+  
+  function sanitizeRichTextHtml(rawHtml: string) {
+    // SSR-safe fallback (DOMParser 없는 환경)
+    if (typeof window === "undefined" || typeof DOMParser === "undefined") {
+      return rawHtml
+        .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+        .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
+        .replace(/<(iframe|object|embed|link|meta|base)[^>]*>/gi, "")
+        .replace(/\son\w+=(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+        .replace(/\sstyle=(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+        .replace(/\shref=(?:"\s*javascript:[^"]*"|'\s*javascript:[^']*'|javascript:[^\s>]+)/gi, "")
+        .replace(/\ssrc=(?:"\s*javascript:[^"]*"|'\s*javascript:[^']*'|javascript:[^\s>]+)/gi, "")
     }
-
-    const href = el.getAttribute("href")?.trim() ?? ""
-    const src = el.getAttribute("src")?.trim() ?? ""
-    const alt = el.getAttribute("alt")?.trim() ?? ""
-
-    for (const attr of Array.from(el.attributes)) {
-      el.removeAttribute(attr.name)
-    }
-
-    if (tag === "a") {
-      const isSafeHref =
-        href.startsWith("http://") ||
-        href.startsWith("https://") ||
-        href.startsWith("mailto:")
-      if (isSafeHref) {
-        el.setAttribute("href", href)
-        el.setAttribute("target", "_blank")
-        el.setAttribute("rel", "noreferrer noopener")
-      } else {
+  
+    // Client-side strict sanitize
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(`<div>${rawHtml}</div>`, "text/html")
+    const root = doc.body.firstElementChild as HTMLElement | null
+    if (!root) return ""
+  
+    const elements = Array.from(root.querySelectorAll("*"))
+  
+    for (const el of elements) {
+      const tag = el.tagName.toLowerCase()
+  
+      if (!ALLOWED_TAGS.has(tag)) {
         const parent = el.parentNode
         if (!parent) continue
         while (el.firstChild) {
           parent.insertBefore(el.firstChild, el)
         }
         parent.removeChild(el)
-      }
-    }
-
-    if (tag === "img") {
-      const isSafeSrc =
-        src.startsWith("http://") ||
-        src.startsWith("https://") ||
-        src.startsWith("data:image/")
-      if (!isSafeSrc) {
-        el.remove()
         continue
       }
-      el.setAttribute("src", src)
-      if (alt) el.setAttribute("alt", alt)
+  
+      const href = el.getAttribute("href")?.trim() ?? ""
+      const src = el.getAttribute("src")?.trim() ?? ""
+      const alt = el.getAttribute("alt")?.trim() ?? ""
+  
+      for (const attr of Array.from(el.attributes)) {
+        el.removeAttribute(attr.name)
+      }
+  
+      if (tag === "a") {
+        const isSafeHref =
+          href.startsWith("http://") ||
+          href.startsWith("https://") ||
+          href.startsWith("mailto:")
+        if (isSafeHref) {
+          el.setAttribute("href", href)
+          el.setAttribute("target", "_blank")
+          el.setAttribute("rel", "noreferrer noopener")
+        } else {
+          const parent = el.parentNode
+          if (!parent) continue
+          while (el.firstChild) {
+            parent.insertBefore(el.firstChild, el)
+          }
+          parent.removeChild(el)
+        }
+      }
+  
+      if (tag === "img") {
+        const isSafeSrc =
+          src.startsWith("http://") ||
+          src.startsWith("https://") ||
+          src.startsWith("data:image/")
+        if (!isSafeSrc) {
+          el.remove()
+          continue
+        }
+        el.setAttribute("src", src)
+        if (alt) el.setAttribute("alt", alt)
+      }
     }
-  }
-
-  return root.innerHTML
-}
+  
+    return root.innerHTML
+  }  
 
 const getSelectionContainer = () => {
   const selection = window.getSelection()

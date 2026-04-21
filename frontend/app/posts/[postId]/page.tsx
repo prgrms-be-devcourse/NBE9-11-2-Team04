@@ -44,6 +44,19 @@ const ALLOWED_TAGS = new Set([
 ])
 
 function sanitizeRichTextHtml(rawHtml: string) {
+  // SSR-safe fallback (DOMParser 없는 환경)
+  if (typeof window === "undefined" || typeof DOMParser === "undefined") {
+    return rawHtml
+      .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
+      .replace(/<(iframe|object|embed|link|meta|base)[^>]*>/gi, "")
+      .replace(/\son\w+=(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+      .replace(/\sstyle=(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+      .replace(/\shref=(?:"\s*javascript:[^"]*"|'\s*javascript:[^']*'|javascript:[^\s>]+)/gi, "")
+      .replace(/\ssrc=(?:"\s*javascript:[^"]*"|'\s*javascript:[^']*'|javascript:[^\s>]+)/gi, "")
+  }
+
+  // Client-side strict sanitize
   const parser = new DOMParser()
   const doc = parser.parseFromString(`<div>${rawHtml}</div>`, "text/html")
   const root = doc.body.firstElementChild as HTMLElement | null
@@ -294,7 +307,7 @@ export default function PostDetailPage() {
             ) : null}
 
             <div
-              className="prose prose-invert mt-6 max-w-none overflow-hidden rounded-lg bg-muted/30 p-4 text-sm [&_img]:block [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-md [&_blockquote]:border-l-4 [&_blockquote]:pl-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_pre]:my-3 [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:border [&_pre]:border-zinc-300 [&_pre]:bg-zinc-200 [&_pre]:p-3 [&_pre]:text-zinc-900 [&_pre]:font-mono [&_pre]:text-sm"
+              className="prose prose-invert mt-6 max-w-none overflow-hidden break-words [overflow-wrap:anywhere] rounded-lg bg-muted/30 p-4 text-sm [&_p]:break-all [&_li]:break-all [&_blockquote]:break-all [&_a]:break-all [&_img]:block [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-md [&_blockquote]:border-l-4 [&_blockquote]:pl-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_pre]:my-3 [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:border [&_pre]:border-zinc-300 [&_pre]:bg-zinc-200 [&_pre]:p-3 [&_pre]:text-zinc-900 [&_pre]:font-mono [&_pre]:text-sm"
               dangerouslySetInnerHTML={{ __html: renderedContent }}
             />
 
