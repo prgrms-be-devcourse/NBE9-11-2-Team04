@@ -5,11 +5,12 @@ import com.back.devc.domain.interaction.postLike.dto.PostLikeResponse;
 import com.back.devc.domain.interaction.postLike.service.PostLikeService;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
-import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
+import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
 
 @RestController
 @RequestMapping("/api")
