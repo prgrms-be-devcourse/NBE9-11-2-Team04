@@ -24,9 +24,10 @@ export interface Post {
 
 interface PostCardProps {
   post: Post
+  onBookmarkToggle?: (postId: number, nextBookmarked: boolean) => void
 }
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({ post, onBookmarkToggle }: PostCardProps) {
   const authorProfileHref = post.author.userId
     ? `/users/${post.author.userId}`
     : undefined
@@ -115,6 +116,9 @@ export function PostCard({ post }: PostCardProps) {
           initialLiked={post.liked ?? false}
           initialBookmarked={post.bookmarked ?? false}
           initialLikeCount={post.likes ?? 0}
+          onBookmarkToggle={(nextBookmarked) =>
+            onBookmarkToggle?.(Number(post.id), nextBookmarked)
+          }
         />
       </div>
     </article>

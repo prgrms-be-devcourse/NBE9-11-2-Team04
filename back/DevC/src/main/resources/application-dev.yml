@@ -9,7 +9,7 @@ spring:
     oauth2:
       client:
         registration:
-          github:
+          github: # 환경 변수
             client-id: ${GITHUB_CLIENT_ID}
             client-secret: ${GITHUB_CLIENT_SECRET}
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
