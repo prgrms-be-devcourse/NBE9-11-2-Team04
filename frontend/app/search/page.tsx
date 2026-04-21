@@ -5,6 +5,7 @@ import { Search, X, SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PostCard, type Post } from "@/components/post-card"
+import { categoryLabelMap, categorySlugMap } from "@/constants/category"
 import {
   Select,
   SelectContent,
@@ -30,18 +31,10 @@ const API_BASE_URL =
 
 const categories = [
   "전체",
-  "IT 기술 정보",
-  "취업 시장 정보",
-  "개발자 트렌드",
-  "자유 주제",
+  ...Object.values(categoryLabelMap), // ✅ 여기만 변경
 ]
 
-const categoryMap: Record<string, number> = {
-  "IT 기술 정보": 1,
-  "취업 시장 정보": 2,
-  "개발자 트렌드": 3,
-  "자유 주제": 4,
-}
+// ❌ categoryMap 삭제 (이거 안씀)
 
 const sortOptions = [
   { value: "latest", label: "최신순" },
@@ -140,14 +133,21 @@ export default function SearchPage() {
         setIsSearching(true)
         setError(null)
 
+        // ✅ 여기만 변경 (categoryMap → categoryLabelMap 기준)
         const categoryId =
-          selectedCategory === "전체" ? null : categoryMap[selectedCategory]
+          selectedCategory === "전체"
+            ? null
+            : Number(
+                Object.keys(categoryLabelMap).find(
+                  (key) => categoryLabelMap[Number(key)] === selectedCategory
+                )
+              )
 
         const queryParams = new URLSearchParams({
           keyword: trimmed,
           searchType,
           sort: sortMap[sortBy],
-          ...(categoryId != null ? { categoryId: String(categoryId) } : {}),
+          ...(categoryId ? { categoryId: String(categoryId) } : {}),
         })
 
         const response = await fetch(
@@ -163,7 +163,8 @@ export default function SearchPage() {
           throw new Error("검색 요청에 실패했습니다.")
         }
 
-        const data = await response.json()
+        const res = await response.json()
+        const data = res.data
 
         const mapped: Post[] = Array.isArray(data.content)
           ? data.content.map((post: any) => ({
@@ -175,7 +176,9 @@ export default function SearchPage() {
                 userId: post.userId,
               },
               category:
-                categories.find((c) => categoryMap[c] === post.categoryId) || "",
+                categoryLabelMap[post.categoryId] ?? "", // ✅ 그대로 유지
+              categorySlug:
+                categorySlugMap[post.categoryId] ?? "",   // ✅ 그대로 유지
               createdAt: formatTimeAgo(post.createdAt),
               likes: post.likeCount,
               comments: post.commentCount,

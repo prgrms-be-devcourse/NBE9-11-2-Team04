@@ -7,6 +7,7 @@ import { useParams } from "next/navigation"
 import { categoryLabelMap, categorySlugMap } from "@/constants/category"
 
 type PostPageResponse = {
+  data:{
   content: {
     postId: number
     title: string
@@ -18,7 +19,7 @@ type PostPageResponse = {
     commentCount: number
     createdAt: string
   }[]
-}
+}}
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
@@ -76,7 +77,8 @@ export default function CategoryPage() {
           throw new Error("데이터 못불러옴")
         }
 
-        const data: PostPageResponse = await response.json()
+        const res = await response.json()
+        const data: PostPageResponse["data"] = res.data
 
         const mapped: Post[] = data.content.map((post) => ({
           id: String(post.postId),

@@ -8,8 +8,7 @@ import com.back.devc.domain.member.searchLog.dto.CreateSearchLogRequest;
 import com.back.devc.domain.member.searchLog.service.SearchLogService;
 import com.back.devc.domain.post.category.entity.Category;
 import com.back.devc.domain.post.category.repository.CategoryRepository;
-import com.back.devc.domain.post.post.dto.PostDetailResponse;
-import com.back.devc.domain.post.post.dto.PostListResponse;
+import com.back.devc.domain.post.post.dto.*;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.domain.post.post.type.PostSearchType;
@@ -32,28 +31,26 @@ public class PostService {
     private final BookmarkRepository bookmarkRepository;
     private final SearchLogService searchLogService;
 
-    public Post write(Long userId, Long categoryId, String title, String content) {
-        Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
+    public PostCreateResponse write(Long userId, PostCreateRequest request) {
 
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new EntityNotFoundException("카테고리를 찾을 수 없습니다. id=" + categoryId));
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다."));
+
+        Category category = categoryRepository.findById(request.categoryId())
+                .orElseThrow(() -> new EntityNotFoundException("카테고리를 찾을 수 없습니다."));
 
         Post post = Post.builder()
                 .member(member)
                 .category(category)
-                .title(title)
-                .content(content)
+                .title(request.title())
+                .content(request.content())
                 .build();
 
-        return postRepository.save(post);
+        Post saved = postRepository.save(post);
+
+        return PostCreateResponse.from(saved);
     }
 
-    @Transactional(readOnly = true)
-    public Post findById(Long postId) {
-        return postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
-    }
 
     @Transactional
     public PostDetailResponse findDetailById(Long postId, Long loginUserId) {
@@ -160,37 +157,46 @@ public class PostService {
         post.increaseCommentCount();
     }
 
-    public Post update(Long memberId, Long postId, String title, String content, Long categoryId) {
+    public PostUpdateResponse update(Long memberId, Long postId, PostUpdateRequest request) {
+
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다."));
 
         if (!post.getMember().getUserId().equals(memberId)) {
-            throw new RuntimeException("수정 권한이 없습니다.");
+            throw new IllegalArgumentException("수정 권한이 없습니다.");
         }
 
         if (post.isDeleted()) {
             throw new EntityNotFoundException("삭제된 게시글입니다.");
         }
 
-        Category category = categoryRepository.findById(categoryId)
+        Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() -> new EntityNotFoundException("카테고리를 찾을 수 없습니다."));
 
-        post.update(title, content, category);
-        return post;
+        post.update(
+                request.title(),
+                request.content(),
+                category
+        );
+
+        return PostUpdateResponse.from(post);
     }
 
-    public void delete(Long memberId, Long postId) {
+    public PostDeleteResponse delete(Long memberId, Long postId) {
+
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다."));
 
         if (!post.getMember().getUserId().equals(memberId)) {
-            throw new RuntimeException("삭제 권한이 없습니다.");
+            throw new IllegalArgumentException("삭제 권한이 없습니다.");
         }
 
         if (post.isDeleted()) {
-            throw new EntityNotFoundException("삭제된 게시글입니다.");
+            throw new EntityNotFoundException("이미 삭제된 게시글입니다.");
         }
 
         post.delete();
+
+        return PostDeleteResponse.of(postId);
     }
 }
