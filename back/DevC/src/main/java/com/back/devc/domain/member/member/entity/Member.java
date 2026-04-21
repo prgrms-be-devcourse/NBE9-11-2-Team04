@@ -12,6 +12,7 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -68,6 +69,7 @@ public class Member {
     @Column(nullable = true)
     private LocalDateTime suspendedUntil;
 
+    @Builder(access = AccessLevel.PRIVATE)
     private Member(
             String email,
             String passwordHash,
@@ -87,27 +89,27 @@ public class Member {
     }
 
     public static Member createLocalMember(String email, String passwordHash, String nickname) {
-        return new Member(
-                email,
-                passwordHash,
-                nickname,
-                MemberRole.USER,
-                MemberStatus.ACTIVE,
-                AuthProvider.LOCAL,
-                email
-        );
+        return Member.builder()
+                .email(email)
+                .passwordHash(passwordHash)
+                .nickname(nickname)
+                .role(MemberRole.USER)
+                .status(MemberStatus.ACTIVE)
+                .provider(AuthProvider.LOCAL)
+                .providerUserId(email)
+                .build();
     }
 
     public static Member createLocalAdminMember(String email, String passwordHash, String nickname) {
-        return new Member(
-                email,
-                passwordHash,
-                nickname,
-                MemberRole.ADMIN,
-                MemberStatus.ACTIVE,
-                AuthProvider.LOCAL,
-                email
-        );
+        return Member.builder()
+                .email(email)
+                .passwordHash(passwordHash)
+                .nickname(nickname)
+                .role(MemberRole.ADMIN)
+                .status(MemberStatus.ACTIVE)
+                .provider(AuthProvider.LOCAL)
+                .providerUserId(email)
+                .build();
     }
 
     public static Member createOAuthMember(
@@ -117,15 +119,15 @@ public class Member {
             String passwordHash,
             String nickname
     ) {
-        return new Member(
-                email,
-                passwordHash,
-                nickname,
-                MemberRole.USER,
-                MemberStatus.ACTIVE,
-                provider,
-                providerUserId
-        );
+        return Member.builder()
+                .email(email)
+                .passwordHash(passwordHash)
+                .nickname(nickname)
+                .role(MemberRole.USER)
+                .status(MemberStatus.ACTIVE)
+                .provider(provider)
+                .providerUserId(providerUserId)
+                .build();
     }
 
     public void updateNickname(String nickname) {
