@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react"
 import { PostCard, type Post } from "@/components/post-card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TrendingUp, Clock, Users } from "lucide-react"
+import { categoryLabelMap, categorySlugMap } from "@/constants/category"
+
 import {
   AUTH_CHANGED_EVENT,
   getAccessToken,
@@ -35,6 +37,7 @@ type BookmarkedPostResponse = {
   postId: number
   title: string
   authorNickname: string
+  categoryId : number
   likeCount: number
   commentCount: number
   createdAt: string
@@ -107,7 +110,9 @@ function mapBookmarkedPostsToPostCard(
     title: post.title,
     excerpt: "",
     author: { name: post.authorNickname },
-    category: "북마크",
+    category: categoryLabelMap[post.categoryId],
+    categorySlug: categorySlugMap[post.categoryId],
+    categoryId: post.categoryId,
     createdAt: formatRelativeDate(post.createdAt),
     likes: post.likeCount,
     comments: post.commentCount,
@@ -158,7 +163,9 @@ export default function HomePage() {
           author: {
             name: post.nickName,
           },
-          category: String(post.categoryId),
+          category: categoryLabelMap[post.categoryId],
+          categorySlug: categorySlugMap[post.categoryId],
+          categoryId: post.categoryId,
           createdAt: formatTimeAgo(post.createdAt),
           likes: post.likeCount,
           comments: post.commentCount,
