@@ -6,8 +6,8 @@ import com.back.devc.domain.auth.dto.logout.LogoutResponse;
 import com.back.devc.domain.auth.dto.signup.SignUpRequest;
 import com.back.devc.domain.auth.dto.signup.SignUpResponse;
 import com.back.devc.domain.auth.service.AuthService;
-import com.back.devc.global.response.SuccessCode;
 import com.back.devc.global.response.SuccessResponse;
+import com.back.devc.global.response.successCode.AuthSuccessCode;
 import com.back.devc.global.security.jwt.AuthCookieService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -32,7 +32,7 @@ public class AuthController {
         LogoutResponse body = authService.logout();
         authCookieService.setAccessTokenCookie(response, "", 0);
 
-        SuccessCode successCode = SuccessCode.LOGOUT_SUCCESS;
+        AuthSuccessCode successCode = AuthSuccessCode.AUTH_200_LOGOUT_SUCCESS;
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, body));
@@ -46,7 +46,7 @@ public class AuthController {
         LoginResponse body = authService.login(request);
         authCookieService.setAccessTokenCookie(response, body.accessToken(), accessTokenExpirationSeconds);
 
-        SuccessCode successCode = SuccessCode.LOGIN_SUCCESS;
+        AuthSuccessCode successCode = AuthSuccessCode.AUTH_200_LOGIN_SUCCESS;
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, body));
@@ -56,7 +56,7 @@ public class AuthController {
     public ResponseEntity<SuccessResponse<SignUpResponse>> signUp(@Valid @RequestBody SignUpRequest request) {
         SignUpResponse body = authService.signUp(request);
 
-        SuccessCode successCode = SuccessCode.SIGN_UP_SUCCESS;
+        AuthSuccessCode successCode = AuthSuccessCode.AUTH_201_SIGNUP_SUCCESS;
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, body));
