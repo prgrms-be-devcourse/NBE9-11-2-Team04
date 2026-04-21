@@ -187,7 +187,11 @@ function mapMyPostsToPostCard(
   }))
 }
 
-function mapBookmarkedPostsToPostCard(posts: BookmarkedPostResponse[]): Post[] {
+function mapBookmarkedPostsToPostCard(
+  posts: BookmarkedPostResponse[],
+  likedPostIds: Set<number>,
+  bookmarkedPostIds: Set<number>
+): Post[] {
   return posts.map((post) => ({
     id: String(post.postId),
     title: post.title,
@@ -199,12 +203,16 @@ function mapBookmarkedPostsToPostCard(posts: BookmarkedPostResponse[]): Post[] {
     comments: post.commentCount,
     views: 0,
     tags: [],
-    liked: false,
-    bookmarked: true,
+    liked: likedPostIds.has(post.postId),
+    bookmarked: bookmarkedPostIds.has(post.postId),
   }))
 }
 
-function mapLikedPostsToPostCard(posts: LikedPostResponse[]): Post[] {
+function mapLikedPostsToPostCard(
+  posts: LikedPostResponse[],
+  likedPostIds: Set<number>,
+  bookmarkedPostIds: Set<number>
+): Post[] {
   return posts.map((post) => ({
     id: String(post.postId),
     title: post.title,
@@ -216,8 +224,8 @@ function mapLikedPostsToPostCard(posts: LikedPostResponse[]): Post[] {
     comments: post.commentCount,
     views: 0,
     tags: [],
-    liked: true,
-    bookmarked: false,
+    liked: likedPostIds.has(post.postId),
+    bookmarked: bookmarkedPostIds.has(post.postId),
   }))
 }
 
@@ -270,13 +278,25 @@ export default function MyPage() {
       ),
     [myPosts, displayName, myLikedPostIds, myBookmarkedPostIds]
   )
+
   const bookmarkedPostCards = useMemo(
-    () => mapBookmarkedPostsToPostCard(bookmarkedPosts),
-    [bookmarkedPosts]
+    () =>
+      mapBookmarkedPostsToPostCard(
+        bookmarkedPosts,
+        myLikedPostIds,
+        myBookmarkedPostIds
+      ),
+    [bookmarkedPosts, myLikedPostIds, myBookmarkedPostIds]
   )
+
   const likedPostCards = useMemo(
-    () => mapLikedPostsToPostCard(likedPosts),
-    [likedPosts]
+    () =>
+      mapLikedPostsToPostCard(
+        likedPosts,
+        myLikedPostIds,
+        myBookmarkedPostIds
+      ),
+    [likedPosts, myLikedPostIds, myBookmarkedPostIds]
   )
 
   useEffect(() => {
@@ -520,6 +540,73 @@ export default function MyPage() {
     fetchComments()
   }, [activeTab, myComments.length, isAuthReady])
 
+  useEffect(() => {
+    const handleNotificationsUpdated = async () => {
+      if (!isAuthReady) return
+
+      try {
+        const [likesRes, bookmarksRes] = await Promise.allSettled([
+          apiFetch<LikedPostResponse[]>("/api/mypage/likes", {
+            method: "GET",
+            auth: true,
+          }),
+          apiFetch<BookmarkedPostResponse[]>("/api/mypage/bookmarks", {
+            method: "GET",
+            auth: true,
+          }),
+        ])
+
+        if (likesRes.status === "fulfilled") {
+          const likes = likesRes.value ?? []
+          setLikedPosts(likes)
+          setLikeCount(likes.length)
+          setMyLikedPostIds(new Set(likes.map((post) => post.postId)))
+        }
+
+        if (bookmarksRes.status === "fulfilled") {
+          const bookmarks = bookmarksRes.value ?? []
+          setBookmarkedPosts(bookmarks)
+          setBookmarkCount(bookmarks.length)
+          setMyBookmarkedPostIds(new Set(bookmarks.map((post) => post.postId)))
+        }
+      } catch (err) {
+        console.error(err)
+      }
+    }
+
+    window.addEventListener(
+      "notifications-updated",
+      handleNotificationsUpdated as EventListener
+    )
+
+    return () => {
+      window.removeEventListener(
+        "notifications-updated",
+        handleNotificationsUpdated as EventListener
+      )
+    }
+  }, [isAuthReady])
+
+  const handleBookmarkToggle = (postId: number, nextBookmarked: boolean) => {
+    setMyBookmarkedPostIds((prev) => {
+      const next = new Set(prev)
+
+      if (nextBookmarked) {
+        next.add(postId)
+      } else {
+        next.delete(postId)
+      }
+
+      return next
+    })
+
+    setBookmarkCount((prev) => Math.max(0, prev + (nextBookmarked ? 1 : -1)))
+
+    if (!nextBookmarked && activeTab === "bookmarks") {
+      setBookmarkedPosts((prev) => prev.filter((post) => post.postId !== postId))
+    }
+  }
+
   if (loading) {
     return null
   }
@@ -676,7 +763,11 @@ export default function MyPage() {
           {myPostCards.length > 0 ? (
             <div className="grid gap-6">
               {myPostCards.map((post) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onBookmarkToggle={handleBookmarkToggle}
+                />
               ))}
             </div>
           ) : (
@@ -693,7 +784,11 @@ export default function MyPage() {
           {tabLoading ? null : bookmarkedPostCards.length > 0 ? (
             <div className="grid gap-6">
               {bookmarkedPostCards.map((post) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onBookmarkToggle={handleBookmarkToggle}
+                />
               ))}
             </div>
           ) : (
@@ -709,7 +804,11 @@ export default function MyPage() {
           {tabLoading ? null : likedPostCards.length > 0 ? (
             <div className="grid gap-6">
               {likedPostCards.map((post) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onBookmarkToggle={handleBookmarkToggle}
+                />
               ))}
             </div>
           ) : (

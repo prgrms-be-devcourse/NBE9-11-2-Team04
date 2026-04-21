@@ -305,6 +305,10 @@ export default function PostDetailPage() {
                 </Link>
               </div>
             ) : null}
+            {/* 조회수, 댓글수 추가 */}
+            <div className="mt-1 text-xs text-muted-foreground">
+              조회수 {post?.viewCount ?? 0} · 댓글 {post?.commentCount ?? 0}
+            </div>
 
             <div
               className="prose prose-invert mt-6 max-w-none overflow-hidden break-words [overflow-wrap:anywhere] rounded-lg bg-muted/30 p-4 text-sm [&_p]:break-all [&_li]:break-all [&_blockquote]:break-all [&_a]:break-all [&_img]:block [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-md [&_blockquote]:border-l-4 [&_blockquote]:pl-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_pre]:my-3 [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:border [&_pre]:border-zinc-300 [&_pre]:bg-zinc-200 [&_pre]:p-3 [&_pre]:text-zinc-900 [&_pre]:font-mono [&_pre]:text-sm"

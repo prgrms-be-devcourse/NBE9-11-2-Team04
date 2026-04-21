@@ -55,11 +55,11 @@ public class PostService {
                 .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PostDetailResponse findDetailById(Long postId, Long loginUserId) {
         Post post = postRepository.findByPostIdAndIsDeletedFalse(postId)
                 .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
-
+        post.increaseViewCount();
         boolean liked = loginUserId != null
                 && postLikeRepository.existsByMember_UserIdAndPost_PostId(loginUserId, postId);
 
