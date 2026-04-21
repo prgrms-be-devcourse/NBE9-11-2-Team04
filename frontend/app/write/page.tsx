@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSearchParams } from "next/navigation"
 import {
@@ -102,6 +102,88 @@ const readFileAsDataUrl = (file: File) =>
     reader.readAsDataURL(file)
   })
 
+const ALLOWED_TAGS = new Set([
+  "p",
+  "br",
+  "strong",
+  "b",
+  "em",
+  "i",
+  "a",
+  "blockquote",
+  "ul",
+  "ol",
+  "li",
+  "pre",
+  "code",
+  "img",
+])
+
+const sanitizeRichTextHtml = (rawHtml: string) => {
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(`<div>${rawHtml}</div>`, "text/html")
+  const root = doc.body.firstElementChild as HTMLElement | null
+  if (!root) return ""
+
+  const elements = Array.from(root.querySelectorAll("*"))
+
+  for (const el of elements) {
+    const tag = el.tagName.toLowerCase()
+
+    if (!ALLOWED_TAGS.has(tag)) {
+      const parent = el.parentNode
+      if (!parent) continue
+      while (el.firstChild) {
+        parent.insertBefore(el.firstChild, el)
+      }
+      parent.removeChild(el)
+      continue
+    }
+
+    const href = el.getAttribute("href")?.trim() ?? ""
+    const src = el.getAttribute("src")?.trim() ?? ""
+    const alt = el.getAttribute("alt")?.trim() ?? ""
+
+    for (const attr of Array.from(el.attributes)) {
+      el.removeAttribute(attr.name)
+    }
+
+    if (tag === "a") {
+      const isSafeHref =
+        href.startsWith("http://") ||
+        href.startsWith("https://") ||
+        href.startsWith("mailto:")
+      if (isSafeHref) {
+        el.setAttribute("href", href)
+        el.setAttribute("target", "_blank")
+        el.setAttribute("rel", "noreferrer noopener")
+      } else {
+        const parent = el.parentNode
+        if (!parent) continue
+        while (el.firstChild) {
+          parent.insertBefore(el.firstChild, el)
+        }
+        parent.removeChild(el)
+      }
+    }
+
+    if (tag === "img") {
+      const isSafeSrc =
+        src.startsWith("http://") ||
+        src.startsWith("https://") ||
+        src.startsWith("data:image/")
+      if (!isSafeSrc) {
+        el.remove()
+        continue
+      }
+      el.setAttribute("src", src)
+      if (alt) el.setAttribute("alt", alt)
+    }
+  }
+
+  return root.innerHTML
+}
+
 const getSelectionContainer = () => {
   const selection = window.getSelection()
   if (!selection || selection.rangeCount === 0) return null
@@ -125,12 +207,33 @@ const normalizeEditorNodes = (root: HTMLElement) => {
     el.classList.add("border-l-4", "border-border", "pl-3", "italic", "my-2")
   })
 
+  root.querySelectorAll("pre").forEach((el) => {
+    el.classList.add(
+      "my-3",
+      "max-w-full",
+      "overflow-x-auto",
+      "rounded-md",
+      "border",
+      "border-zinc-300",
+      "bg-zinc-200",
+      "p-3",
+      "font-mono",
+      "text-sm",
+      "leading-6",
+      "text-zinc-900"
+    )
+  })
+
   root.querySelectorAll("code").forEach((el) => {
-    el.classList.add("rounded", "bg-muted", "px-1", "py-0.5", "font-mono", "text-sm")
+    if (el.parentElement?.tagName === "PRE") {
+      el.classList.add("bg-transparent", "p-0")
+    } else {
+      el.classList.add("rounded", "bg-muted", "px-1", "py-0.5", "font-mono", "text-sm")
+    }
   })
 
   root.querySelectorAll("img").forEach((el) => {
-    el.classList.add("max-w-full", "h-auto", "rounded-md", "my-2")
+    el.classList.add("my-2", "block", "h-auto", "max-w-full", "rounded-md")
   })
 }
 
@@ -163,9 +266,10 @@ export default function WritePage() {
   const searchParams = useSearchParams()
   const categorySlug = searchParams.get("category")
 
-  // 수정 모드 추가
   const postId = searchParams.get("postId")
   const isEditMode = !!postId
+
+  const previewHtml = useMemo(() => sanitizeRichTextHtml(formData.content), [formData.content])
 
   useEffect(() => {
     const auth = getAuthSnapshot()
@@ -197,18 +301,12 @@ export default function WritePage() {
 
   useEffect(() => {
     if (!categorySlug) return
-
     const categoryId = categoryMap[categorySlug]
-
     if (categoryId) {
-      setFormData((prev) => ({
-        ...prev,
-        category: String(categoryId),
-      }))
+      setFormData((prev) => ({ ...prev, category: String(categoryId) }))
     }
   }, [categorySlug])
 
-  // 수정 데이터 로딩
   useEffect(() => {
     if (!isEditMode || !postId) return
 
@@ -221,7 +319,7 @@ export default function WritePage() {
 
         setFormData({
           title: data.title,
-          content: data.content,
+          content: sanitizeRichTextHtml(data.content),
           category: String(data.categoryId),
           tags: "",
         })
@@ -245,10 +343,8 @@ export default function WritePage() {
   const saveSelection = () => {
     const selection = window.getSelection()
     if (!selection || selection.rangeCount === 0 || !editorRef.current) return
-
     const container = getSelectionContainer()
     if (!container || !editorRef.current.contains(container)) return
-
     savedRangeRef.current = selection.getRangeAt(0).cloneRange()
   }
 
@@ -256,7 +352,6 @@ export default function WritePage() {
     if (!savedRangeRef.current) return
     const selection = window.getSelection()
     if (!selection) return
-
     selection.removeAllRanges()
     selection.addRange(savedRangeRef.current)
   }
@@ -303,11 +398,9 @@ export default function WritePage() {
 
   useEffect(() => {
     const handler = () => updateFormatState()
-
     document.addEventListener("selectionchange", handler)
     document.addEventListener("keyup", handler)
     document.addEventListener("mouseup", handler)
-
     return () => {
       document.removeEventListener("selectionchange", handler)
       document.removeEventListener("keyup", handler)
@@ -334,15 +427,15 @@ export default function WritePage() {
         break
 
       case "code": {
-        if (selectedText) {
-          document.execCommand(
-            "insertHTML",
-            false,
-            `<code>${escapeHtml(selectedText)}</code>`
-          )
-        } else {
-          document.execCommand("insertHTML", false, "<code>\u200b</code>")
-        }
+        const content = selectedText
+          ? escapeHtml(selectedText).replace(/\n/g, "<br/>")
+          : "<br/>"
+
+        document.execCommand(
+          "insertHTML",
+          false,
+          `<pre><code>${content}</code></pre><p><br/></p>`
+        )
         break
       }
 
@@ -350,7 +443,11 @@ export default function WritePage() {
         const url = window.prompt("링크 URL을 입력하세요")
         if (!url) return
         if (!selectedText) {
-          document.execCommand("insertHTML", false, `<a href="${escapeHtml(url)}">${escapeHtml(url)}</a>`)
+          document.execCommand(
+            "insertHTML",
+            false,
+            `<a href="${escapeHtml(url)}">${escapeHtml(url)}</a>`
+          )
         } else {
           document.execCommand("createLink", false, url)
         }
@@ -415,7 +512,9 @@ export default function WritePage() {
       return
     }
 
-    if (!stripHtml(formData.content)) {
+    const sanitizedContent = sanitizeRichTextHtml(formData.content)
+
+    if (!stripHtml(sanitizedContent)) {
       alert("내용을 입력해주세요.")
       return
     }
@@ -424,30 +523,26 @@ export default function WritePage() {
 
     try {
       if (isEditMode && postId) {
-        // 수정 API
         await apiFetch(`/api/posts/${postId}`, {
           method: "PUT",
           auth: true,
           body: JSON.stringify({
             title: formData.title,
-            content: formData.content,
+            content: sanitizedContent,
             categoryId: Number(formData.category),
           }),
         })
-
         router.push(`/posts/${postId}`)
       } else {
-        // 생성 API
         const data = await apiFetch<PostCreateResponse>("/api/posts", {
           method: "POST",
           auth: true,
           body: JSON.stringify({
             title: formData.title,
-            content: formData.content,
+            content: sanitizedContent,
             categoryId: Number(formData.category),
           }),
         })
-
         router.push(`/posts/${data.postId}`)
       }
     } catch (err) {
@@ -466,10 +561,8 @@ export default function WritePage() {
     return null
   }
 
-  const hasContent = !!stripHtml(formData.content)
-
-  const activeClass =
-    "bg-accent text-accent-foreground shadow-inner ring-1 ring-border"
+  const hasContent = !!stripHtml(previewHtml)
+  const activeClass = "bg-accent text-accent-foreground shadow-inner ring-1 ring-border"
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
@@ -487,11 +580,7 @@ export default function WritePage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setIsPreview(!isPreview)}
-            className="gap-2"
-          >
+          <Button variant="outline" onClick={() => setIsPreview(!isPreview)} className="gap-2">
             <Eye className="h-4 w-4" />
             {isPreview ? "편집" : "미리보기"}
           </Button>
@@ -502,13 +591,7 @@ export default function WritePage() {
             className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <Save className="h-4 w-4" />
-            {isEditMode
-              ? isLoading
-                ? "수정 중..."
-                : "수정"
-              : isLoading
-              ? "저장 중..."
-              : "저장"}
+            {isEditMode ? (isLoading ? "수정 중..." : "수정") : isLoading ? "저장 중..." : "저장"}
           </Button>
         </div>
       </div>
@@ -528,10 +611,7 @@ export default function WritePage() {
 
         <div className="flex flex-wrap gap-4">
           <div className="w-full sm:w-48">
-            <Label htmlFor="category" className="sr-only">
-              카테고리
-            </Label>
-
+            <Label htmlFor="category" className="sr-only">카테고리</Label>
             <Select
               value={formData.category}
               onValueChange={(value) => setFormData({ ...formData, category: value })}
@@ -539,7 +619,6 @@ export default function WritePage() {
               <SelectTrigger className="bg-secondary">
                 <SelectValue placeholder="카테고리 선택" />
               </SelectTrigger>
-
               <SelectContent>
                 {categories.map((category) => (
                   <SelectItem key={category.id} value={String(category.id)}>
@@ -551,10 +630,7 @@ export default function WritePage() {
           </div>
 
           <div className="flex-1">
-            <Label htmlFor="tags" className="sr-only">
-              태그
-            </Label>
-
+            <Label htmlFor="tags" className="sr-only">태그</Label>
             <Input
               id="tags"
               type="text"
@@ -567,94 +643,34 @@ export default function WritePage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-secondary p-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => applyFormat("bold")}
-            className={formatState.bold ? activeClass : ""}
-          >
+          <Button type="button" variant="ghost" size="icon" onMouseDown={(e) => e.preventDefault()} onClick={() => applyFormat("bold")} className={formatState.bold ? activeClass : ""}>
             <Bold className="h-4 w-4" />
           </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => applyFormat("italic")}
-            className={formatState.italic ? activeClass : ""}
-          >
+          <Button type="button" variant="ghost" size="icon" onMouseDown={(e) => e.preventDefault()} onClick={() => applyFormat("italic")} className={formatState.italic ? activeClass : ""}>
             <Italic className="h-4 w-4" />
           </Button>
 
           <div className="mx-2 h-6 w-px bg-border" />
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => applyFormat("code")}
-            className={formatState.code ? activeClass : ""}
-          >
+          <Button type="button" variant="ghost" size="icon" onMouseDown={(e) => e.preventDefault()} onClick={() => applyFormat("code")} className={formatState.code ? activeClass : ""}>
             <Code className="h-4 w-4" />
           </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => applyFormat("link")}
-            className={formatState.link ? activeClass : ""}
-          >
+          <Button type="button" variant="ghost" size="icon" onMouseDown={(e) => e.preventDefault()} onClick={() => applyFormat("link")} className={formatState.link ? activeClass : ""}>
             <Link2 className="h-4 w-4" />
           </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={handleImageButtonClick}
-          >
+          <Button type="button" variant="ghost" size="icon" onMouseDown={(e) => e.preventDefault()} onClick={handleImageButtonClick}>
             <ImagePlus className="h-4 w-4" />
           </Button>
 
           <div className="mx-2 h-6 w-px bg-border" />
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => applyFormat("quote")}
-            className={formatState.quote ? activeClass : ""}
-          >
+          <Button type="button" variant="ghost" size="icon" onMouseDown={(e) => e.preventDefault()} onClick={() => applyFormat("quote")} className={formatState.quote ? activeClass : ""}>
             <Quote className="h-4 w-4" />
           </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => applyFormat("list")}
-            className={formatState.list ? activeClass : ""}
-          >
+          <Button type="button" variant="ghost" size="icon" onMouseDown={(e) => e.preventDefault()} onClick={() => applyFormat("list")} className={formatState.list ? activeClass : ""}>
             <List className="h-4 w-4" />
           </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => applyFormat("ordered")}
-            className={formatState.ordered ? activeClass : ""}
-          >
+          <Button type="button" variant="ghost" size="icon" onMouseDown={(e) => e.preventDefault()} onClick={() => applyFormat("ordered")} className={formatState.ordered ? activeClass : ""}>
             <ListOrdered className="h-4 w-4" />
           </Button>
 
@@ -672,8 +688,8 @@ export default function WritePage() {
           <div className="min-h-[400px] rounded-lg border border-border bg-card p-6">
             {hasContent ? (
               <div
-                className="prose max-w-none text-foreground"
-                dangerouslySetInnerHTML={{ __html: formData.content }}
+                className="prose max-w-none text-foreground [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:border [&_pre]:border-zinc-300 [&_pre]:bg-zinc-200 [&_pre]:p-3 [&_pre]:text-zinc-900 [&_img]:block [&_img]:max-w-full [&_img]:h-auto"
+                dangerouslySetInnerHTML={{ __html: previewHtml }}
               />
             ) : (
               <div className="text-muted-foreground">미리볼 내용이 없습니다.</div>
@@ -681,10 +697,7 @@ export default function WritePage() {
           </div>
         ) : (
           <div className="space-y-2">
-            <Label htmlFor="content" className="sr-only">
-              내용
-            </Label>
-
+            <Label htmlFor="content" className="sr-only">내용</Label>
             <div
               id="content"
               ref={editorRef}
@@ -697,14 +710,10 @@ export default function WritePage() {
               onKeyUp={updateFormatState}
               onMouseUp={updateFormatState}
               data-placeholder="내용을 작성하세요. 툴바 버튼으로 서식을 적용할 수 있습니다."
-              className="min-h-[400px] rounded-md bg-secondary p-3 text-sm outline-none ring-offset-background empty:before:pointer-events-none empty:before:text-muted-foreground empty:before:content-[attr(data-placeholder)] focus:ring-2 focus:ring-ring [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6"
+              className="min-h-[400px] rounded-md bg-secondary p-3 text-sm outline-none ring-offset-background empty:before:pointer-events-none empty:before:text-muted-foreground empty:before:content-[attr(data-placeholder)] focus:ring-2 focus:ring-ring [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_pre]:my-3 [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:border [&_pre]:border-zinc-300 [&_pre]:bg-zinc-200 [&_pre]:p-3 [&_pre]:font-mono [&_pre]:text-sm [&_pre]:leading-6 [&_pre]:text-zinc-900 [&_img]:block [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-md"
             />
           </div>
         )}
-
-        <p className="text-xs text-muted-foreground">
-          서식 버튼으로 굵게, 기울임, 코드, 링크, 이미지, 인용, 목록 효과를 바로 적용할 수 있습니다.
-        </p>
       </form>
     </div>
   )

@@ -26,6 +26,88 @@ type PostDetailResponse = {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
 
+const ALLOWED_TAGS = new Set([
+  "p",
+  "br",
+  "strong",
+  "b",
+  "em",
+  "i",
+  "a",
+  "blockquote",
+  "ul",
+  "ol",
+  "li",
+  "pre",
+  "code",
+  "img",
+])
+
+function sanitizeRichTextHtml(rawHtml: string) {
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(`<div>${rawHtml}</div>`, "text/html")
+  const root = doc.body.firstElementChild as HTMLElement | null
+  if (!root) return ""
+
+  const elements = Array.from(root.querySelectorAll("*"))
+
+  for (const el of elements) {
+    const tag = el.tagName.toLowerCase()
+
+    if (!ALLOWED_TAGS.has(tag)) {
+      const parent = el.parentNode
+      if (!parent) continue
+      while (el.firstChild) {
+        parent.insertBefore(el.firstChild, el)
+      }
+      parent.removeChild(el)
+      continue
+    }
+
+    const href = el.getAttribute("href")?.trim() ?? ""
+    const src = el.getAttribute("src")?.trim() ?? ""
+    const alt = el.getAttribute("alt")?.trim() ?? ""
+
+    for (const attr of Array.from(el.attributes)) {
+      el.removeAttribute(attr.name)
+    }
+
+    if (tag === "a") {
+      const isSafeHref =
+        href.startsWith("http://") ||
+        href.startsWith("https://") ||
+        href.startsWith("mailto:")
+      if (isSafeHref) {
+        el.setAttribute("href", href)
+        el.setAttribute("target", "_blank")
+        el.setAttribute("rel", "noreferrer noopener")
+      } else {
+        const parent = el.parentNode
+        if (!parent) continue
+        while (el.firstChild) {
+          parent.insertBefore(el.firstChild, el)
+        }
+        parent.removeChild(el)
+      }
+    }
+
+    if (tag === "img") {
+      const isSafeSrc =
+        src.startsWith("http://") ||
+        src.startsWith("https://") ||
+        src.startsWith("data:image/")
+      if (!isSafeSrc) {
+        el.remove()
+        continue
+      }
+      el.setAttribute("src", src)
+      if (alt) el.setAttribute("alt", alt)
+    }
+  }
+
+  return root.innerHTML
+}
+
 function getAuthHeaders(): HeadersInit {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -46,8 +128,6 @@ export default function PostDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [reportLoading, setReportLoading] = useState(false)
-
-  // ✅ 추가: 현재 로그인 유저
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
 
   const postId = useMemo(() => {
@@ -56,7 +136,11 @@ export default function PostDetailPage() {
     return Number(rawPostId)
   }, [params])
 
-  // 기존 게시글 조회
+  const renderedContent = useMemo(
+    () => sanitizeRichTextHtml(post?.content ?? ""),
+    [post?.content]
+  )
+
   useEffect(() => {
     const loadPost = async () => {
       if (!postId || Number.isNaN(postId)) {
@@ -90,7 +174,6 @@ export default function PostDetailPage() {
     void loadPost()
   }, [postId])
 
-  // 내 정보 조회
   useEffect(() => {
     const loadMe = async () => {
       try {
@@ -111,13 +194,10 @@ export default function PostDetailPage() {
     void loadMe()
   }, [])
 
-  //작성자 여부 확인
   const isAuthor = post?.userId && currentUserId === post.userId
 
   const handleReportPost = async () => {
-    if (!postId || Number.isNaN(postId)) {
-      return
-    }
+    if (!postId || Number.isNaN(postId)) return
 
     try {
       setReportLoading(true)
@@ -154,21 +234,18 @@ export default function PostDetailPage() {
 
         throw new Error(message)
       }
+
       alert("게시글 신고가 접수되었습니다.")
       window.dispatchEvent(new CustomEvent("notifications-updated"))
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
-      )
+      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
     } finally {
       setReportLoading(false)
     }
   }
 
-  // 추가: 삭제 기능
   const handleDeletePost = async () => {
     if (!postId) return
-
     if (!confirm("정말 삭제하시겠습니까?")) return
 
     try {
@@ -178,9 +255,7 @@ export default function PostDetailPage() {
         headers: getAuthHeaders(),
       })
 
-      if (!res.ok) {
-        throw new Error("삭제 실패")
-      }
+      if (!res.ok) throw new Error("삭제 실패")
 
       alert("삭제되었습니다.")
       window.location.href = "/"
@@ -219,8 +294,8 @@ export default function PostDetailPage() {
             ) : null}
 
             <div
-              className="prose prose-invert mt-6 max-w-none rounded-lg bg-muted/30 p-4 text-sm [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-md [&_blockquote]:border-l-4 [&_blockquote]:pl-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6"
-              dangerouslySetInnerHTML={{ __html: post?.content ?? "" }}
+              className="prose prose-invert mt-6 max-w-none overflow-hidden rounded-lg bg-muted/30 p-4 text-sm [&_img]:block [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-md [&_blockquote]:border-l-4 [&_blockquote]:pl-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_pre]:my-3 [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:border [&_pre]:border-zinc-300 [&_pre]:bg-zinc-200 [&_pre]:p-3 [&_pre]:text-zinc-900 [&_pre]:font-mono [&_pre]:text-sm"
+              dangerouslySetInnerHTML={{ __html: renderedContent }}
             />
 
             <div className="mt-6">
@@ -232,7 +307,6 @@ export default function PostDetailPage() {
               />
             </div>
 
-            {/* 추가: 수정/삭제 버튼 */}
             {isAuthor && (
               <div className="mt-4 flex items-center gap-2">
                 <Link

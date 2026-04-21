@@ -26,15 +26,31 @@ interface PostCardProps {
   post: Post
 }
 
+const toPlainText = (value: string) =>
+  value
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim()
+
 export function PostCard({ post }: PostCardProps) {
   const authorProfileHref = post.author.userId
     ? `/users/${post.author.userId}`
     : undefined
 
+  const excerptText = toPlainText(post.excerpt)
+
   return (
-    <article className="group rounded-lg border border-border bg-card p-6 transition-all hover:border-primary/50 hover:bg-card/80">
+    <article className="group overflow-hidden rounded-lg border border-border bg-card p-6 transition-all hover:border-primary/50 hover:bg-card/80">
       <div className="flex items-start justify-between gap-4">
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div className="mb-2 flex items-center gap-2">
             <Link
               href={`/category/${post.category.toLowerCase()}`}
@@ -48,27 +64,14 @@ export function PostCard({ post }: PostCardProps) {
           </div>
 
           <Link href={`/posts/${post.id}`}>
-            <h3 className="mb-2 text-lg font-semibold text-foreground transition-colors group-hover:text-primary">
+            <h3 className="mb-2 break-words text-lg font-semibold text-foreground transition-colors group-hover:text-primary">
               {post.title}
             </h3>
           </Link>
 
-          <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-            {post.excerpt}
+          <p className="mb-4 line-clamp-2 overflow-hidden break-all text-sm leading-relaxed text-muted-foreground">
+            {excerptText}
           </p>
-
-          {post.tags.length > 0 && (
-            <div className="mb-4 flex flex-wrap gap-2">
-              {post.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="text-xs text-muted-foreground before:content-['#']"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
 
           <div className="flex items-center justify-between">
             {authorProfileHref ? (
