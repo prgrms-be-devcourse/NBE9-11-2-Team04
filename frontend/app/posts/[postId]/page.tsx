@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import CommentSection from "@/components/comment/CommentSection"
@@ -22,6 +22,11 @@ type PostDetailResponse = {
   createdAt: string
   updatedAt: string
   liked?: boolean
+}
+
+type LoginRequiredPopupState = {
+  open: boolean
+  message: string
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
@@ -134,6 +139,27 @@ function getAuthHeaders(): HeadersInit {
   return headers
 }
 
+function isUnauthorizedStatus(status: number): boolean {
+  return status === 401 || status === 403
+}
+
+function isLoginRequiredMessage(message: string | null | undefined): boolean {
+  if (!message) {
+    return false
+  }
+
+  return message.includes("인증") || message.includes("로그인")
+}
+
+async function extractErrorMessage(response: Response, fallbackMessage: string): Promise<string> {
+  try {
+    const errorData = await response.json()
+    return errorData?.message ?? errorData?.resultMessage ?? errorData?.msg ?? fallbackMessage
+  } catch {
+    return fallbackMessage
+  }
+}
+
 export default function PostDetailPage() {
   const params = useParams()
 
@@ -142,6 +168,10 @@ export default function PostDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [reportLoading, setReportLoading] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+  const [loginRequiredPopup, setLoginRequiredPopup] = useState<LoginRequiredPopupState>({
+    open: false,
+    message: "로그인이 필요한 기능입니다.",
+  })
 
   const postId = useMemo(() => {
     const rawPostId = params?.postId
@@ -153,6 +183,28 @@ export default function PostDetailPage() {
     () => sanitizeRichTextHtml(post?.content ?? ""),
     [post?.content]
   )
+
+  const loginPath = useMemo(() => "/login", [])
+
+  const openLoginRequiredPopup = useCallback((message = "로그인이 필요한 기능입니다.") => {
+    setLoginRequiredPopup({
+      open: true,
+      message,
+    })
+  }, [])
+
+  const closeLoginRequiredPopup = useCallback(() => {
+    setLoginRequiredPopup((prev) => ({
+      ...prev,
+      open: false,
+    }))
+  }, [])
+
+  const moveToLoginPage = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.location.href = loginPath
+    }
+  }, [loginPath])
 
   useEffect(() => {
     const loadPost = async () => {
@@ -226,23 +278,17 @@ export default function PostDetailPage() {
           reasonDetail: "게시글 상세 페이지에서 접수한 신고입니다.",
         }),
       })
-
       if (!response.ok) {
-        let message = "게시글 신고에 실패했습니다."
+        let message = await extractErrorMessage(response, "게시글 신고에 실패했습니다.")
 
-        try {
-          const errorData = await response.json()
-          message =
-            errorData?.message ??
-            errorData?.resultMessage ??
-            errorData?.msg ??
-            message
+        if (isUnauthorizedStatus(response.status) || isLoginRequiredMessage(message)) {
+          setError(null)
+          openLoginRequiredPopup("로그인이 필요한 기능입니다.")
+          return
+        }
 
-          if (typeof message === "string" && message.includes("이미 신고")) {
-            message = "이미 신고한 게시글입니다."
-          }
-        } catch {
-          // keep default message
+        if (typeof message === "string" && message.includes("이미 신고")) {
+          message = "이미 신고한 게시글입니다."
         }
 
         throw new Error(message)
@@ -251,7 +297,15 @@ export default function PostDetailPage() {
       alert("게시글 신고가 접수되었습니다.")
       window.dispatchEvent(new CustomEvent("notifications-updated"))
     } catch (err) {
-      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
+      const message = err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
+
+      if (isLoginRequiredMessage(message)) {
+        setError(null)
+        openLoginRequiredPopup("로그인이 필요한 기능입니다.")
+        return
+      }
+
+      setError(message)
     } finally {
       setReportLoading(false)
     }
@@ -295,7 +349,32 @@ export default function PostDetailPage() {
         ) : error ? (
           <div className="text-destructive">{error}</div>
         ) : (
-          <div>
+          <>
+            {loginRequiredPopup.open && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+                <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg">
+                  <h3 className="text-lg font-semibold text-foreground">로그인 안내</h3>
+                  <p className="mt-3 text-sm text-muted-foreground">{loginRequiredPopup.message}</p>
+                  <div className="mt-6 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={closeLoginRequiredPopup}
+                      className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground"
+                    >
+                      취소
+                    </button>
+                    <button
+                      type="button"
+                      onClick={moveToLoginPage}
+                      className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                    >
+                      로그인 하러가기
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div>
             <h1 className="text-2xl font-bold text-foreground">{post?.title}</h1>
             {post?.userId ? (
               <div className="mt-2 text-sm text-muted-foreground">
@@ -350,7 +429,8 @@ export default function PostDetailPage() {
             >
               {reportLoading ? "신고 중..." : "신고"}
             </button>
-          </div>
+            </div>
+          </>
         )}
       </section>
 
