@@ -12,7 +12,6 @@ import com.back.devc.global.security.jwt.AuthCookieService;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -39,10 +38,11 @@ public class MemberController {
         }
 
         MyInfoResponse body = memberService.getMyInfo(principal.userId());
+        MemberSuccessCode successCode = MemberSuccessCode.MEMBER_ME_SUCCESS;
 
         return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(SuccessResponse.of(MemberSuccessCode.MEMBER_ME_SUCCESS, body));
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, body));
     }
 
     @GetMapping("/{userId}/profile")
@@ -50,10 +50,11 @@ public class MemberController {
             @PathVariable Long userId
     ) {
         PublicProfileResponse body = memberService.getPublicProfile(userId);
+        MemberSuccessCode successCode = MemberSuccessCode.MEMBER_PUBLIC_PROFILE_GET_SUCCESS;
 
         return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(SuccessResponse.of(MemberSuccessCode.MEMBER_PUBLIC_PROFILE_GET_SUCCESS, body));
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, body));
     }
 
     @DeleteMapping("/me")
@@ -67,9 +68,11 @@ public class MemberController {
         MemberWithdrawResponse body = memberService.withdraw(principal.userId());
         SecurityContextHolder.clearContext();
 
+        MemberSuccessCode successCode = MemberSuccessCode.MEMBER_WITHDRAW_SUCCESS;
+
         return ResponseEntity
-                .status(HttpStatus.CREATED)
+                .status(successCode.getStatus())
                 .header(HttpHeaders.SET_COOKIE, authCookieService.buildExpiredAccessTokenCookieHeader())
-                .body(SuccessResponse.of(MemberSuccessCode.MEMBER_WITHDRAW_SUCCESS, body));
+                .body(SuccessResponse.of(successCode, body));
     }
 }
