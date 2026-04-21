@@ -218,7 +218,10 @@ export default function PostDetailPage() {
               </div>
             ) : null}
 
-            <div className="mt-6 whitespace-pre-wrap rounded-lg bg-muted/30 p-4 text-sm">{post?.content}</div>
+            <div
+              className="prose prose-invert mt-6 max-w-none rounded-lg bg-muted/30 p-4 text-sm [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-md [&_blockquote]:border-l-4 [&_blockquote]:pl-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6"
+              dangerouslySetInnerHTML={{ __html: post?.content ?? "" }}
+            />
 
             <div className="mt-6">
               <InteractionButtons
@@ -232,19 +235,19 @@ export default function PostDetailPage() {
             {/* 추가: 수정/삭제 버튼 */}
             {isAuthor && (
               <div className="mt-4 flex items-center gap-2">
-              <Link
-                href={`/write?postId=${postId}`}
-                className="rounded-md border px-4 py-2 text-sm hover:bg-muted">
+                <Link
+                  href={`/write?postId=${postId}`}
+                  className="rounded-md border px-4 py-2 text-sm hover:bg-muted"
+                >
+                  수정
+                </Link>
 
-                수정
-              </Link>
-
-              <button
-                onClick={handleDeletePost}
-                className="rounded-md border border-destructive/40 px-4 py-2 text-sm text-destructive hover:bg-destructive/10"
-              >
-                삭제
-              </button>
+                <button
+                  onClick={handleDeletePost}
+                  className="rounded-md border border-destructive/40 px-4 py-2 text-sm text-destructive hover:bg-destructive/10"
+                >
+                  삭제
+                </button>
               </div>
             )}
 
