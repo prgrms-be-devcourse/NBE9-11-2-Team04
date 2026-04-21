@@ -144,14 +144,14 @@ public class Member {
 
     public void updateStatus(MemberStatus newStatus) {
         if (newStatus == null) {
-            throw new IllegalArgumentException("蹂寃쏀븷 ?곹깭媛믪씠 鍮꾩뼱?덉뒿?덈떎.");
+            throw new IllegalArgumentException("변경할 상태값이 비어있습니다.");
         }
         this.status = newStatus;
     }
 
     public void withdraw() {
         if (this.status == MemberStatus.WITHDRAWN) {
-            throw new IllegalStateException("?대? ?덊눜???뚯썝?낅땲??");
+            throw new IllegalStateException("이미 탈퇴한 회원입니다.");
         }
 
         this.status = MemberStatus.WITHDRAWN;
