@@ -32,6 +32,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @ActiveProfiles("test")
 @WebMvcTest(CommentController.class)
@@ -73,7 +74,9 @@ class CommentControllerTest {
                                       "content": "첫번째 댓글"
                                     }
                                     """))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.code").value("COMMENT_201_CREATE"))
+                    .andExpect(jsonPath("$.message").value("댓글 작성 성공"));
         } finally {
             SecurityContextHolder.clearContext();
         }
@@ -105,7 +108,9 @@ class CommentControllerTest {
                                       "content": "대댓글입니다."
                                     }
                                     """))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.code").value("COMMENT_201_REPLY"))
+                    .andExpect(jsonPath("$.message").value("대댓글 작성 성공"));
         } finally {
             SecurityContextHolder.clearContext();
         }
@@ -137,7 +142,9 @@ class CommentControllerTest {
                                       "content": "수정된 댓글"
                                     }
                                     """))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.code").value("COMMENT_200_UPDATE"))
+                    .andExpect(jsonPath("$.message").value("댓글 수정 성공"));
         } finally {
             SecurityContextHolder.clearContext();
         }
@@ -159,7 +166,9 @@ class CommentControllerTest {
         SecurityContextHolder.getContext().setAuthentication(createAuthentication());
         try {
             mockMvc.perform(delete("/api/comments/{commentId}", 1L))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.code").value("COMMENT_200_DELETE"))
+                    .andExpect(jsonPath("$.message").value("댓글 삭제 성공"));
         } finally {
             SecurityContextHolder.clearContext();
         }
@@ -175,7 +184,9 @@ class CommentControllerTest {
         given(commentService.getComments(1L)).willReturn(response);
 
         mockMvc.perform(get("/api/posts/{postId}/comments", 1L))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("COMMENT_200_LIST"))
+                .andExpect(jsonPath("$.message").value("댓글 목록 조회 성공"));
 
         verify(commentService).getComments(1L);
     }

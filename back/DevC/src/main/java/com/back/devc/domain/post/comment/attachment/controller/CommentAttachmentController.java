@@ -14,7 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
 
 import com.back.devc.global.response.SuccessResponse;
-import com.back.devc.global.response.SuccessCode;
+import com.back.devc.global.response.successCode.CommentAttachmentSuccessCode;
 
 import java.util.List;
 
@@ -41,7 +41,7 @@ public class CommentAttachmentController {
         getAuthenticatedUserId(principal);
 
         CommentAttachmentListResponse response = commentAttachmentService.uploadAttachments(commentId, files, fileOrders);
-        SuccessCode successCode = SuccessCode.COMMENT_ATTACHMENT_201_UPLOAD_SUCCESS;
+        CommentAttachmentSuccessCode successCode = CommentAttachmentSuccessCode.COMMENT_ATTACHMENT_201_UPLOAD;
 
         return ResponseEntity
                 .status(successCode.getStatus())
@@ -53,7 +53,7 @@ public class CommentAttachmentController {
             @PathVariable Long commentId
     ) {
         CommentAttachmentListResponse response = commentAttachmentService.getAttachments(commentId);
-        SuccessCode successCode = SuccessCode.COMMENT_ATTACHMENT_200_LIST_SUCCESS;
+        CommentAttachmentSuccessCode successCode = CommentAttachmentSuccessCode.COMMENT_ATTACHMENT_200_LIST;
 
         return ResponseEntity
                 .status(successCode.getStatus())
@@ -74,7 +74,7 @@ public class CommentAttachmentController {
         getAuthenticatedUserId(principal);
 
         CommentAttachmentDeleteResponse response = commentAttachmentService.deleteAttachment(commentId, attachmentId);
-        SuccessCode successCode = SuccessCode.COMMENT_ATTACHMENT_200_DELETE_SUCCESS;
+        CommentAttachmentSuccessCode successCode = CommentAttachmentSuccessCode.COMMENT_ATTACHMENT_200_DELETE;
 
         return ResponseEntity
                 .status(successCode.getStatus())
