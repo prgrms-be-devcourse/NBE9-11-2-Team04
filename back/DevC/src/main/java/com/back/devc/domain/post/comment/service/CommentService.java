@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import com.back.devc.domain.interaction.notification.service.NotificationService;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +32,7 @@ public class CommentService {
     private final PostRepository postRepository;
     private final MemberRepository memberRepository;
     private final CommentAttachmentService commentAttachmentService;
+    private final NotificationService notificationService;
 
     @Transactional
     public CommentResponse createComment(Long postId, Long loginUserId, CommentCreateRequest request) {
@@ -46,8 +48,8 @@ public class CommentService {
                 null,
                 request.content()
         );
-
         Comment savedComment = commentRepository.save(comment);
+        notificationService.createCommentNotification(postId, loginUserId, savedComment.getId());
         return toResponse(savedComment, post.getTitle(), member.getNickname());
     }
 
@@ -72,8 +74,8 @@ public class CommentService {
                 parentComment.getId(),
                 request.content()
         );
-
         Comment savedReply = commentRepository.save(reply);
+        notificationService.createReplyNotification(parentCommentId, loginUserId, savedReply.getId());
         return toResponse(savedReply, post.getTitle(), member.getNickname());
     }
 
