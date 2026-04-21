@@ -48,18 +48,25 @@ public class PostController {
 
     //게시글 상세조회
     @GetMapping("/{postid}")
-    public ResponseEntity<PostDetailResponse> detail(
+    public ResponseEntity<SuccessResponse<PostDetailResponse>> detail(
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long postid
     ) {
         Long loginUserId = principal != null ? principal.userId() : null;
-        return ResponseEntity.ok(postService.findDetailById(postid, loginUserId));
+
+        PostDetailResponse response = postService.findDetailById(postid, loginUserId);
+        SuccessCode successCode = SuccessCode.POST_DETAIL_SUCCESS;
+
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
+
     }
 
 
     //게시글 목록조회
     @GetMapping
-    public ResponseEntity<Page<PostListResponse>> list(
+    public ResponseEntity<SuccessResponse<Page<PostListResponse>>> list(
             @AuthenticationPrincipal JwtPrincipal principal,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String keyword,
@@ -70,7 +77,7 @@ public class PostController {
     ) {
         Long loginUserId = principal != null ? getAuthenticatedUserId(principal) : null;
 
-        Page<PostListResponse> result = postService.getPosts(
+        Page<PostListResponse> response = postService.getPosts(
                 loginUserId,
                 categoryId,
                 keyword,
@@ -80,7 +87,12 @@ public class PostController {
                 size
         );
 
-        return ResponseEntity.ok(result);
+        SuccessCode successCode = SuccessCode.POST_LIST_SUCCESS;
+
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
+
     }
 
     //게시글 수정
@@ -108,12 +120,18 @@ public class PostController {
 
     //게시글 삭제
     @DeleteMapping("/{postId}")
-    public ResponseEntity<PostDeleteResponse> delete(
+    public ResponseEntity<SuccessResponse<PostDeleteResponse>> delete(
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long postId
     ) {
         postService.delete(getAuthenticatedUserId(principal), postId);
 
-        return ResponseEntity.ok(new PostDeleteResponse(postId, "삭제되었습니다."));
+        PostDeleteResponse response  = new PostDeleteResponse(postId, "삭제되었습니다.");
+
+        SuccessCode successCode = SuccessCode.POST_DELETE_SUCCESS;
+
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
     }
 }
