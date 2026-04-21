@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { PostCard, type Post } from "@/components/post-card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { TrendingUp, Clock, Users } from "lucide-react"
 import {
   AUTH_CHANGED_EVENT,
   getAccessToken,
+  getAuthSnapshot,
 } from "@/lib/auth-storage"
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
+import { apiFetch } from "@/lib/api"
 
 type PostPageResponse = {
   content: {
@@ -21,14 +22,30 @@ type PostPageResponse = {
     likeCount: number
     commentCount: number
     createdAt: string
-    liked: boolean
-    bookmarked: boolean
+    liked?: boolean
+    bookmarked?: boolean
   }[]
-  totalPages: number
-  totalElements: number
-  size: number
-  number: number
+  totalPages?: number
+  totalElements?: number
+  size?: number
+  number?: number
 }
+
+type BookmarkedPostResponse = {
+  postId: number
+  title: string
+  authorNickname: string
+  likeCount: number
+  commentCount: number
+  createdAt: string
+}
+
+type LikedPostResponse = {
+  postId: number
+}
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
 
 function formatTimeAgo(dateString: string) {
   const now = new Date()
@@ -47,6 +64,26 @@ function formatTimeAgo(dateString: string) {
   return created.toLocaleDateString("ko-KR")
 }
 
+function formatRelativeDate(value: string) {
+  if (!value) return ""
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMinutes = Math.floor(diffMs / 1000 / 60)
+  const diffHours = Math.floor(diffMinutes / 60)
+  const diffDays = Math.floor(diffHours / 24)
+
+  if (diffMinutes < 1) return "방금 전"
+  if (diffMinutes < 60) return `${diffMinutes}분 전`
+  if (diffHours < 24) return `${diffHours}시간 전`
+  if (diffDays < 30) return `${diffDays}일 전`
+
+  return date.toLocaleDateString("ko-KR")
+}
+
 function getAuthHeaders(): HeadersInit {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -60,7 +97,29 @@ function getAuthHeaders(): HeadersInit {
   return headers
 }
 
-export default function PostsPage() {
+function mapBookmarkedPostsToPostCard(
+  posts: BookmarkedPostResponse[],
+  likedPostIds: Set<number>,
+  bookmarkedPostIds: Set<number>
+): Post[] {
+  return posts.map((post) => ({
+    id: String(post.postId),
+    title: post.title,
+    excerpt: "",
+    author: { name: post.authorNickname },
+    category: "북마크",
+    createdAt: formatRelativeDate(post.createdAt),
+    likes: post.likeCount,
+    comments: post.commentCount,
+    views: 0,
+    tags: [],
+    liked: likedPostIds.has(post.postId),
+    bookmarked: bookmarkedPostIds.has(post.postId),
+  }))
+}
+
+export default function HomePage() {
+  const [activeTab, setActiveTab] = useState("popular")
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -70,47 +129,98 @@ export default function PostsPage() {
       setLoading(true)
       setError(null)
 
-      const response = await fetch(`${API_BASE_URL}/api/posts`, {
-        method: "GET",
-        credentials: "include",
-        headers: getAuthHeaders(),
-        cache: "no-store",
-      })
+      if (activeTab === "popular" || activeTab === "latest") {
+        let url = `${API_BASE_URL}/api/posts`
 
-      if (!response.ok) {
-        throw new Error("게시글 목록을 불러오지 못했습니다.")
+        if (activeTab === "popular") {
+          url = `${API_BASE_URL}/api/posts?sort=LIKES`
+        } else if (activeTab === "latest") {
+          url = `${API_BASE_URL}/api/posts?sort=LATEST`
+        }
+
+        const response = await fetch(url, {
+          method: "GET",
+          credentials: "include",
+          headers: getAuthHeaders(),
+          cache: "no-store",
+        })
+
+        if (!response.ok) {
+          throw new Error("게시글 목록을 불러오지 못했습니다.")
+        }
+
+        const data: PostPageResponse = await response.json()
+
+        const mapped: Post[] = data.content.map((post) => ({
+          id: String(post.postId),
+          title: post.title,
+          excerpt: post.content,
+          author: {
+            name: post.nickName,
+          },
+          category: String(post.categoryId),
+          createdAt: formatTimeAgo(post.createdAt),
+          likes: post.likeCount,
+          comments: post.commentCount,
+          views: post.viewCount,
+          tags: [],
+          liked: Boolean(post.liked),
+          bookmarked: Boolean(post.bookmarked),
+        }))
+
+        setPosts(mapped)
+        return
       }
 
-      const data: PostPageResponse = await response.json()
+      if (activeTab === "feed") {
+        const auth = getAuthSnapshot()
 
-      const mapped: Post[] = data.content.map((post) => ({
-        id: String(post.postId),
-        title: post.title,
-        excerpt: post.content,
-        author: {
-          name: post.nickName,
-        },
-        category: String(post.categoryId),
-        createdAt: formatTimeAgo(post.createdAt),
-        likes: post.likeCount,
-        comments: post.commentCount,
-        views: post.viewCount,
-        tags: [],
-        liked: Boolean(post.liked),
-        bookmarked: Boolean(post.bookmarked),
-      }))
+        if (!auth.isLoggedIn) {
+          setPosts([])
+          setError("북마크는 로그인 후 확인할 수 있습니다.")
+          return
+        }
 
-      setPosts(mapped)
+        const [bookmarksRes, likesRes] = await Promise.all([
+          apiFetch<BookmarkedPostResponse[]>("/api/mypage/bookmarks", {
+            method: "GET",
+            auth: true,
+          }),
+          apiFetch<LikedPostResponse[]>("/api/mypage/likes", {
+            method: "GET",
+            auth: true,
+          }),
+        ])
+
+        const bookmarks = bookmarksRes ?? []
+        const likes = likesRes ?? []
+
+        const bookmarkedPostIds = new Set(bookmarks.map((post) => post.postId))
+        const likedPostIds = new Set(likes.map((post) => post.postId))
+
+        const mapped = mapBookmarkedPostsToPostCard(
+          bookmarks,
+          likedPostIds,
+          bookmarkedPostIds
+        )
+
+        setPosts(mapped)
+        return
+      }
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "알 수 없는 오류가 발생했습니다."
-      )
+      if (err instanceof Error && err.message === "UNAUTHORIZED") {
+        setError("북마크는 로그인 후 확인할 수 있습니다.")
+      } else {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "알 수 없는 오류가 발생했습니다."
+        )
+      }
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [activeTab])
 
   useEffect(() => {
     void loadPosts()
@@ -122,35 +232,74 @@ export default function PostsPage() {
     }
 
     window.addEventListener(AUTH_CHANGED_EVENT, handleAuthChanged)
+
     return () => {
       window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChanged)
     }
   }, [loadPosts])
 
-  if (loading) {
-    return <div className="px-4 py-10">로딩 중...</div>
-  }
+  const renderPostList = () => {
+    if (loading) {
+      return <div className="py-10 text-center">로딩 중...</div>
+    }
 
-  if (error) {
-    return <div className="px-4 py-10 text-destructive">{error}</div>
+    if (error) {
+      return <div className="py-10 text-center text-destructive">{error}</div>
+    }
+
+    if (posts.length === 0) {
+      return (
+        <div className="rounded-lg border border-border bg-card p-6 text-center text-muted-foreground">
+          {activeTab === "feed"
+            ? "북마크한 게시글이 없습니다."
+            : "게시글이 없습니다."}
+        </div>
+      )
+    }
+
+    return (
+      <div className="grid gap-6">
+        {posts.map((post) => (
+          <PostCard
+            key={`${post.id}-${post.liked}-${post.bookmarked}-${post.likes}`}
+            post={post}
+          />
+        ))}
+      </div>
+    )
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
-      <section className="space-y-4">
-        {posts.length === 0 ? (
-          <div className="rounded-lg border border-border bg-card p-6 text-center text-muted-foreground">
-            게시글이 없습니다.
-          </div>
-        ) : (
-          posts.map((post) => (
-            <PostCard
-              key={`${post.id}-${post.liked}-${post.bookmarked}-${post.likes}`}
-              post={post}
-            />
-          ))
-        )}
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <section className="mb-12 text-center">
+        <h1 className="mb-4 text-4xl font-bold sm:text-5xl">
+          개발자들의 <span className="text-primary">지식 허브</span>
+        </h1>
+        <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+          최신 기술 트렌드, 실무 경험을 나눠보세요.
+        </p>
       </section>
-    </main>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mx-auto mb-8 grid w-full max-w-md grid-cols-3">
+          <TabsTrigger value="popular">
+            <TrendingUp className="h-4 w-4" />
+            인기글
+          </TabsTrigger>
+          <TabsTrigger value="latest">
+            <Clock className="h-4 w-4" />
+            최신글
+          </TabsTrigger>
+          <TabsTrigger value="feed">
+            <Users className="h-4 w-4" />
+            북마크
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="popular">{renderPostList()}</TabsContent>
+        <TabsContent value="latest">{renderPostList()}</TabsContent>
+        <TabsContent value="feed">{renderPostList()}</TabsContent>
+      </Tabs>
+    </div>
   )
 }
