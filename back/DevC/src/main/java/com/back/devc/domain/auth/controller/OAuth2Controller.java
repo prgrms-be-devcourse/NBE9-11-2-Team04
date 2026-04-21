@@ -8,8 +8,8 @@ import com.back.devc.domain.auth.dto.oauth.OAuthSignupCompleteRequest;
 import com.back.devc.domain.auth.service.OAuth2MemberService;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
-import com.back.devc.global.response.SuccessCode;
 import com.back.devc.global.response.SuccessResponse;
+import com.back.devc.global.response.successCode.AuthSuccessCode;
 import com.back.devc.global.security.jwt.AuthCookieService;
 import com.back.devc.global.security.oauth2.OAuth2LoginSuccessHandler;
 import jakarta.servlet.http.HttpServletRequest;
@@ -81,7 +81,8 @@ public class OAuth2Controller {
         LoginResponse body = oAuth2MemberService.exchangeLoginCode(request.code());
         authCookieService.setAccessTokenCookie(response, body.accessToken(), accessTokenExpirationSeconds);
 
-        SuccessCode successCode = SuccessCode.LOGIN_SUCCESS;
+        AuthSuccessCode successCode = AuthSuccessCode.OAUTH_200_EXCHANGE_SUCCESS;
+
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, body));
@@ -107,7 +108,8 @@ public class OAuth2Controller {
         session.removeAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY);
         authCookieService.setAccessTokenCookie(response, body.accessToken(), accessTokenExpirationSeconds);
 
-        SuccessCode successCode = SuccessCode.SIGN_UP_SUCCESS;
+        AuthSuccessCode successCode = AuthSuccessCode.OAUTH_201_SIGNUP_COMPLETE_SUCCESS;
+
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, body));
