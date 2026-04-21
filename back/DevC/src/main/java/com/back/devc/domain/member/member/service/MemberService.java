@@ -1,5 +1,6 @@
 package com.back.devc.domain.member.member.service;
 
+import com.back.devc.domain.member.member.dto.MemberWithdrawResponse;
 import com.back.devc.domain.member.member.dto.MyInfoResponse;
 import com.back.devc.domain.member.member.dto.PublicProfilePostResponse;
 import com.back.devc.domain.member.member.dto.PublicProfileResponse;
@@ -61,10 +62,11 @@ public class MemberService {
     }
 
     @Transactional
-    public void withdraw(Long userId) {
+    public MemberWithdrawResponse withdraw(Long userId) {
         Member member = memberRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
 
         member.withdraw();
+        return new MemberWithdrawResponse(member.getUserId());
     }
 }

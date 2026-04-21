@@ -1,5 +1,6 @@
 package com.back.devc.domain.member.member.controller;
 
+import com.back.devc.domain.member.member.dto.MemberWithdrawResponse;
 import com.back.devc.domain.member.member.dto.MyInfoResponse;
 import com.back.devc.domain.member.member.dto.PublicProfileResponse;
 import com.back.devc.domain.member.member.service.MemberService;
@@ -11,6 +12,7 @@ import com.back.devc.global.security.jwt.AuthCookieService;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,40 +38,38 @@ public class MemberController {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
-        MyInfoResponse response = memberService.getMyInfo(principal.userId());
-        SuccessCode successCode = SuccessCode.ME_SUCCESS;
+        MyInfoResponse body = memberService.getMyInfo(principal.userId());
+
         return ResponseEntity
-                .status(successCode.getStatus())
-                .body(SuccessResponse.of(successCode, response));
+                .status(HttpStatus.CREATED)
+                .body(SuccessResponse.of(SuccessCode.ME_SUCCESS, body));
     }
 
     @GetMapping("/{userId}/profile")
     public ResponseEntity<SuccessResponse<PublicProfileResponse>> getPublicProfile(
             @PathVariable Long userId
     ) {
-        PublicProfileResponse response = memberService.getPublicProfile(userId);
-        SuccessCode successCode = SuccessCode.PUBLIC_PROFILE_SUCCESS;
+        PublicProfileResponse body = memberService.getPublicProfile(userId);
 
         return ResponseEntity
-                .status(successCode.getStatus())
-                .body(SuccessResponse.of(successCode, response));
+                .status(HttpStatus.CREATED)
+                .body(SuccessResponse.of(SuccessCode.PUBLIC_PROFILE_SUCCESS, body));
     }
 
     @DeleteMapping("/me")
-    public ResponseEntity<SuccessResponse<String>> withdraw(
+    public ResponseEntity<SuccessResponse<MemberWithdrawResponse>> withdraw(
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
         if (principal == null) {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
-        memberService.withdraw(principal.userId());
+        MemberWithdrawResponse body = memberService.withdraw(principal.userId());
         SecurityContextHolder.clearContext();
 
-        SuccessCode successCode = SuccessCode.WITHDRAW_SUCCESS;
         return ResponseEntity
-                .status(successCode.getStatus())
+                .status(HttpStatus.CREATED)
                 .header(HttpHeaders.SET_COOKIE, authCookieService.buildExpiredAccessTokenCookieHeader())
-                .body(SuccessResponse.of(successCode, "회원 탈퇴가 완료되었습니다."));
+                .body(SuccessResponse.of(SuccessCode.WITHDRAW_SUCCESS, body));
     }
 }
