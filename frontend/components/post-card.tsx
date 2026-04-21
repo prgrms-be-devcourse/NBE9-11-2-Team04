@@ -79,22 +79,22 @@ export function PostCard({ post, onBookmarkToggle }: PostCardProps) {
           <div className="flex items-center justify-between">
             {authorProfileHref ? (
               <Link href={authorProfileHref} className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
-                  <AvatarImage src={post.author.avatar} alt={post.author.name} />
-                  <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
-                    {post.author.name.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+             <Avatar className="h-10 w-10">
+                <AvatarImage src={post.author.avatar} alt={post.author.name} />
+                <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
+                  작성자
+                </AvatarFallback>
+              </Avatar>
                 <span className="text-sm text-muted-foreground transition-colors hover:text-foreground">
                   {post.author.name}
                 </span>
               </Link>
             ) : (
               <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
+                <Avatar className="h-10 w-10">
                   <AvatarImage src={post.author.avatar} alt={post.author.name} />
                   <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
-                    {post.author.name.slice(0, 2).toUpperCase()}
+                    작성자
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-sm text-muted-foreground">
