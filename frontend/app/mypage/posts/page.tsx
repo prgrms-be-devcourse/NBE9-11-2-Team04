@@ -58,6 +58,8 @@ function mapMyPostsToPostCard(
     excerpt: "",
     author: { name: nickname },
     category: "내 글",
+    categorySlug: "my-posts",
+    categoryId: 0,
     createdAt: formatRelativeDate(post.createdAt),
     likes: post.likeCount,
     comments: post.commentCount,
@@ -75,6 +77,7 @@ export default function MyPostsPage() {
   const [likedPostIds, setLikedPostIds] = useState<Set<number>>(new Set())
   const [bookmarkedPostIds, setBookmarkedPostIds] = useState<Set<number>>(new Set())
   const [loading, setLoading] = useState(true)
+  const [interactionReady, setInteractionReady] = useState(false)
   const [error, setError] = useState("")
 
   useEffect(() => {
@@ -88,6 +91,7 @@ export default function MyPostsPage() {
     const fetchData = async () => {
       try {
         setLoading(true)
+        setInteractionReady(false)
         setError("")
 
         const [postsRes, profileRes, likesRes, bookmarksRes] = await Promise.all([
@@ -109,10 +113,16 @@ export default function MyPostsPage() {
           }),
         ])
 
-        setPosts(postsRes ?? [])
-        setNickname(profileRes?.nickname ?? "")
-        setLikedPostIds(new Set((likesRes ?? []).map((post) => post.postId)))
-        setBookmarkedPostIds(new Set((bookmarksRes ?? []).map((post) => post.postId)))
+        const nextPosts = postsRes ?? []
+        const nextNickname = profileRes?.nickname ?? ""
+        const nextLikedPostIds = new Set((likesRes ?? []).map((post) => post.postId))
+        const nextBookmarkedPostIds = new Set((bookmarksRes ?? []).map((post) => post.postId))
+
+        setPosts(nextPosts)
+        setNickname(nextNickname)
+        setLikedPostIds(nextLikedPostIds)
+        setBookmarkedPostIds(nextBookmarkedPostIds)
+        setInteractionReady(true)
       } catch (err) {
         if (err instanceof Error && err.message === "UNAUTHORIZED") {
           router.replace("/login")
@@ -129,12 +139,52 @@ export default function MyPostsPage() {
     void fetchData()
   }, [router])
 
+  const handleLikeToggle = (
+    postId: number,
+    nextLiked: boolean,
+    nextLikeCount: number
+  ) => {
+    setLikedPostIds((prev) => {
+      const next = new Set(prev)
+
+      if (nextLiked) {
+        next.add(postId)
+      } else {
+        next.delete(postId)
+      }
+
+      return next
+    })
+
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.postId === postId
+          ? { ...post, likeCount: nextLikeCount }
+          : post
+      )
+    )
+  }
+
+  const handleBookmarkToggle = (postId: number, nextBookmarked: boolean) => {
+    setBookmarkedPostIds((prev) => {
+      const next = new Set(prev)
+
+      if (nextBookmarked) {
+        next.add(postId)
+      } else {
+        next.delete(postId)
+      }
+
+      return next
+    })
+  }
+
   const postCards = useMemo(
     () => mapMyPostsToPostCard(posts, nickname, likedPostIds, bookmarkedPostIds),
     [posts, nickname, likedPostIds, bookmarkedPostIds]
   )
 
-  if (loading) return null
+  if (loading || !interactionReady) return null
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -154,7 +204,16 @@ export default function MyPostsPage() {
       {!error && postCards.length > 0 ? (
         <div className="grid gap-6">
           {postCards.map((post) => (
-            <PostCard key={post.id} post={post} />
+            <PostCard
+              key={post.id}
+              post={post}
+              onLikeToggle={(postId, nextLiked, nextLikeCount) =>
+                handleLikeToggle(postId, nextLiked, nextLikeCount)
+              }
+              onBookmarkToggle={(postId, nextBookmarked) =>
+                handleBookmarkToggle(postId, nextBookmarked)
+              }
+            />
           ))}
         </div>
       ) : null}

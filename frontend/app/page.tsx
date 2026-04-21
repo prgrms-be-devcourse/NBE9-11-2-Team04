@@ -263,11 +263,20 @@ export default function HomePage() {
       <div className="grid gap-6">
         {posts.map((post) => (
           <PostCard
-            key={`${post.id}-${post.liked}-${post.bookmarked}-${post.likes}`}
+            key={post.id}
             post={post}
+            onLikeToggle={(postId, nextLiked, nextLikeCount) => {
+              setPosts((prev) =>
+                prev.map((p) =>
+                  Number(p.id) === postId
+                    ? { ...p, liked: nextLiked, likes: nextLikeCount }
+                    : p
+                )
+              )
+            }}
             onBookmarkToggle={(postId, nextBookmarked) => {
-              setPosts(prev =>
-                prev.map(p =>
+              setPosts((prev) =>
+                prev.map((p) =>
                   Number(p.id) === postId
                     ? { ...p, bookmarked: nextBookmarked }
                     : p
