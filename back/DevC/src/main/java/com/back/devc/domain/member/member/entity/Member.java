@@ -12,6 +12,7 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -68,6 +69,7 @@ public class Member {
     @Column(nullable = true)
     private LocalDateTime suspendedUntil;
 
+    @Builder(access = AccessLevel.PRIVATE)
     private Member(
             String email,
             String passwordHash,
@@ -87,27 +89,27 @@ public class Member {
     }
 
     public static Member createLocalMember(String email, String passwordHash, String nickname) {
-        return new Member(
-                email,
-                passwordHash,
-                nickname,
-                MemberRole.USER,
-                MemberStatus.ACTIVE,
-                AuthProvider.LOCAL,
-                email
-        );
+        return Member.builder()
+                .email(email)
+                .passwordHash(passwordHash)
+                .nickname(nickname)
+                .role(MemberRole.USER)
+                .status(MemberStatus.ACTIVE)
+                .provider(AuthProvider.LOCAL)
+                .providerUserId(email)
+                .build();
     }
 
     public static Member createLocalAdminMember(String email, String passwordHash, String nickname) {
-        return new Member(
-                email,
-                passwordHash,
-                nickname,
-                MemberRole.ADMIN,
-                MemberStatus.ACTIVE,
-                AuthProvider.LOCAL,
-                email
-        );
+        return Member.builder()
+                .email(email)
+                .passwordHash(passwordHash)
+                .nickname(nickname)
+                .role(MemberRole.ADMIN)
+                .status(MemberStatus.ACTIVE)
+                .provider(AuthProvider.LOCAL)
+                .providerUserId(email)
+                .build();
     }
 
     public static Member createOAuthMember(
@@ -117,15 +119,15 @@ public class Member {
             String passwordHash,
             String nickname
     ) {
-        return new Member(
-                email,
-                passwordHash,
-                nickname,
-                MemberRole.USER,
-                MemberStatus.ACTIVE,
-                provider,
-                providerUserId
-        );
+        return Member.builder()
+                .email(email)
+                .passwordHash(passwordHash)
+                .nickname(nickname)
+                .role(MemberRole.USER)
+                .status(MemberStatus.ACTIVE)
+                .provider(provider)
+                .providerUserId(providerUserId)
+                .build();
     }
 
     public void updateNickname(String nickname) {
@@ -142,14 +144,14 @@ public class Member {
 
     public void updateStatus(MemberStatus newStatus) {
         if (newStatus == null) {
-            throw new IllegalArgumentException("변경할 상태값이 비어있습니다.");
+            throw new IllegalArgumentException("蹂寃쏀븷 ?곹깭媛믪씠 鍮꾩뼱?덉뒿?덈떎.");
         }
         this.status = newStatus;
     }
 
     public void withdraw() {
         if (this.status == MemberStatus.WITHDRAWN) {
-            throw new IllegalStateException("이미 탈퇴한 회원입니다.");
+            throw new IllegalStateException("?대? ?덊눜???뚯썝?낅땲??");
         }
 
         this.status = MemberStatus.WITHDRAWN;
