@@ -50,18 +50,18 @@ public class AdminReportService {
 
     // 2. 단건 승인 처리
     public void approveReport(Long adminId, AdminReportRequestDTO dto) {
-        Report report = findReportOrThrow(dto.getReportId());
+        Report report = findReportOrThrow(dto.reportId());
         Member admin = findMemberOrThrow(adminId);
 
         validatePendingStatus(report);
 
         report.processReport(admin);
-        handleTargetAction(report, admin, true, dto.getSanctionType(), dto.getSuspensionDays());
+        handleTargetAction(report, admin, true, dto.sanctionType(), dto.suspensionDays());
     }
 
     // 3. 단건 반려
     public void rejectReport(Long adminId, AdminReportRequestDTO dto) {
-        Report report = findReportOrThrow(dto.getReportId());
+        Report report = findReportOrThrow(dto.reportId());
         Member admin = findMemberOrThrow(adminId);
 
         validatePendingStatus(report);
@@ -120,8 +120,8 @@ public class AdminReportService {
         Member admin = findMemberOrThrow(adminId);
 
         // targetType, targetId는 DTO에서 가져옴 (reportId가 그룹 대표 targetId로 사용됨)
-        String targetType = dto.getTargetType();
-        Long targetId = dto.getReportId(); // 프론트에서 targetId를 reportId로 전달
+        String targetType = dto.targetType();
+        Long targetId = dto.reportId(); // 프론트에서 targetId를 reportId로 전달
 
         List<Report> reports = reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
                 targetType, targetId, ReportStatus.PENDING);
@@ -132,15 +132,15 @@ public class AdminReportService {
             report.processReport(admin);
         }
 
-        handleGroupTargetAction(targetType, targetId, admin, true, dto.getSanctionType(), dto.getSuspensionDays());
+        handleGroupTargetAction(targetType, targetId, admin, true, dto.sanctionType(), dto.suspensionDays());
     }
 
     // 6. 그룹 반려 처리
     public void rejectReportGroup(Long adminId, AdminReportRequestDTO dto) {
         Member admin = findMemberOrThrow(adminId);
 
-        String targetType = dto.getTargetType();
-        Long targetId = dto.getReportId();
+        String targetType = dto.targetType();
+        Long targetId = dto.reportId();
 
         List<Report> reports = reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
                 targetType, targetId, ReportStatus.PENDING);
