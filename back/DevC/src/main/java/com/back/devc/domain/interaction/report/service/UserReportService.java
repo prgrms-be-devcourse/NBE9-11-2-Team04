@@ -1,6 +1,5 @@
 package com.back.devc.domain.interaction.report.service;
 
-import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.domain.interaction.report.dto.ReportRequestDTO;
 import com.back.devc.domain.interaction.report.entity.*;
 import com.back.devc.domain.interaction.report.repository.ReportRepository;
@@ -25,7 +24,6 @@ public class UserReportService {
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
-    private final NotificationService notificationService;
 
     /* =========================================================
      *  Public API: 게시글/댓글 신고 엔드포인트

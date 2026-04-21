@@ -13,6 +13,8 @@ export interface Post {
     userId?: number
   }
   category: string
+  categorySlug: string
+  categoryId: number
   createdAt: string
   likes: number
   comments: number
@@ -54,7 +56,7 @@ export function PostCard({ post, onBookmarkToggle }: PostCardProps) {
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex items-center gap-2">
             <Link
-              href={`/category/${post.category.toLowerCase()}`}
+              href={`/category/${post.categorySlug}`}
               className="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
             >
               {post.category}
@@ -77,22 +79,22 @@ export function PostCard({ post, onBookmarkToggle }: PostCardProps) {
           <div className="flex items-center justify-between">
             {authorProfileHref ? (
               <Link href={authorProfileHref} className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
-                  <AvatarImage src={post.author.avatar} alt={post.author.name} />
-                  <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
-                    {post.author.name.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+             <Avatar className="h-10 w-10">
+                <AvatarImage src={post.author.avatar} alt={post.author.name} />
+                <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
+                  작성자
+                </AvatarFallback>
+              </Avatar>
                 <span className="text-sm text-muted-foreground transition-colors hover:text-foreground">
                   {post.author.name}
                 </span>
               </Link>
             ) : (
               <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
+                <Avatar className="h-10 w-10">
                   <AvatarImage src={post.author.avatar} alt={post.author.name} />
                   <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
-                    {post.author.name.slice(0, 2).toUpperCase()}
+                    작성자
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-sm text-muted-foreground">

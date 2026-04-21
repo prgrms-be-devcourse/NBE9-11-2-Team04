@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { PostCard, type Post } from "@/components/post-card"
 import { TrendingUp } from "lucide-react"
+import { categoryLabelMap, categorySlugMap } from "@/constants/category"
 
 type PostPageResponse = {
   content: {
@@ -23,6 +24,7 @@ type PostPageResponse = {
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
+
 
 const formatTimeAgo = (dateString: string) => {
   const date = new Date(dateString)
@@ -64,7 +66,9 @@ export default function PopularPage() {
             name: post.nickName,
             userId: post.userId,
           },
-          category: String(post.categoryId),
+          category: categoryLabelMap[post.categoryId],
+          categorySlug: categorySlugMap[post.categoryId],
+          categoryId: post.categoryId,
           createdAt: formatTimeAgo(post.createdAt),
           likes: post.likeCount,
           comments: post.commentCount,
