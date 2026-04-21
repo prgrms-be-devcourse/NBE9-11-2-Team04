@@ -78,7 +78,7 @@ public class Report {
         this.reasonType = reasonType;
         this.reasonDetail = reasonDetail;
 
-        this.status = ReportStatus.PENDING; // ✅ 초기값 고정
+        this.status = ReportStatus.PENDING;
     }
 
     /**
