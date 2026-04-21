@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import type React from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { PostCard, type Post } from "@/components/post-card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -42,11 +42,16 @@ type MyPostResponse = {
   createdAt: string
 }
 
-type MyCommentResponse = {
+type MyCommentItem = {
   commentId: number
   postId: number
+  postTitle: string
   content: string
   createdAt: string
+}
+
+type MyCommentsResponse = {
+  comments: MyCommentItem[]
 }
 
 type LikedPostResponse = {
@@ -218,6 +223,7 @@ function mapLikedPostsToPostCard(posts: LikedPostResponse[]): Post[] {
 
 export default function MyPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [activeTab, setActiveTab] = useState("posts")
   const [displayName, setDisplayName] = useState("김개발")
@@ -232,7 +238,7 @@ export default function MyPage() {
   const [myPosts, setMyPosts] = useState<MyPostResponse[]>([])
   const [bookmarkedPosts, setBookmarkedPosts] = useState<BookmarkedPostResponse[]>([])
   const [likedPosts, setLikedPosts] = useState<LikedPostResponse[]>([])
-  const [myComments, setMyComments] = useState<MyCommentResponse[]>([])
+  const [myComments, setMyComments] = useState<MyCommentItem[]>([])
 
   const [bookmarkCount, setBookmarkCount] = useState(0)
   const [likeCount, setLikeCount] = useState(0)
@@ -272,6 +278,19 @@ export default function MyPage() {
     () => mapLikedPostsToPostCard(likedPosts),
     [likedPosts]
   )
+
+  useEffect(() => {
+    const tab = searchParams.get("tab")
+
+    if (
+      tab === "posts" ||
+      tab === "bookmarks" ||
+      tab === "likes" ||
+      tab === "comments"
+    ) {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -339,7 +358,7 @@ export default function MyPage() {
             method: "GET",
             auth: true,
           }),
-          apiFetch<MyCommentResponse[]>("/api/mypage/comments", {
+          apiFetch<MyCommentsResponse>("/api/mypage/comments", {
             method: "GET",
             auth: true,
           }),
@@ -358,7 +377,7 @@ export default function MyPage() {
         }
 
         if (commentsRes.status === "fulfilled") {
-          setCommentCount(commentsRes.value?.length ?? 0)
+          setCommentCount(commentsRes.value?.comments?.length ?? 0)
         }
       } catch (err) {
         console.error(err)
@@ -483,13 +502,13 @@ export default function MyPage() {
         setTabLoading(true)
         setError("")
 
-        const res = await apiFetch<MyCommentResponse[]>("/api/mypage/comments", {
+        const res = await apiFetch<MyCommentsResponse>("/api/mypage/comments", {
           method: "GET",
           auth: true,
         })
 
-        setMyComments(res ?? [])
-        setCommentCount(res?.length ?? 0)
+        setMyComments(res?.comments ?? [])
+        setCommentCount(res?.comments?.length ?? 0)
       } catch (err) {
         console.error(err)
         setError("댓글 목록을 불러오지 못했습니다.")
@@ -706,20 +725,32 @@ export default function MyPage() {
           {tabLoading ? null : myComments.length > 0 ? (
             <div className="grid gap-4">
               {myComments.map((comment) => (
-                <div
+                <Link
                   key={comment.commentId}
-                  className="rounded-lg border border-border bg-card p-5"
+                  href={`/posts/${comment.postId}#comment-${comment.commentId}`}
+                  className="block rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary/50 hover:bg-card/80"
                 >
-                  <div className="mb-2 flex items-center justify-between gap-4">
-                    <p className="text-sm text-foreground">{comment.content}</p>
-                    <span className="text-xs text-muted-foreground">
+                  <div className="mb-3 flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="mb-2 inline-flex items-center gap-2 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        내가 작성한 댓글
+                      </p>
+
+                      <h3 className="truncate text-base font-semibold text-foreground">
+                        {comment.postTitle}
+                      </h3>
+                    </div>
+
+                    <span className="shrink-0 text-xs text-muted-foreground">
                       {formatRelativeDate(comment.createdAt)}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    게시글 ID: {comment.postId}
+
+                  <p className="line-clamp-2 text-sm text-muted-foreground">
+                    {comment.content}
                   </p>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (

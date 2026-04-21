@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { ChangeEvent, FormEvent, useEffect, useState } from "react"
 import Link from "next/link"
@@ -33,6 +33,10 @@ type MyProfileResponse = {
 }
 
 type UpdateMyProfileRequest = {
+  nickname: string
+}
+
+type ProfileForm = {
   email: string
   nickname: string
 }
@@ -48,7 +52,7 @@ type LocalProfileForm = {
 export default function MyPageEditPage() {
   const router = useRouter()
 
-  const [form, setForm] = useState<UpdateMyProfileRequest>({
+  const [form, setForm] = useState<ProfileForm>({
     email: "",
     nickname: "",
   })
@@ -131,11 +135,6 @@ export default function MyPageEditPage() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
-    if (!form.email.trim()) {
-      alert("이메일을 입력해주세요.")
-      return
-    }
-
     if (!form.nickname.trim()) {
       alert("닉네임을 입력해주세요.")
       return
@@ -144,13 +143,14 @@ export default function MyPageEditPage() {
     try {
       setSubmitting(true)
 
+      const requestBody: UpdateMyProfileRequest = {
+        nickname: form.nickname.trim(),
+      }
+
       const updatedProfile = await apiFetch<MyProfileResponse>("/api/mypage", {
         method: "PATCH",
         auth: true,
-        body: JSON.stringify({
-          email: form.email.trim(),
-          nickname: form.nickname.trim(),
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       persistLoginSession(undefined, updatedProfile.nickname, updatedProfile.email)
@@ -288,9 +288,8 @@ export default function MyPageEditPage() {
                 name="email"
                 type="email"
                 value={form.email}
-                onChange={handleChange}
-                placeholder="이메일을 입력하세요"
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary"
+                readOnly
+                className="w-full cursor-not-allowed rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground outline-none"
               />
             </div>
 

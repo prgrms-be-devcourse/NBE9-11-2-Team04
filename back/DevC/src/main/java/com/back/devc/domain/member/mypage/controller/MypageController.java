@@ -2,7 +2,7 @@ package com.back.devc.domain.member.mypage.controller;
 
 import com.back.devc.domain.interaction.bookmark.dto.BookmarkedPostResponse;
 import com.back.devc.domain.interaction.postLike.dto.LikedPostResponse;
-import com.back.devc.domain.member.mypage.dto.MyCommentResponse;
+import com.back.devc.domain.member.mypage.dto.MyCommentsResponse;
 import com.back.devc.domain.member.mypage.dto.MyPostResponse;
 import com.back.devc.domain.member.mypage.dto.MyProfileResponse;
 import com.back.devc.domain.member.mypage.dto.UpdateMyProfileRequest;
@@ -41,11 +41,11 @@ public class MypageController {
     }
 
     @GetMapping("/comments")
-    public List<MyCommentResponse> getMyComments(
+    public MyCommentsResponse getMyComments(
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
         validatePrincipal(principal);
-        return mypageService.getMyComments(principal.userId());
+        return new MyCommentsResponse(mypageService.getMyComments(principal.userId()));
     }
 
     @GetMapping("/likes")
