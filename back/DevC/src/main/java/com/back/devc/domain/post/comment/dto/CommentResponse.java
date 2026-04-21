@@ -1,6 +1,7 @@
 package com.back.devc.domain.post.comment.dto;
 
 import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentResponse;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 
 import java.time.LocalDateTime;
@@ -65,10 +66,26 @@ public record CommentResponse(
     public List<CommentAttachmentResponse> getAttachments() {
         return attachments;
     }
+@AllArgsConstructor
+public class CommentResponse {
+
+    private Long commentId;
+    private Long postId;
+    private String postTitle;
+    private Long userId;
+    private String nickname;
+    private Long parentCommentId;
+    private String content;
+    private boolean isDeleted;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private List<CommentResponse> replies;
+    private List<CommentAttachmentResponse> attachments;
 
     public static CommentResponse of(
             Long commentId,
             Long postId,
+            String postTitle,
             Long userId,
             String nickname,
             Long parentCommentId,
@@ -80,6 +97,7 @@ public record CommentResponse(
         return CommentResponse.builder()
                 .commentId(commentId)
                 .postId(postId)
+                .postTitle(postTitle)
                 .userId(userId)
                 .nickname(nickname)
                 .parentCommentId(parentCommentId)

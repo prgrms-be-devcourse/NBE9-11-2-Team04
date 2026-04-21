@@ -67,12 +67,18 @@ public class MypageService {
         List<Comment> comments = commentRepository.findByUserIdAndIsDeletedFalseOrderByCreatedAtDesc(userId);
 
         return comments.stream()
-                .map(comment -> new MyCommentResponse(
-                        comment.getId(),
-                        comment.getPostId(),
-                        comment.getContent(),
-                        comment.getCreatedAt()
-                ))
+                .map(comment -> {
+                    Post post = postRepository.findById(comment.getPostId())
+                            .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + comment.getPostId()));
+
+                    return new MyCommentResponse(
+                            comment.getId(),
+                            comment.getPostId(),
+                            post.getTitle(),
+                            comment.getContent(),
+                            comment.getCreatedAt()
+                    );
+                })
                 .toList();
     }
 
@@ -95,18 +101,12 @@ public class MypageService {
         Member member = memberRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
 
-        String newEmail = request.email().trim();
         String newNickname = request.nickname().trim();
-
-        if (!member.getEmail().equals(newEmail) && memberRepository.existsByEmail(newEmail)) {
-            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
-        }
 
         if (!member.getNickname().equals(newNickname) && memberRepository.existsByNickname(newNickname)) {
             throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
         }
 
-        member.updateEmail(newEmail);
         member.updateNickname(newNickname);
 
         return new MyProfileResponse(

@@ -1,116 +1,163 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
-import { getAuthSnapshot } from "@/lib/auth-storage";
-
-type SuccessResponse<T> = {
-  code: string;
-  message: string;
-  timestamp: string;
-  data: T;
-};
+import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { PostCard, type Post } from "@/components/post-card"
+import { apiFetch } from "@/lib/api"
+import { getAuthSnapshot } from "@/lib/auth-storage"
 
 type MyPostResponse = {
-  postId: number;
-  title: string;
-  likeCount: number;
-  commentCount: number;
-  createdAt: string;
-};
+  postId: number
+  title: string
+  likeCount: number
+  commentCount: number
+  createdAt: string
+}
+
+type MyProfileResponse = {
+  nickname: string
+}
+
+type LikedPostResponse = {
+  postId: number
+}
+
+type BookmarkedPostResponse = {
+  postId: number
+}
+
+function formatRelativeDate(value: string) {
+  if (!value) return ""
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMinutes = Math.floor(diffMs / 1000 / 60)
+  const diffHours = Math.floor(diffMinutes / 60)
+  const diffDays = Math.floor(diffHours / 24)
+
+  if (diffMinutes < 1) return "방금 전"
+  if (diffMinutes < 60) return `${diffMinutes}분 전`
+  if (diffHours < 24) return `${diffHours}시간 전`
+  if (diffDays < 30) return `${diffDays}일 전`
+
+  return date.toLocaleDateString("ko-KR")
+}
+
+function mapMyPostsToPostCard(
+  posts: MyPostResponse[],
+  nickname: string,
+  likedPostIds: Set<number>,
+  bookmarkedPostIds: Set<number>
+): Post[] {
+  return posts.map((post) => ({
+    id: String(post.postId),
+    title: post.title,
+    excerpt: "",
+    author: { name: nickname },
+    category: "내 글",
+    createdAt: formatRelativeDate(post.createdAt),
+    likes: post.likeCount,
+    comments: post.commentCount,
+    views: 0,
+    tags: [],
+    liked: likedPostIds.has(post.postId),
+    bookmarked: bookmarkedPostIds.has(post.postId),
+  }))
+}
 
 export default function MyPostsPage() {
-  const router = useRouter();
-  const [posts, setPosts] = useState<MyPostResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const router = useRouter()
+  const [posts, setPosts] = useState<MyPostResponse[]>([])
+  const [nickname, setNickname] = useState("")
+  const [likedPostIds, setLikedPostIds] = useState<Set<number>>(new Set())
+  const [bookmarkedPostIds, setBookmarkedPostIds] = useState<Set<number>>(new Set())
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
   useEffect(() => {
-    const auth = getAuthSnapshot();
+    const auth = getAuthSnapshot()
 
-    if (!auth.token) {
-      router.replace("/login");
-      return;
+    if (!auth.isLoggedIn) {
+      router.replace("/login")
+      return
     }
 
-    const fetchPosts = async () => {
+    const fetchData = async () => {
       try {
-        setLoading(true);
-        setError("");
+        setLoading(true)
+        setError("")
 
-        const res = await apiFetch<SuccessResponse<MyPostResponse[]>>(
-          "/users/me/posts",
-          {
+        const [postsRes, profileRes, likesRes, bookmarksRes] = await Promise.all([
+          apiFetch<MyPostResponse[]>("/api/mypage/posts", {
             method: "GET",
             auth: true,
-          }
-        );
+          }),
+          apiFetch<MyProfileResponse>("/api/mypage", {
+            method: "GET",
+            auth: true,
+          }),
+          apiFetch<LikedPostResponse[]>("/api/mypage/likes", {
+            method: "GET",
+            auth: true,
+          }),
+          apiFetch<BookmarkedPostResponse[]>("/api/mypage/bookmarks", {
+            method: "GET",
+            auth: true,
+          }),
+        ])
 
-        setPosts(res.data ?? []);
+        setPosts(postsRes ?? [])
+        setNickname(profileRes?.nickname ?? "")
+        setLikedPostIds(new Set((likesRes ?? []).map((post) => post.postId)))
+        setBookmarkedPostIds(new Set((bookmarksRes ?? []).map((post) => post.postId)))
       } catch (err) {
         if (err instanceof Error && err.message === "UNAUTHORIZED") {
-          router.replace("/login");
-          return;
+          router.replace("/login")
+          return
         }
 
-        console.error(err);
-        setError("내가 쓴 글을 불러오지 못했습니다.");
+        console.error(err)
+        setError("내가 쓴 글을 불러오지 못했습니다.")
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchPosts();
-  }, [router]);
+    void fetchData()
+  }, [router])
+
+  const postCards = useMemo(
+    () => mapMyPostsToPostCard(posts, nickname, likedPostIds, bookmarkedPostIds),
+    [posts, nickname, likedPostIds, bookmarkedPostIds]
+  )
+
+  if (loading) return null
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">내가 쓴 글</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            내가 작성한 게시글 목록입니다.
-          </p>
+    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      {error ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {error}
         </div>
+      ) : null}
 
-        <Link href="/mypage" className="rounded-lg border px-4 py-2 text-sm">
-          마이페이지로
-        </Link>
-      </div>
-
-      {loading && <div className="rounded-2xl border p-6">로딩 중...</div>}
-
-      {!loading && error && (
-        <div className="rounded-2xl border p-6">
-          <p className="text-sm text-red-500">{error}</p>
+      {!error && postCards.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
+          <h3 className="mb-2 text-lg font-semibold text-foreground">작성한 글이 없습니다</h3>
+          <p className="text-sm text-muted-foreground">첫 번째 글을 작성해보세요</p>
         </div>
-      )}
+      ) : null}
 
-      {!loading && !error && posts.length === 0 && (
-        <div className="rounded-2xl border p-6">작성한 글이 없습니다.</div>
-      )}
-
-      <div className="space-y-4">
-        {!loading &&
-          !error &&
-          posts.map((post) => (
-            <div key={post.postId} className="rounded-2xl border p-5">
-              <div className="mb-3 flex items-center justify-between gap-4">
-                <h2 className="text-lg font-semibold">{post.title}</h2>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {post.createdAt}
-                </span>
-              </div>
-
-              <div className="flex gap-4 text-sm text-muted-foreground">
-                <span>좋아요 {post.likeCount}</span>
-                <span>댓글 {post.commentCount}</span>
-              </div>
-            </div>
+      {!error && postCards.length > 0 ? (
+        <div className="grid gap-6">
+          {postCards.map((post) => (
+            <PostCard key={post.id} post={post} />
           ))}
-      </div>
+        </div>
+      ) : null}
     </main>
-  );
+  )
 }
