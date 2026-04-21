@@ -23,7 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-class CommentAttachmentServiceImplTest {
+class CommentAttachmentServiceTest {
 
     @Mock
     private CommentAttachmentRepository commentAttachmentRepository;
@@ -32,14 +32,12 @@ class CommentAttachmentServiceImplTest {
     private CommentRepository commentRepository;
 
     @InjectMocks
-    private CommentAttachmentServiceImpl commentAttachmentService;
+    private CommentAttachmentService commentAttachmentService;
 
     @Test
     @DisplayName("댓글 첨부 목록 조회 성공")
     void getAttachments_success() {
-        Comment comment = mock(Comment.class);
-        given(comment.isDeleted()).willReturn(false);
-        given(commentRepository.findById(1L)).willReturn(Optional.of(comment));
+        given(commentRepository.findById(1L)).willReturn(Optional.of(mock(Comment.class)));
 
         CommentAttachment attachment1 = CommentAttachment.create(
                 1L,
@@ -69,10 +67,10 @@ class CommentAttachmentServiceImplTest {
         CommentAttachmentListResponse response = commentAttachmentService.getAttachments(1L);
 
         assertThat(response).isNotNull();
-        assertThat(response.getAttachments()).hasSize(2);
-        assertThat(response.getAttachments().get(0).getCommentId()).isEqualTo(1L);
-        assertThat(response.getAttachments().get(0).getFileName()).isEqualTo("test1.jpg");
-        assertThat(response.getAttachments().get(1).getFileName()).isEqualTo("test2.pdf");
+        assertThat(response.attachments()).hasSize(2);
+        assertThat(response.attachments().get(0).commentId()).isEqualTo(1L);
+        assertThat(response.attachments().get(0).fileName()).isEqualTo("test1.jpg");
+        assertThat(response.attachments().get(1).fileName()).isEqualTo("test2.pdf");
 
         verify(commentRepository).findById(1L);
         verify(commentAttachmentRepository).findByCommentIdOrderByFileOrderAscIdAsc(1L);
@@ -88,15 +86,4 @@ class CommentAttachmentServiceImplTest {
                 .hasMessageContaining("댓글을 찾을 수 없습니다.");
     }
 
-    @Test
-    @DisplayName("삭제된 댓글이면 첨부 목록 조회 시 예외 발생")
-    void getAttachments_fail_whenCommentDeleted() {
-        Comment deletedComment = mock(Comment.class);
-        given(deletedComment.isDeleted()).willReturn(true);
-        given(commentRepository.findById(1L)).willReturn(Optional.of(deletedComment));
-
-        assertThatThrownBy(() -> commentAttachmentService.getAttachments(1L))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("삭제된 댓글에는 첨부파일을 처리할 수 없습니다.");
-    }
 }

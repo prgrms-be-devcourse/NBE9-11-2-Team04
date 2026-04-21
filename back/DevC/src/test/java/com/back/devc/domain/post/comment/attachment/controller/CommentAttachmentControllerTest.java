@@ -30,6 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @ActiveProfiles("test")
 @WebMvcTest(CommentAttachmentController.class)
@@ -71,7 +72,9 @@ class CommentAttachmentControllerTest {
             mockMvc.perform(multipart("/api/comments/{commentId}/attachments", 1L)
                             .file(file)
                             .param("fileOrder", "1"))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.code").value("COMMENT_ATTACHMENT_201_UPLOAD"))
+                    .andExpect(jsonPath("$.message").value("댓글 첨부파일 업로드 성공"));
         } finally {
             SecurityContextHolder.clearContext();
         }
@@ -87,7 +90,9 @@ class CommentAttachmentControllerTest {
         given(commentAttachmentService.getAttachments(1L)).willReturn(response);
 
         mockMvc.perform(get("/api/comments/{commentId}/attachments", 1L))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("COMMENT_ATTACHMENT_200_LIST"))
+                .andExpect(jsonPath("$.message").value("댓글 첨부파일 조회 성공"));
 
         verify(commentAttachmentService).getAttachments(1L);
     }
@@ -102,7 +107,9 @@ class CommentAttachmentControllerTest {
         SecurityContextHolder.getContext().setAuthentication(createAuthentication());
         try {
             mockMvc.perform(delete("/api/comments/{commentId}/attachments/{attachmentId}", 1L, 1L))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.code").value("COMMENT_ATTACHMENT_200_DELETE"))
+                    .andExpect(jsonPath("$.message").value("댓글 첨부파일 삭제 성공"));
         } finally {
             SecurityContextHolder.clearContext();
         }

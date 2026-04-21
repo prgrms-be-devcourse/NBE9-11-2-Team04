@@ -14,7 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.core.Authentication;
 import com.back.devc.global.response.SuccessResponse;
-import com.back.devc.global.response.SuccessCode;
+import com.back.devc.global.response.successCode.NotificationSuccessCode;
 
 /**
  * 알림 조회/읽음 처리 API 컨트롤러
@@ -52,7 +52,7 @@ public class NotificationController {
     @GetMapping
     public ResponseEntity<SuccessResponse<NotificationListResponse>> getMyNotifications(Authentication authentication) {
         NotificationListResponse response = notificationService.getMyNotifications(getAuthenticatedUserId(authentication));
-        SuccessCode successCode = SuccessCode.NOTIFICATION_200_LIST_SUCCESS;
+        NotificationSuccessCode successCode = NotificationSuccessCode.NOTIFICATION_200_LIST;
 
         return ResponseEntity
                 .status(successCode.getStatus())
@@ -74,7 +74,7 @@ public class NotificationController {
                 notificationId,
                 getAuthenticatedUserId(authentication)
         );
-        SuccessCode successCode = SuccessCode.NOTIFICATION_200_READ_SUCCESS;
+        NotificationSuccessCode successCode = NotificationSuccessCode.NOTIFICATION_200_READ;
 
         return ResponseEntity
                 .status(successCode.getStatus())
