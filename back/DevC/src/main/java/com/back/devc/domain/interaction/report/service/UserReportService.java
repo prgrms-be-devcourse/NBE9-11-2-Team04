@@ -1,8 +1,7 @@
 package com.back.devc.domain.interaction.report.service;
 
 import com.back.devc.domain.interaction.report.dto.ReportRequestDTO;
-import com.back.devc.domain.interaction.report.entity.Report;
-import com.back.devc.domain.interaction.report.entity.TargetType;
+import com.back.devc.domain.interaction.report.entity.*;
 import com.back.devc.domain.interaction.report.repository.ReportRepository;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
@@ -27,48 +26,29 @@ public class UserReportService {
     private final CommentRepository commentRepository;
 
     /* =========================================================
-     * POST 신고
+     *  Public API: 게시글/댓글 신고 엔드포인트
      * ========================================================= */
     public void reportPost(Long reporterId, ReportRequestDTO dto) {
+        report(reporterId, TargetType.POST, dto);
+    }
 
-        Member reporter = findMemberOrThrow(reporterId);
-
-        Post post = postRepository.findById(dto.targetId())
-                .orElseThrow(() -> new ApiException(ErrorCode.POST_NOT_FOUND));
-
-        validateSelfReport(post.getMember().getUserId(), reporterId);
-        validateDeleted(post.isDeleted());
-        validateDuplicateReport(reporter, TargetType.POST, dto.targetId());
-
-        Report report = Report.builder()
-                .reporter(reporter)
-                .targetType(TargetType.POST)
-                .targetId(dto.targetId())
-                .reasonType(dto.reasonType())
-                .reasonDetail(dto.reasonDetail())
-                .build();
-
-        reportRepository.save(report);
-
+    public void reportComment(Long reporterId, ReportRequestDTO dto) {
+        report(reporterId, TargetType.COMMENT, dto);
     }
 
     /* =========================================================
-     * COMMENT 신고
+     * 통합 신고 로직
      * ========================================================= */
-    public void reportComment(Long reporterId, ReportRequestDTO dto) {
+    public void report(Long reporterId, TargetType targetType, ReportRequestDTO dto) {
 
         Member reporter = findMemberOrThrow(reporterId);
 
-        Comment comment = commentRepository.findById(dto.targetId())
-                .orElseThrow(() -> new ApiException(ErrorCode.COMMENT_NOT_FOUND));
-
-        validateSelfReport(comment.getUserId(), reporterId);
-        validateDeleted(comment.isDeleted());
-        validateDuplicateReport(reporter, TargetType.COMMENT, dto.targetId());
+        validateTarget(reporterId, targetType, dto.targetId());
+        validateDuplicateReport(reporter, targetType, dto.targetId());
 
         Report report = Report.builder()
                 .reporter(reporter)
-                .targetType(TargetType.COMMENT)
+                .targetType(targetType)
                 .targetId(dto.targetId())
                 .reasonType(dto.reasonType())
                 .reasonDetail(dto.reasonDetail())
@@ -82,20 +62,32 @@ public class UserReportService {
      * Validation
      * ========================================================= */
 
-    private Member findMemberOrThrow(Long userId) {
-        return memberRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
-    }
+    private void validateTarget(Long reporterId, TargetType type, Long targetId) {
 
-    private void validateSelfReport(Long targetUserId, Long reporterId) {
-        if (targetUserId.equals(reporterId)) {
-            throw new ApiException(ErrorCode.CANNOT_REPORT_SELF);
+        if (type == TargetType.POST) {
+            Post post = postRepository.findById(targetId)
+                    .orElseThrow(() -> new ApiException(ErrorCode.POST_NOT_FOUND));
+
+            if (post.getMember().getUserId().equals(reporterId)) {
+                throw new ApiException(ErrorCode.CANNOT_REPORT_SELF);
+            }
+
+            if (post.isDeleted()) {
+                throw new ApiException(ErrorCode.ALREADY_DELETED);
+            }
         }
-    }
 
-    private void validateDeleted(boolean deleted) {
-        if (deleted) {
-            throw new ApiException(ErrorCode.ALREADY_DELETED);
+        if (type == TargetType.COMMENT) {
+            Comment comment = commentRepository.findById(targetId)
+                    .orElseThrow(() -> new ApiException(ErrorCode.COMMENT_NOT_FOUND));
+
+            if (comment.getUserId().equals(reporterId)) {
+                throw new ApiException(ErrorCode.CANNOT_REPORT_SELF);
+            }
+
+            if (comment.isDeleted()) {
+                throw new ApiException(ErrorCode.ALREADY_DELETED);
+            }
         }
     }
 
@@ -104,5 +96,10 @@ public class UserReportService {
                 reporter, type, targetId)) {
             throw new ApiException(ErrorCode.REPORT_ALREADY_EXISTS);
         }
+    }
+
+    private Member findMemberOrThrow(Long userId) {
+        return memberRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
     }
 }
