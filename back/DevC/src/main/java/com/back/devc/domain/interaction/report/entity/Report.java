@@ -38,7 +38,7 @@ public class Report {
     @JoinColumn(name = "reporter_user_id", nullable = false)
     private Member reporter;
 
-    @Column(name = "target_type", nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
     private TargetType  targetType;
 
     @Column(name = "target_id", nullable = false)
