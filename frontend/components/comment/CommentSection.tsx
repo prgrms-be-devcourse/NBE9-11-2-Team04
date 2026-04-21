@@ -141,6 +141,22 @@ function isLoginRequiredMessage(message: string | null | undefined): boolean {
   return message.includes("인증") || message.includes("로그인")
 }
 
+function isSelfReportMessage(message: string | null | undefined): boolean {
+  if (!message) {
+    return false
+  }
+
+  return message.includes("자신") || message.includes("본인") || message.includes("신고할 수 없습니다")
+}
+
+function isSelfReportPopupMessage(message: string | null | undefined): boolean {
+  if (!message) {
+    return false
+  }
+
+  return message.includes("자신이 작성한") && message.includes("신고할 수 없습니다")
+}
+
 async function extractErrorMessage(response: Response, fallbackMessage: string): Promise<string> {
   try {
     const errorData = await response.json()
@@ -607,6 +623,12 @@ export default function CommentSection({ postId }: CommentSectionProps) {
           return
         }
 
+        if (isSelfReportMessage(message)) {
+          setError(null)
+          openLoginRequiredPopup("자신이 작성한 댓글은 신고할 수 없습니다.")
+          return
+        }
+
         if (typeof message === "string" && message.includes("이미 신고")) {
           message = "이미 신고한 댓글입니다."
         }
@@ -622,6 +644,12 @@ export default function CommentSection({ postId }: CommentSectionProps) {
       if (isLoginRequiredMessage(message)) {
         setError(null)
         openLoginRequiredPopup("로그인이 필요한 기능입니다.")
+        return
+      }
+
+      if (isSelfReportMessage(message)) {
+        setError(null)
+        openLoginRequiredPopup("자신이 작성한 댓글은 신고할 수 없습니다.")
         return
       }
 
@@ -768,22 +796,24 @@ export default function CommentSection({ postId }: CommentSectionProps) {
       {loginRequiredPopup.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
           <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg">
-            <h3 className="text-lg font-semibold text-foreground">로그인 안내</h3>
+            <h3 className="text-lg font-semibold text-foreground">안내</h3>
             <p className="mt-3 text-sm text-muted-foreground">{loginRequiredPopup.message}</p>
             <div className="mt-6 flex justify-end gap-2">
+              {!isSelfReportPopupMessage(loginRequiredPopup.message) && (
+                <button
+                  type="button"
+                  onClick={closeLoginRequiredPopup}
+                  className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground"
+                >
+                  취소
+                </button>
+              )}
               <button
                 type="button"
-                onClick={closeLoginRequiredPopup}
-                className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground"
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                onClick={moveToLoginPage}
+                onClick={loginRequiredPopup.message.includes("로그인") ? moveToLoginPage : closeLoginRequiredPopup}
                 className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
               >
-                로그인 하러가기
+                {loginRequiredPopup.message.includes("로그인") ? "로그인 하러가기" : "확인"}
               </button>
             </div>
           </div>
