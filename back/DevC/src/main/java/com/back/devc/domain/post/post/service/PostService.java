@@ -8,6 +8,7 @@ import com.back.devc.domain.member.searchLog.dto.CreateSearchLogRequest;
 import com.back.devc.domain.member.searchLog.service.SearchLogService;
 import com.back.devc.domain.post.category.entity.Category;
 import com.back.devc.domain.post.category.repository.CategoryRepository;
+import com.back.devc.domain.post.post.dto.PostDeleteResponse;
 import com.back.devc.domain.post.post.dto.PostDetailResponse;
 import com.back.devc.domain.post.post.dto.PostListResponse;
 import com.back.devc.domain.post.post.entity.Post;
@@ -179,18 +180,21 @@ public class PostService {
         return post;
     }
 
-    public void delete(Long memberId, Long postId) {
+    public PostDeleteResponse delete(Long memberId, Long postId) {
+
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다."));
 
         if (!post.getMember().getUserId().equals(memberId)) {
-            throw new RuntimeException("삭제 권한이 없습니다.");
+            throw new IllegalArgumentException("삭제 권한이 없습니다.");
         }
 
         if (post.isDeleted()) {
-            throw new EntityNotFoundException("삭제된 게시글입니다.");
+            throw new EntityNotFoundException("이미 삭제된 게시글입니다.");
         }
 
         post.delete();
+
+        return PostDeleteResponse.of(postId);
     }
 }

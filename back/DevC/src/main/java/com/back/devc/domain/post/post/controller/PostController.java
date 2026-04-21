@@ -124,9 +124,9 @@ public class PostController {
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long postId
     ) {
-        postService.delete(getAuthenticatedUserId(principal), postId);
+        Long userId = getAuthenticatedUserId(principal);
 
-        PostDeleteResponse response  = new PostDeleteResponse(postId, "삭제되었습니다.");
+        PostDeleteResponse response = postService.delete(userId, postId);
 
         SuccessCode successCode = SuccessCode.POST_DELETE_SUCCESS;
 

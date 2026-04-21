@@ -2,14 +2,15 @@ package com.back.devc.domain.post.post.dto;
 
 import com.back.devc.domain.post.post.entity.Post;
 
+import lombok.Builder;
+
+@Builder
 public record PostCreateResponse(
-        Long postId,
-        String message
+        Long postId
 ) {
     public static PostCreateResponse from(Post post) {
-        return new PostCreateResponse(
-                post.getPostId(),
-                "게시글이 생성되었습니다."
-        );
+        return PostCreateResponse.builder()
+                .postId(post.getPostId())
+                .build();
     }
 }
