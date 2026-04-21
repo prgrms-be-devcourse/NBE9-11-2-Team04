@@ -184,11 +184,10 @@ public class AdminReportService {
                                     SanctionType sanctionType, Integer suspensionDays) {
 
         notify(report, admin);
-        TargetType targetType = TargetType.valueOf(report.getTargetType());
         if (approved) {
-            deleteTarget(targetType, report.getTargetId());
+            deleteTarget(report.getTargetType(), report.getTargetId());
             applyTargetMemberSanction(
-                    targetType,
+                    report.getTargetType(),
                     report.getTargetId(),
                     sanctionType,
                     suspensionDays
@@ -271,13 +270,12 @@ public class AdminReportService {
 
     private void notify(Report report, Member admin) {
 
-        TargetType targetType = TargetType.valueOf(report.getTargetType());
 
-        if (targetType == TargetType.POST) {
+        if (report.getTargetType() == TargetType.POST) {
             notificationService.createPostReportNotification(
                     report.getTargetId(), admin.getUserId());
 
-        } else if (targetType == TargetType.COMMENT) {
+        } else if (report.getTargetType() == TargetType.COMMENT) {
             notificationService.createCommentReportNotification(
                     report.getTargetId(), admin.getUserId());
         }
@@ -317,16 +315,15 @@ public class AdminReportService {
         String targetTitle = null;
         String targetContent = null;
 
-        TargetType targetType = TargetType.valueOf(report.getTargetType());
 
-        if (targetType == TargetType.POST) {
+        if (report.getTargetType() == TargetType.POST) {
             Post post = postRepository.findById(report.getTargetId()).orElse(null);
             if (post != null) {
                 targetNickname = post.getMember().getNickname();
                 targetTitle = post.getTitle();
                 targetContent = post.getContent();
             }
-        } else if (targetType == TargetType.COMMENT) {
+        } else if (report.getTargetType() == TargetType.COMMENT) {
             Comment comment = commentRepository.findById(report.getTargetId()).orElse(null);
             if (comment != null) {
                 targetNickname = memberRepository.findById(comment.getUserId())
