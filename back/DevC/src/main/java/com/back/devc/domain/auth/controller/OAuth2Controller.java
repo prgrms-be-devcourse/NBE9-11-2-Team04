@@ -39,6 +39,7 @@ public class OAuth2Controller {
     @Value("${custom.jwt.access-token-expiration-seconds:3600}")
     private long accessTokenExpirationSeconds;
 
+    // OAuth2 로그인 상태/회원가입 대기 상태를 조회한다.
     @GetMapping("/me")
     public ResponseEntity<SuccessResponse<OAuth2MeResponse>> me(
             @AuthenticationPrincipal OAuth2User oauth2User,
@@ -87,6 +88,7 @@ public class OAuth2Controller {
                 .body(SuccessResponse.of(successCode, body));
     }
 
+    // OAuth2 로그인 코드를 교환해 로그인 정보를 반환하고 토큰 쿠키를 설정한다.
     @PostMapping("/exchange")
     public ResponseEntity<SuccessResponse<LoginResponse>> exchange(
             @Valid @RequestBody OAuthExchangeRequest request,
@@ -101,6 +103,7 @@ public class OAuth2Controller {
                 .body(SuccessResponse.of(successCode, body));
     }
 
+    // 세션의 pendingSignup 정보를 이용해 OAuth2 회원가입을 완료하고 로그인 정보를 반환한다.
     @PostMapping("/signup/complete")
     public ResponseEntity<SuccessResponse<LoginResponse>> completeSignup(
             @Valid @RequestBody OAuthSignupCompleteRequest request,

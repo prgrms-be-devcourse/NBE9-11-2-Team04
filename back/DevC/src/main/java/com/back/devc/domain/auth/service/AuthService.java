@@ -24,11 +24,13 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
 
+    // 로그아웃 성공 응답 DTO를 생성한다. (서버 상태 변경 없음)
     @Transactional(readOnly = true)
     public LogoutResponse logout() {
         return LogoutResponse.success();
     }
 
+    // 사용자 인증 정보를 검증하고 JWT를 발급해 로그인 응답 DTO를 반환한다.
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
         Member member = memberRepository.findByEmail(request.email())
@@ -54,6 +56,7 @@ public class AuthService {
         );
     }
 
+    // 이메일/닉네임 중복을 검사한 뒤 로컬 회원을 생성하고 회원가입 응답 DTO를 반환한다.
     @Transactional
     public SignUpResponse signUp(SignUpRequest request) {
         if (memberRepository.existsByEmail(request.email())) {
