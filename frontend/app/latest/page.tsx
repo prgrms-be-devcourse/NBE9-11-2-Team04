@@ -6,7 +6,6 @@ import { Clock } from "lucide-react"
 import { getAccessToken } from "@/lib/auth-storage"
 import { categoryLabelMap, categorySlugMap } from "@/constants/category"
 
-
 type PostPageResponse = {
   content: {
     postId: number
@@ -122,7 +121,19 @@ export default function LatestPage() {
       ) : (
         <div className="grid gap-6">
           {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
+            <PostCard
+              key={post.id}
+              post={post}
+              onBookmarkToggle={(postId, nextBookmarked) => {
+                setPosts(prev =>
+                  prev.map(p =>
+                    Number(p.id) === postId
+                      ? { ...p, bookmarked: nextBookmarked }
+                      : p
+                  )
+                )
+              }}
+            />
           ))}
         </div>
       )}
