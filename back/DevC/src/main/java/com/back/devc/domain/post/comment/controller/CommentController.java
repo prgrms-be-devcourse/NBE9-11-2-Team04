@@ -42,10 +42,11 @@ public class CommentController {
                 getAuthenticatedUserId(principal),
                 request
         );
+        SuccessCode successCode = SuccessCode.COMMENT_201_CREATE_SUCCESS;
 
-        return ResponseEntity.ok(
-                SuccessResponse.of(SuccessCode.COMMENT_CREATE_SUCCESS, response)
-        );
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
     }
 
     /**
@@ -64,10 +65,11 @@ public class CommentController {
                 getAuthenticatedUserId(principal),
                 request
         );
+        SuccessCode successCode = SuccessCode.COMMENT_201_REPLY_SUCCESS;
 
-        return ResponseEntity.ok(
-                SuccessResponse.of(SuccessCode.COMMENT_REPLY_SUCCESS, response)
-        );
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
     }
 
     /**
@@ -87,10 +89,11 @@ public class CommentController {
                 getAuthenticatedUserId(principal),
                 request
         );
+        SuccessCode successCode = SuccessCode.COMMENT_200_UPDATE_SUCCESS;
 
-        return ResponseEntity.ok(
-                SuccessResponse.of(SuccessCode.COMMENT_UPDATE_SUCCESS, response)
-        );
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
     }
 
     /**
@@ -108,19 +111,21 @@ public class CommentController {
                 commentId,
                 getAuthenticatedUserId(principal)
         );
+        SuccessCode successCode = SuccessCode.COMMENT_200_DELETE_SUCCESS;
 
-        return ResponseEntity.ok(
-                SuccessResponse.of(SuccessCode.COMMENT_DELETE_SUCCESS, response)
-        );
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
     }
 
     @GetMapping("/posts/{postId}/comments")
     public ResponseEntity<SuccessResponse<CommentListResponse>> getComments(@PathVariable Long postId) {
         CommentListResponse response = commentService.getComments(postId);
+        SuccessCode successCode = SuccessCode.COMMENT_200_LIST_SUCCESS;
 
-        return ResponseEntity.ok(
-                SuccessResponse.of(SuccessCode.COMMENT_LIST_SUCCESS, response)
-        );
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
     }
 
 }

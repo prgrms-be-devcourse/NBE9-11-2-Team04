@@ -7,8 +7,15 @@ type CommentSectionProps = {
     postId: number
 }
 
+type SuccessResponse<T> = {
+    code: string
+    message: string
+    data: T
+}
+
 type CommentAttachmentItem = {
-    attachmentId: number
+    attachmentId?: number
+    id?: number
     fileName: string
     fileUrl: string
     fileType?: string | null
@@ -18,19 +25,64 @@ type CommentAttachmentItem = {
 type CommentItem = {
     commentId: number
     postId: number
+    postTitle?: string
     userId: number
     nickname: string | null
     parentCommentId: number | null
     content: string
     createdAt: string
     updatedAt: string
-    deleted: boolean
+    deleted?: boolean
+    isDeleted?: boolean
     attachments?: CommentAttachmentItem[]
     replies: CommentItem[]
 }
 
 type CommentListResponse = {
     comments: CommentItem[]
+}
+
+function normalizeAttachment(attachment: CommentAttachmentItem): CommentAttachmentItem {
+    return {
+        ...attachment,
+        attachmentId: attachment.attachmentId ?? attachment.id,
+    }
+}
+
+function normalizeComment(comment: CommentItem): CommentItem {
+    return {
+        ...comment,
+        deleted: comment.deleted ?? comment.isDeleted ?? false,
+        attachments: (comment.attachments ?? []).map(normalizeAttachment),
+        replies: (comment.replies ?? []).map(normalizeComment),
+    }
+}
+
+function extractCommentListResponse(responseBody: unknown): CommentListResponse {
+    if (!responseBody || typeof responseBody !== "object") {
+        return { comments: [] }
+    }
+
+    const body = responseBody as
+        | CommentListResponse
+        | SuccessResponse<CommentListResponse>
+        | { data?: CommentListResponse }
+
+    if (Array.isArray((body as CommentListResponse).comments)) {
+        return {
+            comments: ((body as CommentListResponse).comments ?? []).map(normalizeComment),
+        }
+    }
+
+    const nestedComments = (body as SuccessResponse<CommentListResponse>).data?.comments
+
+    if (Array.isArray(nestedComments)) {
+        return {
+            comments: nestedComments.map(normalizeComment),
+        }
+    }
+
+    return { comments: [] }
 }
 
 type CreatedCommentApiResponse = {
@@ -215,7 +267,7 @@ function renderAttachments(attachments: CommentAttachmentItem[] | undefined) {
 
                     return (
                         <div
-                            key={attachment.attachmentId}
+                            key={attachment.attachmentId ?? attachment.id ?? attachment.fileName}
                             className="flex flex-col gap-2 rounded-md border border-border/70 p-3"
                         >
                             {isImage && (
@@ -280,7 +332,8 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                 throw new Error("댓글을 불러오지 못했습니다.")
             }
 
-            const data: CommentListResponse = await response.json()
+            const responseBody = await response.json()
+            const data = extractCommentListResponse(responseBody)
             setComments(sortCommentsByNewest(data.comments ?? []))
         } catch (err) {
             setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
@@ -601,7 +654,9 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                         type="file"
                         multiple
                         onChange={(event) => {
-                            setNewCommentFiles(Array.from(event.target.files ?? []))
+                            const selectedFiles = Array.from(event.target.files ?? [])
+                            setNewCommentFiles(selectedFiles)
+                            event.target.value = ""
                         }}
                         className="hidden"
                     />
@@ -674,7 +729,9 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                             </div>
                         ) : (
                             <>
-                                <p className="text-sm text-foreground">{comment.content}</p>
+                                <p className="text-sm text-foreground">
+                                    {comment.deleted ? "삭제된 댓글입니다." : comment.content}
+                                </p>
                                 {renderAttachments(comment.attachments)}
                             </>
                         )}
@@ -748,10 +805,12 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                                             type="file"
                                             multiple
                                             onChange={(event) => {
+                                                const selectedFiles = Array.from(event.target.files ?? [])
                                                 setReplyFiles((prev) => ({
                                                     ...prev,
-                                                    [comment.commentId]: Array.from(event.target.files ?? []),
+                                                    [comment.commentId]: selectedFiles,
                                                 }))
+                                                event.target.value = ""
                                             }}
                                             className="hidden"
                                         />
@@ -821,7 +880,9 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                                             </div>
                                         ) : (
                                             <>
-                                                <p className="text-sm text-foreground">{reply.content}</p>
+                                                <p className="text-sm text-foreground">
+                                                    {reply.deleted ? "삭제된 댓글입니다." : reply.content}
+                                                </p>
                                                 {renderAttachments(reply.attachments)}
                                             </>
                                         )}
