@@ -1,6 +1,5 @@
 package com.back.devc.domain.interaction.report.service;
 
-import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.domain.interaction.report.dto.ReportRequestDTO;
 import com.back.devc.domain.interaction.report.entity.Report;
 import com.back.devc.domain.interaction.report.entity.TargetType;
@@ -26,7 +25,6 @@ public class UserReportService {
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
-    private final NotificationService notificationService;
 
     /* =========================================================
      * POST 신고
@@ -52,7 +50,6 @@ public class UserReportService {
 
         reportRepository.save(report);
 
-        notificationService.createPostReportNotification(dto.targetId(), reporterId);
     }
 
     /* =========================================================
@@ -79,7 +76,6 @@ public class UserReportService {
 
         reportRepository.save(report);
 
-        notificationService.createCommentReportNotification(dto.targetId(), reporterId);
     }
 
     /* =========================================================
