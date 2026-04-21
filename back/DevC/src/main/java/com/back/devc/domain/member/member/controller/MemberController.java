@@ -29,6 +29,7 @@ public class MemberController {
     private final MemberService memberService;
     private final AuthCookieService authCookieService;
 
+    // 내 정보 조회
     @GetMapping("/me")
     public ResponseEntity<SuccessResponse<MyInfoResponse>> me(
             @AuthenticationPrincipal JwtPrincipal principal
@@ -45,6 +46,7 @@ public class MemberController {
                 .body(SuccessResponse.of(successCode, body));
     }
 
+    // 유저 프로필 조회
     @GetMapping("/{userId}/profile")
     public ResponseEntity<SuccessResponse<PublicProfileResponse>> getPublicProfile(
             @PathVariable Long userId
@@ -57,6 +59,7 @@ public class MemberController {
                 .body(SuccessResponse.of(successCode, body));
     }
 
+    // 회원 탈퇴
     @DeleteMapping("/me")
     public ResponseEntity<SuccessResponse<MemberWithdrawResponse>> withdraw(
             @AuthenticationPrincipal JwtPrincipal principal
