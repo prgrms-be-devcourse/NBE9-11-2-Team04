@@ -7,7 +7,7 @@ import com.back.devc.domain.post.comment.dto.CommentResponse;
 import com.back.devc.domain.post.comment.dto.CommentUpdateRequest;
 import com.back.devc.domain.post.comment.service.CommentService;
 import com.back.devc.global.response.SuccessResponse;
-import com.back.devc.global.response.SuccessCode;
+import com.back.devc.global.response.successCode.CommentSuccessCode;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +42,7 @@ public class CommentController {
                 getAuthenticatedUserId(principal),
                 request
         );
-        SuccessCode successCode = SuccessCode.COMMENT_201_CREATE_SUCCESS;
+        CommentSuccessCode successCode = CommentSuccessCode.COMMENT_201_CREATE;
 
         return ResponseEntity
                 .status(successCode.getStatus())
@@ -65,7 +65,7 @@ public class CommentController {
                 getAuthenticatedUserId(principal),
                 request
         );
-        SuccessCode successCode = SuccessCode.COMMENT_201_REPLY_SUCCESS;
+        CommentSuccessCode successCode = CommentSuccessCode.COMMENT_201_REPLY;
 
         return ResponseEntity
                 .status(successCode.getStatus())
@@ -89,7 +89,7 @@ public class CommentController {
                 getAuthenticatedUserId(principal),
                 request
         );
-        SuccessCode successCode = SuccessCode.COMMENT_200_UPDATE_SUCCESS;
+        CommentSuccessCode successCode = CommentSuccessCode.COMMENT_200_UPDATE;
 
         return ResponseEntity
                 .status(successCode.getStatus())
@@ -111,7 +111,7 @@ public class CommentController {
                 commentId,
                 getAuthenticatedUserId(principal)
         );
-        SuccessCode successCode = SuccessCode.COMMENT_200_DELETE_SUCCESS;
+        CommentSuccessCode successCode = CommentSuccessCode.COMMENT_200_DELETE;
 
         return ResponseEntity
                 .status(successCode.getStatus())
@@ -121,7 +121,7 @@ public class CommentController {
     @GetMapping("/posts/{postId}/comments")
     public ResponseEntity<SuccessResponse<CommentListResponse>> getComments(@PathVariable Long postId) {
         CommentListResponse response = commentService.getComments(postId);
-        SuccessCode successCode = SuccessCode.COMMENT_200_LIST_SUCCESS;
+        CommentSuccessCode successCode = CommentSuccessCode.COMMENT_200_LIST;
 
         return ResponseEntity
                 .status(successCode.getStatus())

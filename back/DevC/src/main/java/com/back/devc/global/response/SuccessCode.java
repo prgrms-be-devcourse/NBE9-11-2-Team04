@@ -21,14 +21,6 @@ public enum SuccessCode {
     REPORT_POST_SUCCESS(HttpStatus.CREATED, "REPORT_201_POST", "게시글 신고가 정상적으로 접수되었습니다."),
     REPORT_COMMENT_SUCCESS(HttpStatus.CREATED, "REPORT_201_COMMENT", "댓글 신고가 정상적으로 접수되었습니다."),
 
-    // 대시보드 관련 성공 코드
-    DASHBOARD_LIST(HttpStatus.OK, "DASHBOARD_200_LIST", "대시보드 조회 성공"),
-
-    // Notification SuccessCode
-    NOTIFICATION_200_LIST_SUCCESS(HttpStatus.OK, "NOTIFICATION_200_LIST_SUCCESS", "알림 목록 조회 성공"),
-    NOTIFICATION_200_READ_SUCCESS(HttpStatus.OK, "NOTIFICATION_200_READ_SUCCESS", "알림 읽음 처리 성공"),
-
-    //게시글 관련 성공 코드
 
     POST_CREATE_SUCCESS(HttpStatus.CREATED,"POST_201_CREATE_SUCCESS", "게시글 작성 성공"),
     POST_LIST_SUCCESS(HttpStatus.OK,"POST_200_LIST_SUCCESS", "게시글 목록 조회 성공"),
@@ -37,18 +29,8 @@ public enum SuccessCode {
     POST_DELETE_SUCCESS(HttpStatus.OK,"POST_200_DELETE_SUCCESS", "게시글 삭제 성공"),
 
 
-
-    // CommentAttachment SuccessCode
-    COMMENT_ATTACHMENT_201_UPLOAD_SUCCESS(HttpStatus.CREATED, "COMMENT_ATTACHMENT_201_UPLOAD_SUCCESS", "댓글 첨부파일 업로드 성공"),
-    COMMENT_ATTACHMENT_200_LIST_SUCCESS(HttpStatus.OK, "COMMENT_ATTACHMENT_200_LIST_SUCCESS", "댓글 첨부파일 조회 성공"),
-    COMMENT_ATTACHMENT_200_DELETE_SUCCESS(HttpStatus.OK, "COMMENT_ATTACHMENT_200_DELETE_SUCCESS", "댓글 첨부파일 삭제 성공"),
-
-    // Comment SuccessCode
-    COMMENT_201_CREATE_SUCCESS(HttpStatus.CREATED, "COMMENT_201_CREATE_SUCCESS", "댓글 작성 성공"),
-    COMMENT_201_REPLY_SUCCESS(HttpStatus.CREATED, "COMMENT_201_REPLY_SUCCESS", "대댓글 작성 성공"),
-    COMMENT_200_UPDATE_SUCCESS(HttpStatus.OK, "COMMENT_200_UPDATE_SUCCESS", "댓글 수정 성공"),
-    COMMENT_200_DELETE_SUCCESS(HttpStatus.OK, "COMMENT_200_DELETE_SUCCESS", "댓글 삭제 성공"),
-    COMMENT_200_LIST_SUCCESS(HttpStatus.OK, "COMMENT_200_LIST_SUCCESS", "댓글 목록 조회 성공"),
+    // 대시보드 관련 성공 코드
+    DASHBOARD_LIST(HttpStatus.OK, "DASHBOARD_200_LIST", "대시보드 조회 성공"),
 
     // 회원 탈퇴 성공 코드
     WITHDRAW_SUCCESS(HttpStatus.OK, "USER_200_WITHDRAW_SUCCESS", "회원 탈퇴가 완료되었습니다.");

@@ -46,13 +46,11 @@ const categoryMap: Record<string, number> = {
 const sortOptions = [
   { value: "latest", label: "최신순" },
   { value: "popular", label: "인기순" },
-  { value: "comments", label: "댓글순" },
 ]
 
 const sortMap: Record<string, string> = {
   latest: "LATEST",
   popular: "LIKES",
-  comments: "COMMENT",
 }
 
 const formatTimeAgo = (dateString: string) => {
