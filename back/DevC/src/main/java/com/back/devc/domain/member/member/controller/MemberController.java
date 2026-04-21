@@ -6,8 +6,8 @@ import com.back.devc.domain.member.member.dto.PublicProfileResponse;
 import com.back.devc.domain.member.member.service.MemberService;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
-import com.back.devc.global.response.SuccessCode;
 import com.back.devc.global.response.SuccessResponse;
+import com.back.devc.global.response.successCode.MemberSuccessCode;
 import com.back.devc.global.security.jwt.AuthCookieService;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +42,7 @@ public class MemberController {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(SuccessResponse.of(SuccessCode.ME_SUCCESS, body));
+                .body(SuccessResponse.of(MemberSuccessCode.MEMBER_ME_SUCCESS, body));
     }
 
     @GetMapping("/{userId}/profile")
@@ -53,7 +53,7 @@ public class MemberController {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(SuccessResponse.of(SuccessCode.PUBLIC_PROFILE_SUCCESS, body));
+                .body(SuccessResponse.of(MemberSuccessCode.MEMBER_PUBLIC_PROFILE_GET_SUCCESS, body));
     }
 
     @DeleteMapping("/me")
@@ -70,6 +70,6 @@ public class MemberController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .header(HttpHeaders.SET_COOKIE, authCookieService.buildExpiredAccessTokenCookieHeader())
-                .body(SuccessResponse.of(SuccessCode.WITHDRAW_SUCCESS, body));
+                .body(SuccessResponse.of(MemberSuccessCode.MEMBER_WITHDRAW_SUCCESS, body));
     }
 }
