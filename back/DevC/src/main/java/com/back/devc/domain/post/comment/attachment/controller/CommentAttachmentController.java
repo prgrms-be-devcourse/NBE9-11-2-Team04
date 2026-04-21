@@ -41,10 +41,11 @@ public class CommentAttachmentController {
         getAuthenticatedUserId(principal);
 
         CommentAttachmentListResponse response = commentAttachmentService.uploadAttachments(commentId, files, fileOrders);
+        SuccessCode successCode = SuccessCode.COMMENT_ATTACHMENT_201_UPLOAD_SUCCESS;
 
-        return ResponseEntity.ok(
-                SuccessResponse.of(SuccessCode.COMMENT_ATTACHMENT_UPLOAD_SUCCESS, response)
-        );
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
     }
 
     @GetMapping
@@ -52,10 +53,11 @@ public class CommentAttachmentController {
             @PathVariable Long commentId
     ) {
         CommentAttachmentListResponse response = commentAttachmentService.getAttachments(commentId);
+        SuccessCode successCode = SuccessCode.COMMENT_ATTACHMENT_200_LIST_SUCCESS;
 
-        return ResponseEntity.ok(
-                SuccessResponse.of(SuccessCode.COMMENT_ATTACHMENT_LIST_SUCCESS, response)
-        );
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
     }
 
     /**
@@ -72,10 +74,11 @@ public class CommentAttachmentController {
         getAuthenticatedUserId(principal);
 
         CommentAttachmentDeleteResponse response = commentAttachmentService.deleteAttachment(commentId, attachmentId);
+        SuccessCode successCode = SuccessCode.COMMENT_ATTACHMENT_200_DELETE_SUCCESS;
 
-        return ResponseEntity.ok(
-                SuccessResponse.of(SuccessCode.COMMENT_ATTACHMENT_DELETE_SUCCESS, response)
-        );
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
     }
 
 }

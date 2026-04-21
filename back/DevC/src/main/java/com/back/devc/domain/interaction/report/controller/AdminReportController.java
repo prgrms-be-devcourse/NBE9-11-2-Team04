@@ -7,10 +7,7 @@ import com.back.devc.domain.interaction.report.entity.ReportStatus;
 import com.back.devc.domain.interaction.report.service.AdminReportService;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
-import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
-
-import com.back.devc.global.exception.ApiException;
-import com.back.devc.global.exception.ErrorCode;
+import com.back.devc.global.response.SuccessCode;
 import com.back.devc.global.response.SuccessResponse;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -41,9 +39,9 @@ public class AdminReportController {
             Pageable pageable
     ) {
         Page<ReportResponseDTO> reports = adminReportService.getReports(status, pageable);
-        return ResponseEntity.ok(
-                SuccessResponse.of("ADMIN_200", "신고 목록 조회 성공", reports)
-        );
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(SuccessResponse.of(SuccessCode.REPORT_LIST_SUCCESS, reports));
     }
 
     /* =========================
@@ -62,9 +60,9 @@ public class AdminReportController {
         }
 
         Page<ReportGroupResponseDTO> result = adminReportService.getGroupedReports(status, pageable);
-        return ResponseEntity.ok(
-                SuccessResponse.of("ADMIN_200", "그룹 신고 조회 성공", result)
-        );
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(SuccessResponse.of(SuccessCode.REPORT_GROUP_LIST_SUCCESS, result));
     }
 
     /* =========================
@@ -80,9 +78,9 @@ public class AdminReportController {
         }
 
         adminReportService.approveReportGroup(getAuthenticatedUserId(principal), requestDto);
-        return ResponseEntity.ok(
-                SuccessResponse.of("REPORT_APPROVE_200", "그룹 신고 승인 완료", null)
-        );
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(SuccessResponse.of(SuccessCode.REPORT_GROUP_APPROVE_SUCCESS, null));
     }
 
     /* =========================
@@ -98,9 +96,9 @@ public class AdminReportController {
         }
 
         adminReportService.rejectReportGroup(getAuthenticatedUserId(principal), requestDto);
-        return ResponseEntity.ok(
-                SuccessResponse.of("REPORT_REJECT_200", "그룹 신고 반려 완료", null)
-        );
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(SuccessResponse.of(SuccessCode.REPORT_GROUP_REJECT_SUCCESS, null));
     }
 
     private Long getAuthenticatedUserId(JwtPrincipal principal) {

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { PostCard, type Post } from "@/components/post-card"
 import { Clock } from "lucide-react"
 import { getAccessToken } from "@/lib/auth-storage"
+import { categoryLabelMap, categorySlugMap } from "@/constants/category"
+
 
 type PostPageResponse = {
   content: {
@@ -24,13 +26,6 @@ type PostPageResponse = {
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
-
-const categoryLabelMap: Record<number, string> = {
-  1: "IT 기술 정보",
-  2: "취업 시장 정보",
-  3: "개발자 트렌드",
-  4: "자유 주제",
-}
 
 const formatTimeAgo = (dateString: string) => {
   const date = new Date(dateString)
@@ -87,7 +82,9 @@ export default function LatestPage() {
             name: post.nickName,
             userId: post.userId,
           },
-          category: categoryLabelMap[post.categoryId] ?? String(post.categoryId),
+          category: categoryLabelMap[post.categoryId],
+          categorySlug: categorySlugMap[post.categoryId],
+          categoryId: post.categoryId,
           createdAt: formatTimeAgo(post.createdAt),
           likes: post.likeCount,
           comments: post.commentCount,

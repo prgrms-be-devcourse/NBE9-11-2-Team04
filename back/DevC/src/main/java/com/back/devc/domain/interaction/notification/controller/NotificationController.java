@@ -52,10 +52,11 @@ public class NotificationController {
     @GetMapping
     public ResponseEntity<SuccessResponse<NotificationListResponse>> getMyNotifications(Authentication authentication) {
         NotificationListResponse response = notificationService.getMyNotifications(getAuthenticatedUserId(authentication));
+        SuccessCode successCode = SuccessCode.NOTIFICATION_200_LIST_SUCCESS;
 
-        return ResponseEntity.ok(
-                SuccessResponse.of(SuccessCode.NOTIFICATION_LIST_SUCCESS, response)
-        );
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
     }
 
     /**
@@ -73,10 +74,11 @@ public class NotificationController {
                 notificationId,
                 getAuthenticatedUserId(authentication)
         );
+        SuccessCode successCode = SuccessCode.NOTIFICATION_200_READ_SUCCESS;
 
-        return ResponseEntity.ok(
-                SuccessResponse.of(SuccessCode.NOTIFICATION_READ_SUCCESS, response)
-        );
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
     }
 
     /**
