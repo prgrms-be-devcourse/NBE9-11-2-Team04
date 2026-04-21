@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { getAccessToken } from "@/lib/auth-storage"
 
 type CommentSectionProps = {
-    postId: number
+  postId: number
 }
 
 type SuccessResponse<T> = {
@@ -39,7 +39,7 @@ type CommentItem = {
 }
 
 type CommentListResponse = {
-    comments: CommentItem[]
+  comments: CommentItem[]
 }
 
 function normalizeAttachment(attachment: CommentAttachmentItem): CommentAttachmentItem {
@@ -108,7 +108,7 @@ function extractCreatedCommentId(responseBody: unknown): number | null {
         return null
     }
 
-    const candidate = responseBody as CreatedCommentApiResponse
+  const candidate = responseBody as CreatedCommentApiResponse
 
     const possibleIds = [
         candidate.commentId,
@@ -119,9 +119,9 @@ function extractCreatedCommentId(responseBody: unknown): number | null {
         candidate.data?.comment?.id,
     ]
 
-    const validId = possibleIds.find((value) => typeof value === "number")
+  const validId = possibleIds.find((value) => typeof value === "number")
 
-    return typeof validId === "number" ? validId : null
+  return typeof validId === "number" ? validId : null
 }
 
 type ReplyFilesMap = Record<number, File[]>
@@ -136,56 +136,56 @@ type ReplyFilesMap = Record<number, File[]>
 const OAUTH_SESSION_PLACEHOLDER_TOKEN = "oauth-cookie-session"
 
 function hasLocalJwtToken(token: string | null | undefined): boolean {
-    return Boolean(token) && token !== OAUTH_SESSION_PLACEHOLDER_TOKEN
+  return Boolean(token) && token !== OAUTH_SESSION_PLACEHOLDER_TOKEN
 }
 
 function getAuthFetchOptions(): Pick<RequestInit, "credentials" | "headers"> {
-    const token = getAccessToken()
+  const token = getAccessToken()
 
-    return {
-        credentials: "include",
-        headers: hasLocalJwtToken(token)
-            ? {
-                Authorization: `Bearer ${token}`,
-            }
-            : undefined,
-    }
+  return {
+    credentials: "include",
+    headers: hasLocalJwtToken(token)
+      ? {
+          Authorization: `Bearer ${token}`,
+        }
+      : undefined,
+  }
 }
 
 function getCurrentUserIdFromToken(): number | null {
-    if (typeof window === "undefined") {
-        return null
+  if (typeof window === "undefined") {
+    return null
+  }
+
+  const token = getAccessToken()
+  if (!hasLocalJwtToken(token)) {
+    return null
+  }
+
+  try {
+    const payload = token!.split(".")[1]
+    const decoded = JSON.parse(atob(payload)) as {
+      userId?: number | string
+      user_id?: number | string
+      id?: number | string
+      sub?: number | string
     }
 
-    const token = getAccessToken()
-    if (!hasLocalJwtToken(token)) {
-        return null
+    const rawUserId = decoded.userId ?? decoded.user_id ?? decoded.id ?? decoded.sub
+
+    if (typeof rawUserId === "number") {
+      return rawUserId
     }
 
-    try {
-        const payload = token!.split(".")[1]
-        const decoded = JSON.parse(atob(payload)) as {
-            userId?: number | string
-            user_id?: number | string
-            id?: number | string
-            sub?: number | string
-        }
-
-        const rawUserId = decoded.userId ?? decoded.user_id ?? decoded.id ?? decoded.sub
-
-        if (typeof rawUserId === "number") {
-            return rawUserId
-        }
-
-        if (typeof rawUserId === "string") {
-            const parsedUserId = Number(rawUserId)
-            return Number.isNaN(parsedUserId) ? null : parsedUserId
-        }
-
-        return null
-    } catch {
-        return null
+    if (typeof rawUserId === "string") {
+      const parsedUserId = Number(rawUserId)
+      return Number.isNaN(parsedUserId) ? null : parsedUserId
     }
+
+    return null
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -193,77 +193,76 @@ function getCurrentUserIdFromToken(): number | null {
  * 쿠키 인증으로 현재 사용자 정보를 다시 조회해 currentUserId 를 동기화한다.
  */
 async function fetchCurrentUserIdFromServer(): Promise<number | null> {
-    try {
-        const response = await fetch("http://localhost:8080/api/users/me", {
-            ...getAuthFetchOptions(),
-            method: "GET",
-        })
+  try {
+    const response = await fetch("http://localhost:8080/api/users/me", {
+      ...getAuthFetchOptions(),
+      method: "GET",
+    })
 
-        if (!response.ok) {
-            return null
-        }
-
-        const data = (await response.json()) as {
-            userId?: number | string
-            id?: number | string
-            data?: {
-                userId?: number | string
-                id?: number | string
-            }
-        }
-
-        const rawUserId = data.userId ?? data.id ?? data.data?.userId ?? data.data?.id
-
-        if (typeof rawUserId === "number") {
-            return rawUserId
-        }
-
-        if (typeof rawUserId === "string") {
-            const parsedUserId = Number(rawUserId)
-            return Number.isNaN(parsedUserId) ? null : parsedUserId
-        }
-
-        return null
-    } catch {
-        return null
+    if (!response.ok) {
+      return null
     }
+
+    const data = (await response.json()) as {
+      userId?: number | string
+      id?: number | string
+      data?: {
+        userId?: number | string
+        id?: number | string
+      }
+    }
+
+    const rawUserId = data.userId ?? data.id ?? data.data?.userId ?? data.data?.id
+
+    if (typeof rawUserId === "number") {
+      return rawUserId
+    }
+
+    if (typeof rawUserId === "string") {
+      const parsedUserId = Number(rawUserId)
+      return Number.isNaN(parsedUserId) ? null : parsedUserId
+    }
+
+    return null
+  } catch {
+    return null
+  }
 }
 
 function getJsonAuthHeaders(): Headers {
-    const headers = new Headers()
-    headers.set("Content-Type", "application/json")
+  const headers = new Headers()
+  headers.set("Content-Type", "application/json")
 
-    const authHeaders = getAuthFetchOptions().headers
-    if (authHeaders) {
-        const normalized = new Headers(authHeaders)
-        normalized.forEach((value, key) => {
-            headers.set(key, value)
-        })
-    }
+  const authHeaders = getAuthFetchOptions().headers
+  if (authHeaders) {
+    const normalized = new Headers(authHeaders)
+    normalized.forEach((value, key) => {
+      headers.set(key, value)
+    })
+  }
 
-    return headers
+  return headers
 }
 
-
 function isImageAttachment(attachment: CommentAttachmentItem): boolean {
-    const normalizedFileType = attachment.fileType?.toUpperCase()
-    const normalizedMimeType = attachment.mimeType?.toLowerCase()
+  const normalizedFileType = attachment.fileType?.toUpperCase()
+  const normalizedMimeType = attachment.mimeType?.toLowerCase()
 
-    return normalizedFileType === "IMAGE" || normalizedMimeType?.startsWith("image/") === true
+  return normalizedFileType === "IMAGE" || normalizedMimeType?.startsWith("image/") === true
 }
 
 function renderAttachments(attachments: CommentAttachmentItem[] | undefined) {
-    if (!attachments || attachments.length === 0) {
-        return null
-    }
+  if (!attachments || attachments.length === 0) {
+    return null
+  }
 
-    return (
-        <div className="mt-3 space-y-3">
-            <p className="text-xs font-medium text-muted-foreground">첨부파일</p>
-            <div className="flex flex-col gap-3">
-                {attachments.map((attachment) => {
-                    const fileUrl = `http://localhost:8080${attachment.fileUrl}`
-                    const isImage = isImageAttachment(attachment)
+  return (
+    <div className="mt-3 space-y-3">
+      <p className="text-xs font-medium text-muted-foreground">첨부파일</p>
+      <div className="flex flex-col gap-3">
+        {attachments.map((attachment) => {
+          const fileUrl = `http://localhost:8080${attachment.fileUrl}`
+          const isImage = isImageAttachment(attachment)
 
                     return (
                         <div
@@ -294,43 +293,42 @@ function renderAttachments(attachments: CommentAttachmentItem[] | undefined) {
 }
 
 function sortCommentsByNewest(comments: CommentItem[]): CommentItem[] {
-    return [...comments]
-        .map((comment) => ({
-            ...comment,
-            replies: sortCommentsByNewest(comment.replies ?? []),
-        }))
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  return [...comments]
+    .map((comment) => ({
+      ...comment,
+      replies: sortCommentsByNewest(comment.replies ?? []),
+    }))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 }
 
-
 export default function CommentSection({ postId }: CommentSectionProps) {
-    const [comments, setComments] = useState<CommentItem[]>([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
-    const [newComment, setNewComment] = useState("")
-    const [submitting, setSubmitting] = useState(false)
-    const [replyInputs, setReplyInputs] = useState<Record<number, string>>({})
-    const [replySubmittingId, setReplySubmittingId] = useState<number | null>(null)
-    const [openedReplyId, setOpenedReplyId] = useState<number | null>(null)
-    const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null)
-    const [editingCommentId, setEditingCommentId] = useState<number | null>(null)
-    const [editInputs, setEditInputs] = useState<Record<number, string>>({})
-    const [editingSubmittingId, setEditingSubmittingId] = useState<number | null>(null)
-    const [reportSubmittingId, setReportSubmittingId] = useState<number | null>(null)
-    const [currentUserId, setCurrentUserId] = useState<number | null>(null)
-    const [newCommentFiles, setNewCommentFiles] = useState<File[]>([])
-    const [replyFiles, setReplyFiles] = useState<ReplyFilesMap>({})
+  const [comments, setComments] = useState<CommentItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [newComment, setNewComment] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const [replyInputs, setReplyInputs] = useState<Record<number, string>>({})
+  const [replySubmittingId, setReplySubmittingId] = useState<number | null>(null)
+  const [openedReplyId, setOpenedReplyId] = useState<number | null>(null)
+  const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null)
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null)
+  const [editInputs, setEditInputs] = useState<Record<number, string>>({})
+  const [editingSubmittingId, setEditingSubmittingId] = useState<number | null>(null)
+  const [reportSubmittingId, setReportSubmittingId] = useState<number | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+  const [newCommentFiles, setNewCommentFiles] = useState<File[]>([])
+  const [replyFiles, setReplyFiles] = useState<ReplyFilesMap>({})
 
-    const loadComments = useCallback(async () => {
-        try {
-            setLoading(true)
-            setError(null)
+  const loadComments = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
 
-            const response = await fetch(`http://localhost:8080/api/posts/${postId}/comments`)
+      const response = await fetch(`http://localhost:8080/api/posts/${postId}/comments`)
 
-            if (!response.ok) {
-                throw new Error("댓글을 불러오지 못했습니다.")
-            }
+      if (!response.ok) {
+        throw new Error("댓글을 불러오지 못했습니다.")
+      }
 
             const responseBody = await response.json()
             const data = extractCommentListResponse(responseBody)
@@ -342,311 +340,311 @@ export default function CommentSection({ postId }: CommentSectionProps) {
         }
     }, [postId])
 
-    useEffect(() => {
-        void loadComments()
-    }, [loadComments])
+  useEffect(() => {
+    void loadComments()
+  }, [loadComments])
 
-    useEffect(() => {
-        let cancelled = false
+  useEffect(() => {
+    let cancelled = false
 
-        const syncCurrentUserId = () => {
-            void (async () => {
-                const tokenUserId = getCurrentUserIdFromToken()
+    const syncCurrentUserId = () => {
+      void (async () => {
+        const tokenUserId = getCurrentUserIdFromToken()
 
-                if (tokenUserId !== null) {
-                    if (!cancelled) {
-                        setCurrentUserId(tokenUserId)
-                    }
-                    return
-                }
-
-                const serverUserId = await fetchCurrentUserIdFromServer()
-                if (!cancelled) {
-                    setCurrentUserId(serverUserId)
-                }
-            })()
+        if (tokenUserId !== null) {
+          if (!cancelled) {
+            setCurrentUserId(tokenUserId)
+          }
+          return
         }
 
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === "visible") {
-                syncCurrentUserId()
-            }
+        const serverUserId = await fetchCurrentUserIdFromServer()
+        if (!cancelled) {
+          setCurrentUserId(serverUserId)
         }
+      })()
+    }
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
         syncCurrentUserId()
-
-        window.addEventListener("storage", syncCurrentUserId)
-        window.addEventListener("focus", syncCurrentUserId)
-        document.addEventListener("visibilitychange", handleVisibilityChange)
-        window.addEventListener("auth-changed", syncCurrentUserId as EventListener)
-
-        return () => {
-            cancelled = true
-            window.removeEventListener("storage", syncCurrentUserId)
-            window.removeEventListener("focus", syncCurrentUserId)
-            document.removeEventListener("visibilitychange", handleVisibilityChange)
-            window.removeEventListener("auth-changed", syncCurrentUserId as EventListener)
-        }
-    }, [])
-
-    /**
-     * 댓글/대댓글 작성 직후 첨부파일을 업로드한다.
-     *
-     * - 일반 로그인 사용자는 Authorization 헤더 기반으로 인증
-     * - OAuth 로그인 사용자는 credentials: include 기반 세션 인증
-     *
-     * FormData 요청이라 Content-Type 은 직접 지정하지 않고 브라우저에 맡긴다.
-     */
-    const uploadCommentAttachments = async (commentId: number, files: File[]) => {
-        if (files.length === 0) {
-            return
-        }
-
-        const formData = new FormData()
-
-        files.forEach((file, index) => {
-            formData.append("files", file)
-            formData.append("fileOrder", String(index + 1))
-        })
-
-        const authOptions = getAuthFetchOptions()
-
-        const response = await fetch(`http://localhost:8080/api/comments/${commentId}/attachments`, {
-            ...authOptions,
-            method: "POST",
-            body: formData,
-        })
-
-        if (!response.ok) {
-            throw new Error("댓글 첨부파일 업로드에 실패했습니다.")
-        }
+      }
     }
 
-    const handleCreateComment = async () => {
-        const trimmedComment = newComment.trim()
+    syncCurrentUserId()
 
-        if (!trimmedComment) {
-            return
+    window.addEventListener("storage", syncCurrentUserId)
+    window.addEventListener("focus", syncCurrentUserId)
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    window.addEventListener("auth-changed", syncCurrentUserId as EventListener)
+
+    return () => {
+      cancelled = true
+      window.removeEventListener("storage", syncCurrentUserId)
+      window.removeEventListener("focus", syncCurrentUserId)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+      window.removeEventListener("auth-changed", syncCurrentUserId as EventListener)
+    }
+  }, [])
+
+  /**
+   * 댓글/대댓글 작성 직후 첨부파일을 업로드한다.
+   *
+   * - 일반 로그인 사용자는 Authorization 헤더 기반으로 인증
+   * - OAuth 로그인 사용자는 credentials: include 기반 세션 인증
+   *
+   * FormData 요청이라 Content-Type 은 직접 지정하지 않고 브라우저에 맡긴다.
+   */
+  const uploadCommentAttachments = async (commentId: number, files: File[]) => {
+    if (files.length === 0) {
+      return
+    }
+
+    const formData = new FormData()
+
+    files.forEach((file, index) => {
+      formData.append("files", file)
+      formData.append("fileOrder", String(index + 1))
+    })
+
+    const authOptions = getAuthFetchOptions()
+
+    const response = await fetch(`http://localhost:8080/api/comments/${commentId}/attachments`, {
+      ...authOptions,
+      method: "POST",
+      body: formData,
+    })
+
+    if (!response.ok) {
+      throw new Error("댓글 첨부파일 업로드에 실패했습니다.")
+    }
+  }
+
+  const handleCreateComment = async () => {
+    const trimmedComment = newComment.trim()
+
+    if (!trimmedComment) {
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      setError(null)
+
+      const response = await fetch(`http://localhost:8080/api/posts/${postId}/comments`, {
+        ...getAuthFetchOptions(),
+        method: "POST",
+        headers: getJsonAuthHeaders(),
+        body: JSON.stringify({
+          content: trimmedComment,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("댓글 작성에 실패했습니다.")
+      }
+
+      const createdComment = await response.json()
+      const createdCommentId = extractCreatedCommentId(createdComment)
+
+      if (newCommentFiles.length > 0) {
+        if (createdCommentId === null) {
+          throw new Error("댓글은 생성됐지만 생성된 commentId를 응답에서 찾지 못해 첨부 업로드를 진행하지 못했습니다.")
         }
+
+        await uploadCommentAttachments(createdCommentId, newCommentFiles)
+      }
+
+      setNewComment("")
+      setNewCommentFiles([])
+      await loadComments()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleCreateReply = async (commentId: number) => {
+    const content = (replyInputs[commentId] ?? "").trim()
+
+    if (!content) {
+      return
+    }
+
+    try {
+      setReplySubmittingId(commentId)
+      setError(null)
+
+      const response = await fetch(`http://localhost:8080/api/comments/${commentId}/replies`, {
+        ...getAuthFetchOptions(),
+        method: "POST",
+        headers: getJsonAuthHeaders(),
+        body: JSON.stringify({
+          content,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("대댓글 작성에 실패했습니다.")
+      }
+
+      const createdReply = await response.json()
+      const createdReplyId = extractCreatedCommentId(createdReply)
+
+      if ((replyFiles[commentId]?.length ?? 0) > 0) {
+        if (createdReplyId === null) {
+          throw new Error("답글은 생성됐지만 생성된 commentId를 응답에서 찾지 못해 첨부 업로드를 진행하지 못했습니다.")
+        }
+
+        await uploadCommentAttachments(createdReplyId, replyFiles[commentId] ?? [])
+      }
+
+      setReplyInputs((prev) => ({
+        ...prev,
+        [commentId]: "",
+      }))
+      setReplyFiles((prev) => ({
+        ...prev,
+        [commentId]: [],
+      }))
+      setOpenedReplyId(null)
+      await loadComments()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
+    } finally {
+      setReplySubmittingId(null)
+    }
+  }
+
+  const handleReportComment = async (commentId: number) => {
+    try {
+      setReportSubmittingId(commentId)
+      setError(null)
+
+      const response = await fetch(`http://localhost:8080/api/report/comment`, {
+        ...getAuthFetchOptions(),
+        method: "POST",
+        headers: getJsonAuthHeaders(),
+        body: JSON.stringify({
+          targetId: commentId,
+          reasonType: "ETC",
+          reasonDetail: "댓글 영역에서 접수한 신고입니다.",
+        }),
+      })
+
+      if (!response.ok) {
+        let message = "댓글 신고에 실패했습니다."
 
         try {
-            setSubmitting(true)
-            setError(null)
+          const errorData = await response.json()
+          message =
+            errorData?.message ??
+            errorData?.resultMessage ??
+            errorData?.msg ??
+            message
 
-            const response = await fetch(`http://localhost:8080/api/posts/${postId}/comments`, {
-                ...getAuthFetchOptions(),
-                method: "POST",
-                headers: getJsonAuthHeaders(),
-                body: JSON.stringify({
-                    content: trimmedComment,
-                }),
-            })
-
-            if (!response.ok) {
-                throw new Error("댓글 작성에 실패했습니다.")
-            }
-
-            const createdComment = await response.json()
-            const createdCommentId = extractCreatedCommentId(createdComment)
-
-            if (newCommentFiles.length > 0) {
-                if (createdCommentId === null) {
-                    throw new Error("댓글은 생성됐지만 생성된 commentId를 응답에서 찾지 못해 첨부 업로드를 진행하지 못했습니다.")
-                }
-
-                await uploadCommentAttachments(createdCommentId, newCommentFiles)
-            }
-
-            setNewComment("")
-            setNewCommentFiles([])
-            await loadComments()
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
-        } finally {
-            setSubmitting(false)
+          if (typeof message === "string" && message.includes("이미 신고")) {
+            message = "이미 신고한 댓글입니다."
+          }
+        } catch {
+          // 응답 본문이 JSON이 아니면 기본 메시지를 그대로 사용
         }
+
+        throw new Error(message)
+      }
+
+      alert("댓글 신고가 접수되었습니다.")
+      window.dispatchEvent(new CustomEvent("notifications-updated"))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
+    } finally {
+      setReportSubmittingId(null)
+    }
+  }
+
+  const handleDeleteComment = async (commentId: number) => {
+    try {
+      setDeletingCommentId(commentId)
+      setError(null)
+
+      const response = await fetch(`http://localhost:8080/api/comments/${commentId}`, {
+        ...getAuthFetchOptions(),
+        method: "DELETE",
+        headers: getJsonAuthHeaders(),
+      })
+
+      if (!response.ok) {
+        throw new Error("댓글 삭제에 실패했습니다.")
+      }
+
+      if (openedReplyId === commentId) {
+        setOpenedReplyId(null)
+      }
+      if (editingCommentId === commentId) {
+        setEditingCommentId(null)
+      }
+
+      await loadComments()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
+    } finally {
+      setDeletingCommentId(null)
+    }
+  }
+
+  const handleStartEdit = (commentId: number, currentContent: string) => {
+    setEditingCommentId(commentId)
+    setEditInputs((prev) => ({
+      ...prev,
+      [commentId]: currentContent,
+    }))
+  }
+
+  const handleUpdateComment = async (commentId: number) => {
+    const content = (editInputs[commentId] ?? "").trim()
+
+    if (!content) {
+      return
     }
 
-    const handleCreateReply = async (commentId: number) => {
-        const content = (replyInputs[commentId] ?? "").trim()
+    try {
+      setEditingSubmittingId(commentId)
+      setError(null)
 
-        if (!content) {
-            return
-        }
+      const response = await fetch(`http://localhost:8080/api/comments/${commentId}`, {
+        ...getAuthFetchOptions(),
+        method: "PATCH",
+        headers: getJsonAuthHeaders(),
+        body: JSON.stringify({
+          content,
+        }),
+      })
 
-        try {
-            setReplySubmittingId(commentId)
-            setError(null)
+      if (!response.ok) {
+        throw new Error("댓글 수정에 실패했습니다.")
+      }
 
-            const response = await fetch(`http://localhost:8080/api/comments/${commentId}/replies`, {
-                ...getAuthFetchOptions(),
-                method: "POST",
-                headers: getJsonAuthHeaders(),
-                body: JSON.stringify({
-                    content,
-                }),
-            })
-
-            if (!response.ok) {
-                throw new Error("대댓글 작성에 실패했습니다.")
-            }
-
-            const createdReply = await response.json()
-            const createdReplyId = extractCreatedCommentId(createdReply)
-
-            if ((replyFiles[commentId]?.length ?? 0) > 0) {
-                if (createdReplyId === null) {
-                    throw new Error("답글은 생성됐지만 생성된 commentId를 응답에서 찾지 못해 첨부 업로드를 진행하지 못했습니다.")
-                }
-
-                await uploadCommentAttachments(createdReplyId, replyFiles[commentId] ?? [])
-            }
-
-            setReplyInputs((prev) => ({
-                ...prev,
-                [commentId]: "",
-            }))
-            setReplyFiles((prev) => ({
-                ...prev,
-                [commentId]: [],
-            }))
-            setOpenedReplyId(null)
-            await loadComments()
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
-        } finally {
-            setReplySubmittingId(null)
-        }
+      setEditingCommentId(null)
+      await loadComments()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
+    } finally {
+      setEditingSubmittingId(null)
     }
+  }
 
-    const handleReportComment = async (commentId: number) => {
-        try {
-            setReportSubmittingId(commentId)
-            setError(null)
+  return (
+    <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-foreground">댓글</h2>
 
-            const response = await fetch(`http://localhost:8080/api/report/comment`, {
-                ...getAuthFetchOptions(),
-                method: "POST",
-                headers: getJsonAuthHeaders(),
-                body: JSON.stringify({
-                    targetId: commentId,
-                    reasonType: "ETC",
-                    reasonDetail: "댓글 영역에서 접수한 신고입니다.",
-                }),
-            })
-
-            if (!response.ok) {
-                let message = "댓글 신고에 실패했습니다."
-
-                try {
-                    const errorData = await response.json()
-                    message =
-                        errorData?.message ??
-                        errorData?.resultMessage ??
-                        errorData?.msg ??
-                        message
-
-                    if (typeof message === "string" && message.includes("이미 신고")) {
-                        message = "이미 신고한 댓글입니다."
-                    }
-                } catch {
-                    // 응답 본문이 JSON이 아니면 기본 메시지를 그대로 사용
-                }
-
-                throw new Error(message)
-            }
-
-            alert("댓글 신고가 접수되었습니다.")
-            window.dispatchEvent(new CustomEvent("notifications-updated"))
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
-        } finally {
-            setReportSubmittingId(null)
-        }
-    }
-
-    const handleDeleteComment = async (commentId: number) => {
-        try {
-            setDeletingCommentId(commentId)
-            setError(null)
-
-            const response = await fetch(`http://localhost:8080/api/comments/${commentId}`, {
-                ...getAuthFetchOptions(),
-                method: "DELETE",
-                headers: getJsonAuthHeaders(),
-            })
-
-            if (!response.ok) {
-                throw new Error("댓글 삭제에 실패했습니다.")
-            }
-
-            if (openedReplyId === commentId) {
-                setOpenedReplyId(null)
-            }
-            if (editingCommentId === commentId) {
-                setEditingCommentId(null)
-            }
-
-            await loadComments()
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
-        } finally {
-            setDeletingCommentId(null)
-        }
-    }
-
-    const handleStartEdit = (commentId: number, currentContent: string) => {
-        setEditingCommentId(commentId)
-        setEditInputs((prev) => ({
-            ...prev,
-            [commentId]: currentContent,
-        }))
-    }
-
-    const handleUpdateComment = async (commentId: number) => {
-        const content = (editInputs[commentId] ?? "").trim()
-
-        if (!content) {
-            return
-        }
-
-        try {
-            setEditingSubmittingId(commentId)
-            setError(null)
-
-            const response = await fetch(`http://localhost:8080/api/comments/${commentId}`, {
-                ...getAuthFetchOptions(),
-                method: "PATCH",
-                headers: getJsonAuthHeaders(),
-                body: JSON.stringify({
-                    content,
-                }),
-            })
-
-            if (!response.ok) {
-                throw new Error("댓글 수정에 실패했습니다.")
-            }
-
-            setEditingCommentId(null)
-            await loadComments()
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
-        } finally {
-            setEditingSubmittingId(null)
-        }
-    }
-
-    return (
-        <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-foreground">댓글</h2>
-
-            <div className="mt-4 space-y-3 rounded-lg border border-border p-4">
-                <textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="댓글을 입력하세요."
-                    className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                />
+      <div className="mt-4 space-y-3 rounded-lg border border-border p-4">
+        <textarea
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          placeholder="댓글을 입력하세요."
+          className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        />
 
                 <label className="mt-3 inline-flex w-fit cursor-pointer items-center rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50">
                     파일 첨부
@@ -662,34 +660,34 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                     />
                 </label>
 
-                <div className="flex items-center justify-between gap-3">
-                    {newCommentFiles.length > 0 ? (
-                        <p className="text-xs text-muted-foreground">
-                            첨부파일 {newCommentFiles.length}개 선택됨
-                        </p>
-                    ) : (
-                        <p className="text-xs text-muted-foreground">선택된 첨부파일 없음</p>
-                    )}
-                    <button
-                        type="button"
-                        onClick={handleCreateComment}
-                        disabled={submitting || !newComment.trim()}
-                        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        {submitting ? "작성 중..." : "댓글 작성"}
-                    </button>
-                </div>
-            </div>
+        <div className="flex items-center justify-between gap-3">
+          {newCommentFiles.length > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              첨부파일 {newCommentFiles.length}개 선택됨
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">선택된 첨부파일 없음</p>
+          )}
+          <button
+            type="button"
+            onClick={handleCreateComment}
+            disabled={submitting || !newComment.trim()}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submitting ? "작성 중..." : "댓글 작성"}
+          </button>
+        </div>
+      </div>
 
-            {loading && (
-                <p className="mt-4 text-sm text-muted-foreground">댓글을 불러오는 중입니다...</p>
-            )}
+      {loading && (
+        <p className="mt-4 text-sm text-muted-foreground">댓글을 불러오는 중입니다...</p>
+      )}
 
-            {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
+      {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
 
-            {!loading && !error && comments.length === 0 && (
-                <p className="mt-4 text-sm text-muted-foreground">아직 댓글이 없습니다.</p>
-            )}
+      {!loading && !error && comments.length === 0 && (
+        <p className="mt-4 text-sm text-muted-foreground">아직 댓글이 없습니다.</p>
+      )}
 
             <div className="mt-4 space-y-4">
                 {comments.map((comment) => (
@@ -736,68 +734,68 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                             </>
                         )}
 
-                        <div className="mt-2 flex items-center justify-between gap-3">
-                            <p className="text-xs text-muted-foreground">
-                                작성자: {comment.nickname ?? `user-${comment.userId}`}
-                            </p>
-                            <div className="flex items-center gap-3">
-                                {comment.userId === currentUserId && (
-                                    <>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleStartEdit(comment.commentId, comment.content)}
-                                            className="text-xs font-medium text-primary hover:underline"
-                                        >
-                                            수정
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDeleteComment(comment.commentId)}
-                                            disabled={deletingCommentId === comment.commentId}
-                                            className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                                        >
-                                            {deletingCommentId === comment.commentId ? "삭제 중..." : "삭제"}
-                                        </button>
-                                    </>
-                                )}
-                                <button
-                                    type="button"
-                                    onClick={() => handleReportComment(comment.commentId)}
-                                    disabled={reportSubmittingId === comment.commentId}
-                                    className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    {reportSubmittingId === comment.commentId ? "신고 중..." : "신고"}
-                                </button>
-                            </div>
-                        </div>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <p className="text-xs text-muted-foreground">
+                작성자: {comment.nickname ?? `user-${comment.userId}`}
+              </p>
+              <div className="flex items-center gap-3">
+                {comment.userId === currentUserId && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleStartEdit(comment.commentId, comment.content)}
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteComment(comment.commentId)}
+                      disabled={deletingCommentId === comment.commentId}
+                      className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {deletingCommentId === comment.commentId ? "삭제 중..." : "삭제"}
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleReportComment(comment.commentId)}
+                  disabled={reportSubmittingId === comment.commentId}
+                  className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {reportSubmittingId === comment.commentId ? "신고 중..." : "신고"}
+                </button>
+              </div>
+            </div>
 
-                        <div className="mt-3 flex justify-end">
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setOpenedReplyId((prev) => (prev === comment.commentId ? null : comment.commentId))
-                                }
-                                className="text-sm font-medium text-primary hover:underline"
-                            >
-                                {openedReplyId === comment.commentId ? "답글 입력 닫기" : "답글 달기"}
-                            </button>
-                        </div>
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() =>
+                  setOpenedReplyId((prev) => (prev === comment.commentId ? null : comment.commentId))
+                }
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                {openedReplyId === comment.commentId ? "답글 입력 닫기" : "답글 달기"}
+              </button>
+            </div>
 
-                        {openedReplyId === comment.commentId && (
-                            <div className="mt-4 ml-4 border-l-2 border-border/70 pl-4">
-                                <p className="mb-2 text-xs font-medium text-muted-foreground">이 댓글에 답글 달기</p>
-                                <div className="space-y-2 rounded-md bg-muted/30 p-3">
-                                    <textarea
-                                        value={replyInputs[comment.commentId] ?? ""}
-                                        onChange={(e) =>
-                                            setReplyInputs((prev) => ({
-                                                ...prev,
-                                                [comment.commentId]: e.target.value,
-                                            }))
-                                        }
-                                        placeholder="답글을 입력하세요."
-                                        className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                                    />
+            {openedReplyId === comment.commentId && (
+              <div className="mt-4 ml-4 border-l-2 border-border/70 pl-4">
+                <p className="mb-2 text-xs font-medium text-muted-foreground">이 댓글에 답글 달기</p>
+                <div className="space-y-2 rounded-md bg-muted/30 p-3">
+                  <textarea
+                    value={replyInputs[comment.commentId] ?? ""}
+                    onChange={(e) =>
+                      setReplyInputs((prev) => ({
+                        ...prev,
+                        [comment.commentId]: e.target.value,
+                      }))
+                    }
+                    placeholder="답글을 입력하세요."
+                    className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                  />
 
                                     <label className="mt-3 inline-flex w-fit cursor-pointer items-center rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50">
                                         파일 첨부
@@ -816,30 +814,30 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                                         />
                                     </label>
 
-                                    {(replyFiles[comment.commentId]?.length ?? 0) > 0 ? (
-                                        <p className="mt-2 text-xs text-muted-foreground">
-                                            첨부파일 {replyFiles[comment.commentId]?.length ?? 0}개 선택됨
-                                        </p>
-                                    ) : (
-                                        <p className="mt-2 text-xs text-muted-foreground">선택된 첨부파일 없음</p>
-                                    )}
+                  {(replyFiles[comment.commentId]?.length ?? 0) > 0 ? (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      첨부파일 {replyFiles[comment.commentId]?.length ?? 0}개 선택됨
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-xs text-muted-foreground">선택된 첨부파일 없음</p>
+                  )}
 
-                                    <div className="flex justify-end">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleCreateReply(comment.commentId)}
-                                            disabled={
-                                                replySubmittingId === comment.commentId ||
-                                                !(replyInputs[comment.commentId] ?? "").trim()
-                                            }
-                                            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                                        >
-                                            {replySubmittingId === comment.commentId ? "답글 작성 중..." : "답글 작성"}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => handleCreateReply(comment.commentId)}
+                      disabled={
+                        replySubmittingId === comment.commentId ||
+                        !(replyInputs[comment.commentId] ?? "").trim()
+                      }
+                      className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {replySubmittingId === comment.commentId ? "답글 작성 중..." : "답글 작성"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
                         {comment.replies?.length > 0 && (
                             <div className="mt-4 ml-4 space-y-2 border-l-2 border-border/70 pl-4">
@@ -887,47 +885,47 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                                             </>
                                         )}
 
-                                        <div className="mt-2 flex items-center justify-between gap-3">
-                                            <p className="text-xs text-muted-foreground">
-                                                작성자: {reply.nickname ?? `user-${reply.userId}`}
-                                            </p>
-                                            <div className="flex items-center gap-3">
-                                                {reply.userId === currentUserId && (
-                                                    <>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleStartEdit(reply.commentId, reply.content)}
-                                                            className="text-xs font-medium text-primary hover:underline"
-                                                        >
-                                                            수정
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleDeleteComment(reply.commentId)}
-                                                            disabled={deletingCommentId === reply.commentId}
-                                                            className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                                                        >
-                                                            {deletingCommentId === reply.commentId ? "삭제 중..." : "삭제"}
-                                                        </button>
-                                                    </>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleReportComment(reply.commentId)}
-                                                    disabled={reportSubmittingId === reply.commentId}
-                                                    className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                                                >
-                                                    {reportSubmittingId === reply.commentId ? "신고 중..." : "신고"}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <p className="text-xs text-muted-foreground">
+                        작성자: {reply.nickname ?? `user-${reply.userId}`}
+                      </p>
+                      <div className="flex items-center gap-3">
+                        {reply.userId === currentUserId && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleStartEdit(reply.commentId, reply.content)}
+                              className="text-xs font-medium text-primary hover:underline"
+                            >
+                              수정
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteComment(reply.commentId)}
+                              disabled={deletingCommentId === reply.commentId}
+                              className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {deletingCommentId === reply.commentId ? "삭제 중..." : "삭제"}
+                            </button>
+                          </>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => handleReportComment(reply.commentId)}
+                          disabled={reportSubmittingId === reply.commentId}
+                          className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {reportSubmittingId === reply.commentId ? "신고 중..." : "신고"}
+                        </button>
+                      </div>
                     </div>
+                  </div>
                 ))}
-            </div>
-        </section>
-    )
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  )
 }
