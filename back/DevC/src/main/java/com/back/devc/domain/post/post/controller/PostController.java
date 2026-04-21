@@ -12,6 +12,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.back.devc.global.response.SuccessCode;
+import com.back.devc.global.response.SuccessResponse;
 
 import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
 
@@ -22,8 +24,9 @@ public class PostController {
 
     private final PostService postService;
 
+    // 게시글 생성
     @PostMapping
-    public ResponseEntity<PostCreateResponse> create(
+    public ResponseEntity<SuccessResponse<PostCreateResponse>> create(
             @AuthenticationPrincipal JwtPrincipal principal,
             @RequestBody @Valid PostCreateRequest request
     ) {
@@ -34,9 +37,16 @@ public class PostController {
                 request.content()
         );
 
-        return ResponseEntity.ok(PostCreateResponse.from(post));
+        PostCreateResponse response = PostCreateResponse.from(post);
+        SuccessCode successCode = SuccessCode.POST_CREATE_SUCCESS;
+
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
+
     }
 
+    //게시글 상세조회
     @GetMapping("/{postid}")
     public ResponseEntity<PostDetailResponse> detail(
             @AuthenticationPrincipal JwtPrincipal principal,
@@ -46,6 +56,8 @@ public class PostController {
         return ResponseEntity.ok(postService.findDetailById(postid, loginUserId));
     }
 
+
+    //게시글 목록조회
     @GetMapping
     public ResponseEntity<Page<PostListResponse>> list(
             @AuthenticationPrincipal JwtPrincipal principal,
@@ -71,8 +83,9 @@ public class PostController {
         return ResponseEntity.ok(result);
     }
 
+    //게시글 수정
     @PutMapping("/{postId}")
-    public ResponseEntity<PostUpdateResponse> update(
+    public ResponseEntity<SuccessResponse<PostUpdateResponse>> update(
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long postId,
             @RequestBody @Valid PostUpdateRequest postUpdateRequest
@@ -85,9 +98,15 @@ public class PostController {
                 postUpdateRequest.categoryId()
         );
 
-        return ResponseEntity.ok(PostUpdateResponse.from(post));
+        PostUpdateResponse response = PostUpdateResponse.from(post);
+        SuccessCode successCode = SuccessCode.POST_UPDATE_SUCCESS;
+
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
     }
 
+    //게시글 삭제
     @DeleteMapping("/{postId}")
     public ResponseEntity<PostDeleteResponse> delete(
             @AuthenticationPrincipal JwtPrincipal principal,
