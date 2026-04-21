@@ -47,7 +47,7 @@ export default function PostDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [reportLoading, setReportLoading] = useState(false)
 
-  // ✅ 추가: 현재 로그인 유저
+  // 현재 로그인 유저
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
 
   const postId = useMemo(() => {
@@ -217,6 +217,10 @@ export default function PostDetailPage() {
                 </Link>
               </div>
             ) : null}
+            {/* 조회수, 댓글수 추가 */}
+            <div className="mt-1 text-xs text-muted-foreground">
+              조회수 {post?.viewCount ?? 0} · 댓글 {post?.commentCount ?? 0}
+            </div>
 
             <div className="mt-6 whitespace-pre-wrap rounded-lg bg-muted/30 p-4 text-sm">{post?.content}</div>
 
