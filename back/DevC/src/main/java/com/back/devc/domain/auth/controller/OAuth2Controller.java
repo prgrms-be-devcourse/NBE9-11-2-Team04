@@ -6,16 +6,11 @@ import com.back.devc.domain.auth.dto.oauth.OAuthExchangeRequest;
 import com.back.devc.domain.auth.dto.oauth.OAuthPendingSignup;
 import com.back.devc.domain.auth.dto.oauth.OAuthSignupCompleteRequest;
 import com.back.devc.domain.auth.service.OAuth2MemberService;
-import com.back.devc.domain.auth.service.OAuthLoginCodeService;
-import com.back.devc.domain.member.member.entity.Member;
-import com.back.devc.domain.member.member.entity.MemberStatus;
-import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
 import com.back.devc.global.response.SuccessCode;
 import com.back.devc.global.response.SuccessResponse;
 import com.back.devc.global.security.jwt.AuthCookieService;
-import com.back.devc.global.security.jwt.JwtProvider;
 import com.back.devc.global.security.oauth2.OAuth2LoginSuccessHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,9 +34,6 @@ import java.util.Map;
 public class OAuth2Controller {
 
     private final OAuth2MemberService oAuth2MemberService;
-    private final OAuthLoginCodeService oAuthLoginCodeService;
-    private final MemberRepository memberRepository;
-    private final JwtProvider jwtProvider;
     private final AuthCookieService authCookieService;
 
     @Value("${custom.jwt.access-token-expiration-seconds:3600}")
@@ -86,27 +78,8 @@ public class OAuth2Controller {
             @Valid @RequestBody OAuthExchangeRequest request,
             HttpServletResponse response
     ) {
-        Long userId = oAuthLoginCodeService.consume(request.code())
-                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED));
-
-        Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
-
-        if (member.getStatus() == MemberStatus.BLACKLISTED) {
-            throw new ApiException(ErrorCode.MEMBER_BLACKLISTED);
-        }
-
-        String accessToken = jwtProvider.createAccessToken(member);
-        authCookieService.setAccessTokenCookie(response, accessToken, accessTokenExpirationSeconds);
-
-        LoginResponse body = new LoginResponse(
-                member.getUserId(),
-                member.getEmail(),
-                member.getNickname(),
-                member.getRole(),
-                member.getStatus(),
-                accessToken
-        );
+        LoginResponse body = oAuth2MemberService.exchangeLoginCode(request.code());
+        authCookieService.setAccessTokenCookie(response, body.accessToken(), accessTokenExpirationSeconds);
 
         SuccessCode successCode = SuccessCode.LOGIN_SUCCESS;
         return ResponseEntity
@@ -130,20 +103,9 @@ public class OAuth2Controller {
             throw new ApiException(ErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED);
         }
 
-        Member member = oAuth2MemberService.completeSignup(pending, request.nickname());
+        LoginResponse body = oAuth2MemberService.completeSignupAndIssueToken(pending, request.nickname());
         session.removeAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY);
-
-        String accessToken = jwtProvider.createAccessToken(member);
-        authCookieService.setAccessTokenCookie(response, accessToken, accessTokenExpirationSeconds);
-
-        LoginResponse body = new LoginResponse(
-                member.getUserId(),
-                member.getEmail(),
-                member.getNickname(),
-                member.getRole(),
-                member.getStatus(),
-                accessToken
-        );
+        authCookieService.setAccessTokenCookie(response, body.accessToken(), accessTokenExpirationSeconds);
 
         SuccessCode successCode = SuccessCode.SIGN_UP_SUCCESS;
         return ResponseEntity

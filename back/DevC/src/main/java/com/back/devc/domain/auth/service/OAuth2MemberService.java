@@ -1,5 +1,6 @@
 package com.back.devc.domain.auth.service;
 
+import com.back.devc.domain.auth.dto.login.LoginResponse;
 import com.back.devc.domain.auth.dto.oauth.OAuthPendingSignup;
 import com.back.devc.domain.member.member.entity.AuthProvider;
 import com.back.devc.domain.member.member.entity.Member;
@@ -7,6 +8,7 @@ import com.back.devc.domain.member.member.entity.MemberStatus;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
+import com.back.devc.global.security.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -28,6 +30,29 @@ public class OAuth2MemberService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final OAuthLoginCodeService oAuthLoginCodeService;
+    private final JwtProvider jwtProvider;
+
+    @Transactional(readOnly = true)
+    public LoginResponse exchangeLoginCode(String code) {
+        Long userId = oAuthLoginCodeService.consume(code)
+                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED));
+
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
+
+        if (member.getStatus() == MemberStatus.BLACKLISTED) {
+            throw new ApiException(ErrorCode.MEMBER_BLACKLISTED);
+        }
+
+        return toLoginResponse(member);
+    }
+
+    @Transactional
+    public LoginResponse completeSignupAndIssueToken(OAuthPendingSignup pending, String nickname) {
+        Member member = completeSignup(pending, nickname);
+        return toLoginResponse(member);
+    }
 
     public OAuthPendingSignup buildPendingSignup(String provider, OAuth2User oauth2User) {
         return switch (toAuthProvider(provider)) {
@@ -172,6 +197,18 @@ public class OAuth2MemberService {
         );
 
         return memberRepository.save(newMember);
+    }
+
+    private LoginResponse toLoginResponse(Member member) {
+        String accessToken = jwtProvider.createAccessToken(member);
+        return new LoginResponse(
+                member.getUserId(),
+                member.getEmail(),
+                member.getNickname(),
+                member.getRole(),
+                member.getStatus(),
+                accessToken
+        );
     }
 
     private ProviderSpec providerSpec(AuthProvider provider) {
