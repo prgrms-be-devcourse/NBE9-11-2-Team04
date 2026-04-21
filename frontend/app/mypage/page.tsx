@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useCallback } from "react"
 import type React from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -177,6 +177,8 @@ function mapMyPostsToPostCard(
     excerpt: "",
     author: { name: displayName },
     category: "내 글",
+    categorySlug: "mypage-posts",
+    categoryId: 0,
     createdAt: formatRelativeDate(post.createdAt),
     likes: post.likeCount,
     comments: post.commentCount,
@@ -198,6 +200,8 @@ function mapBookmarkedPostsToPostCard(
     excerpt: "",
     author: { name: post.authorNickname },
     category: "북마크",
+    categorySlug: "mypage-bookmarks",
+    categoryId: 0,
     createdAt: formatRelativeDate(post.createdAt),
     likes: post.likeCount,
     comments: post.commentCount,
@@ -219,6 +223,8 @@ function mapLikedPostsToPostCard(
     excerpt: "",
     author: { name: post.authorNickname },
     category: "좋아요",
+    categorySlug: "mypage-likes",
+    categoryId: 0,
     createdAt: formatRelativeDate(post.createdAt),
     likes: post.likeCount,
     comments: post.commentCount,
@@ -299,6 +305,41 @@ export default function MyPage() {
     [likedPosts, myLikedPostIds, myBookmarkedPostIds]
   )
 
+  const refreshInteractionData = useCallback(async () => {
+    const [bookmarksRes, likesRes, commentsRes] = await Promise.allSettled([
+      apiFetch<BookmarkedPostResponse[]>("/api/mypage/bookmarks", {
+        method: "GET",
+        auth: true,
+      }),
+      apiFetch<LikedPostResponse[]>("/api/mypage/likes", {
+        method: "GET",
+        auth: true,
+      }),
+      apiFetch<MyCommentsResponse>("/api/mypage/comments", {
+        method: "GET",
+        auth: true,
+      }),
+    ])
+
+    if (bookmarksRes.status === "fulfilled") {
+      const bookmarks = bookmarksRes.value ?? []
+      setBookmarkedPosts(bookmarks)
+      setBookmarkCount(bookmarks.length)
+      setMyBookmarkedPostIds(new Set(bookmarks.map((post) => post.postId)))
+    }
+
+    if (likesRes.status === "fulfilled") {
+      const likes = likesRes.value ?? []
+      setLikedPosts(likes)
+      setLikeCount(likes.length)
+      setMyLikedPostIds(new Set(likes.map((post) => post.postId)))
+    }
+
+    if (commentsRes.status === "fulfilled") {
+      setCommentCount(commentsRes.value?.comments?.length ?? 0)
+    }
+  }, [])
+
   useEffect(() => {
     const tab = searchParams.get("tab")
 
@@ -369,43 +410,14 @@ export default function MyPage() {
 
     const fetchCounts = async () => {
       try {
-        const [bookmarksRes, likesRes, commentsRes] = await Promise.allSettled([
-          apiFetch<BookmarkedPostResponse[]>("/api/mypage/bookmarks", {
-            method: "GET",
-            auth: true,
-          }),
-          apiFetch<LikedPostResponse[]>("/api/mypage/likes", {
-            method: "GET",
-            auth: true,
-          }),
-          apiFetch<MyCommentsResponse>("/api/mypage/comments", {
-            method: "GET",
-            auth: true,
-          }),
-        ])
-
-        if (bookmarksRes.status === "fulfilled") {
-          const bookmarks = bookmarksRes.value ?? []
-          setBookmarkCount(bookmarks.length)
-          setMyBookmarkedPostIds(new Set(bookmarks.map((post) => post.postId)))
-        }
-
-        if (likesRes.status === "fulfilled") {
-          const likes = likesRes.value ?? []
-          setLikeCount(likes.length)
-          setMyLikedPostIds(new Set(likes.map((post) => post.postId)))
-        }
-
-        if (commentsRes.status === "fulfilled") {
-          setCommentCount(commentsRes.value?.comments?.length ?? 0)
-        }
+        await refreshInteractionData()
       } catch (err) {
         console.error(err)
       }
     }
 
     fetchCounts()
-  }, [isAuthReady])
+  }, [isAuthReady, refreshInteractionData])
 
   useEffect(() => {
     if (!isAuthReady) return
@@ -465,15 +477,7 @@ export default function MyPage() {
       try {
         setTabLoading(true)
         setError("")
-
-        const res = await apiFetch<BookmarkedPostResponse[]>("/api/mypage/bookmarks", {
-          method: "GET",
-          auth: true,
-        })
-
-        setBookmarkedPosts(res ?? [])
-        setBookmarkCount(res?.length ?? 0)
-        setMyBookmarkedPostIds(new Set((res ?? []).map((post) => post.postId)))
+        await refreshInteractionData()
       } catch (err) {
         console.error(err)
         setError("북마크 목록을 불러오지 못했습니다.")
@@ -483,7 +487,7 @@ export default function MyPage() {
     }
 
     fetchBookmarks()
-  }, [activeTab, bookmarkedPosts.length, isAuthReady])
+  }, [activeTab, bookmarkedPosts.length, isAuthReady, refreshInteractionData])
 
   useEffect(() => {
     if (!isAuthReady) return
@@ -493,15 +497,7 @@ export default function MyPage() {
       try {
         setTabLoading(true)
         setError("")
-
-        const res = await apiFetch<LikedPostResponse[]>("/api/mypage/likes", {
-          method: "GET",
-          auth: true,
-        })
-
-        setLikedPosts(res ?? [])
-        setLikeCount(res?.length ?? 0)
-        setMyLikedPostIds(new Set((res ?? []).map((post) => post.postId)))
+        await refreshInteractionData()
       } catch (err) {
         console.error(err)
         setError("좋아요 목록을 불러오지 못했습니다.")
@@ -511,7 +507,7 @@ export default function MyPage() {
     }
 
     fetchLikes()
-  }, [activeTab, likedPosts.length, isAuthReady])
+  }, [activeTab, likedPosts.length, isAuthReady, refreshInteractionData])
 
   useEffect(() => {
     if (!isAuthReady) return
@@ -545,30 +541,7 @@ export default function MyPage() {
       if (!isAuthReady) return
 
       try {
-        const [likesRes, bookmarksRes] = await Promise.allSettled([
-          apiFetch<LikedPostResponse[]>("/api/mypage/likes", {
-            method: "GET",
-            auth: true,
-          }),
-          apiFetch<BookmarkedPostResponse[]>("/api/mypage/bookmarks", {
-            method: "GET",
-            auth: true,
-          }),
-        ])
-
-        if (likesRes.status === "fulfilled") {
-          const likes = likesRes.value ?? []
-          setLikedPosts(likes)
-          setLikeCount(likes.length)
-          setMyLikedPostIds(new Set(likes.map((post) => post.postId)))
-        }
-
-        if (bookmarksRes.status === "fulfilled") {
-          const bookmarks = bookmarksRes.value ?? []
-          setBookmarkedPosts(bookmarks)
-          setBookmarkCount(bookmarks.length)
-          setMyBookmarkedPostIds(new Set(bookmarks.map((post) => post.postId)))
-        }
+        await refreshInteractionData()
       } catch (err) {
         console.error(err)
       }
@@ -585,9 +558,9 @@ export default function MyPage() {
         handleNotificationsUpdated as EventListener
       )
     }
-  }, [isAuthReady])
+  }, [isAuthReady, refreshInteractionData])
 
-  const handleBookmarkToggle = (postId: number, nextBookmarked: boolean) => {
+  const handleBookmarkToggle = async (postId: number, nextBookmarked: boolean) => {
     setMyBookmarkedPostIds((prev) => {
       const next = new Set(prev)
 
@@ -604,6 +577,66 @@ export default function MyPage() {
 
     if (!nextBookmarked && activeTab === "bookmarks") {
       setBookmarkedPosts((prev) => prev.filter((post) => post.postId !== postId))
+    }
+
+    try {
+      await refreshInteractionData()
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleLikeToggle = async (
+    postId: number,
+    nextLiked: boolean,
+    nextLikeCount: number
+  ) => {
+    setMyLikedPostIds((prev) => {
+      const next = new Set(prev)
+
+      if (nextLiked) {
+        next.add(postId)
+      } else {
+        next.delete(postId)
+      }
+
+      return next
+    })
+
+    setLikeCount((prev) => Math.max(0, prev + (nextLiked ? 1 : -1)))
+
+    setMyPosts((prev) =>
+      prev.map((post) =>
+        post.postId === postId
+          ? { ...post, likeCount: nextLikeCount }
+          : post
+      )
+    )
+
+    setBookmarkedPosts((prev) =>
+      prev.map((post) =>
+        post.postId === postId
+          ? { ...post, likeCount: nextLikeCount }
+          : post
+      )
+    )
+
+    if (!nextLiked && activeTab === "likes") {
+      setLikedPosts((prev) => prev.filter((post) => post.postId !== postId))
+    } else {
+      setLikedPosts((prev) =>
+        prev.map((post) =>
+          post.postId === postId
+            ? { ...post, likeCount: nextLikeCount }
+            : post
+        )
+      )
+    }
+
+    try {
+      await refreshInteractionData()
+    } catch (err) {
+      console.error(err)
     }
   }
 
@@ -766,6 +799,7 @@ export default function MyPage() {
                 <PostCard
                   key={post.id}
                   post={post}
+                  onLikeToggle={handleLikeToggle}
                   onBookmarkToggle={handleBookmarkToggle}
                 />
               ))}
@@ -787,6 +821,7 @@ export default function MyPage() {
                 <PostCard
                   key={post.id}
                   post={post}
+                  onLikeToggle={handleLikeToggle}
                   onBookmarkToggle={handleBookmarkToggle}
                 />
               ))}
@@ -807,6 +842,7 @@ export default function MyPage() {
                 <PostCard
                   key={post.id}
                   post={post}
+                  onLikeToggle={handleLikeToggle}
                   onBookmarkToggle={handleBookmarkToggle}
                 />
               ))}

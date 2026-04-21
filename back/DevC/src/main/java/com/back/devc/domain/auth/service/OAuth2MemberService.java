@@ -1,5 +1,6 @@
 package com.back.devc.domain.auth.service;
 
+import com.back.devc.domain.auth.dto.login.LoginResponse;
 import com.back.devc.domain.auth.dto.oauth.OAuthPendingSignup;
 import com.back.devc.domain.member.member.entity.AuthProvider;
 import com.back.devc.domain.member.member.entity.Member;
@@ -7,6 +8,7 @@ import com.back.devc.domain.member.member.entity.MemberStatus;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
+import com.back.devc.global.security.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -28,7 +30,32 @@ public class OAuth2MemberService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final OAuthLoginCodeService oAuthLoginCodeService;
+    private final JwtProvider jwtProvider;
 
+    // OAuth 로그인 코드를 소비해 사용자 인증 후 로그인 응답 DTO를 반환한다.
+    @Transactional(readOnly = true)
+    public LoginResponse exchangeLoginCode(String code) {
+        Long userId = oAuthLoginCodeService.consume(code)
+                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED));
+
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
+
+        if (member.getStatus() == MemberStatus.BLACKLISTED) {
+            throw new ApiException(ErrorCode.MEMBER_BLACKLISTED);
+        }
+
+        return toLoginResponse(member);
+    }
+    // OAuth2 회원가입 완료 후 JWT를 발급해 로그인 응답 DTO를 반환한다.
+    @Transactional
+    public LoginResponse completeSignupAndIssueToken(OAuthPendingSignup pending, String nickname) {
+        Member member = completeSignup(pending, nickname);
+        return toLoginResponse(member);
+    }
+
+    // provider 값에 맞는 파서를 사용해 OAuth 사용자 정보를 pendingSignup DTO로 변환한다.
     public OAuthPendingSignup buildPendingSignup(String provider, OAuth2User oauth2User) {
         return switch (toAuthProvider(provider)) {
             case GITHUB -> buildGithubPendingSignup(oauth2User);
@@ -38,11 +65,13 @@ public class OAuth2MemberService {
         };
     }
 
+    // provider/providerUserId로 기존 회원 존재 여부를 조회한다.
     public Optional<Member> findMemberByProviderUserId(String provider, String providerUserId) {
         AuthProvider authProvider = toAuthProvider(provider);
         return memberRepository.findByProviderAndProviderUserId(authProvider, providerUserId);
     }
 
+    // GitHub OAuth 속성에서 pendingSignup DTO를 생성한다
     public OAuthPendingSignup buildGithubPendingSignup(OAuth2User oauth2User) {
         String providerUserId = valueAsString(oauth2User.getAttribute("id")).trim();
         if (providerUserId.isBlank()) {
@@ -55,6 +84,7 @@ public class OAuth2MemberService {
         return new OAuthPendingSignup("github", providerUserId, email, login);
     }
 
+    // Kakao OAuth 속성에서 pendingSignup DTO를 생성한다.
     public OAuthPendingSignup buildKakaoPendingSignup(OAuth2User oauth2User) {
         String providerUserId = valueAsString(oauth2User.getAttribute("id")).trim();
         if (providerUserId.isBlank()) {
@@ -77,6 +107,7 @@ public class OAuth2MemberService {
         return new OAuthPendingSignup("kakao", providerUserId, email, login);
     }
 
+    // OAuth 회원가입 요청을 검증하고 provider 정책에 맞춰 회원가입을 완료한다.
     public OAuthPendingSignup buildGooglePendingSignup(OAuth2User oauth2User) {
         String providerUserId = valueAsString(oauth2User.getAttribute("sub")).trim();
         if (providerUserId.isBlank()) {
@@ -172,6 +203,19 @@ public class OAuth2MemberService {
         );
 
         return memberRepository.save(newMember);
+    }
+
+    private LoginResponse toLoginResponse(Member member) {
+        String accessToken = jwtProvider.createAccessToken(member);
+
+        return new LoginResponse(
+                member.getUserId(),
+                member.getEmail(),
+                member.getNickname(),
+                member.getRole(),
+                member.getStatus(),
+                accessToken
+        );
     }
 
     private ProviderSpec providerSpec(AuthProvider provider) {

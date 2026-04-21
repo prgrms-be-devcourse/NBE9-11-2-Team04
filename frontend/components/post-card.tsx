@@ -26,6 +26,7 @@ export interface Post {
 
 interface PostCardProps {
   post: Post
+  onLikeToggle?: (postId: number, nextLiked: boolean, nextLikeCount: number) => void
   onBookmarkToggle?: (postId: number, nextBookmarked: boolean) => void
 }
 
@@ -43,7 +44,7 @@ const toPlainText = (value: string) =>
     .replace(/\s+/g, " ")
     .trim()
 
-export function PostCard({ post, onBookmarkToggle }: PostCardProps) {
+export function PostCard({ post, onLikeToggle, onBookmarkToggle }: PostCardProps) {
   const authorProfileHref = post.author.userId
     ? `/users/${post.author.userId}`
     : undefined
@@ -79,12 +80,12 @@ export function PostCard({ post, onBookmarkToggle }: PostCardProps) {
           <div className="flex items-center justify-between">
             {authorProfileHref ? (
               <Link href={authorProfileHref} className="flex items-center gap-2">
-             <Avatar className="h-10 w-10">
-                <AvatarImage src={post.author.avatar} alt={post.author.name} />
-                <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
-                  작성자
-                </AvatarFallback>
-              </Avatar>
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={post.author.avatar} alt={post.author.name} />
+                  <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
+                    작성자
+                  </AvatarFallback>
+                </Avatar>
                 <span className="text-sm text-muted-foreground transition-colors hover:text-foreground">
                   {post.author.name}
                 </span>
@@ -116,11 +117,13 @@ export function PostCard({ post, onBookmarkToggle }: PostCardProps) {
         </div>
 
         <InteractionButtons
-          key={`${post.id}-${post.liked}-${post.bookmarked}-${post.likes}`}
           postId={Number(post.id)}
           initialLiked={post.liked ?? false}
           initialBookmarked={post.bookmarked ?? false}
           initialLikeCount={post.likes ?? 0}
+          onLikeToggle={(nextLiked, nextLikeCount) =>
+            onLikeToggle?.(Number(post.id), nextLiked, nextLikeCount)
+          }
           onBookmarkToggle={(nextBookmarked) =>
             onBookmarkToggle?.(Number(post.id), nextBookmarked)
           }

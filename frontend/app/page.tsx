@@ -27,17 +27,13 @@ type PostPageResponse = {
     liked?: boolean
     bookmarked?: boolean
   }[]
-  totalPages?: number
-  totalElements?: number
-  size?: number
-  number?: number
 }
 
 type BookmarkedPostResponse = {
   postId: number
   title: string
   authorNickname: string
-  categoryId : number
+  categoryId: number
   likeCount: number
   commentCount: number
   createdAt: string
@@ -239,7 +235,6 @@ export default function HomePage() {
     }
 
     window.addEventListener(AUTH_CHANGED_EVENT, handleAuthChanged)
-
     return () => {
       window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChanged)
     }
@@ -268,8 +263,26 @@ export default function HomePage() {
       <div className="grid gap-6">
         {posts.map((post) => (
           <PostCard
-            key={`${post.id}-${post.liked}-${post.bookmarked}-${post.likes}`}
+            key={post.id}
             post={post}
+            onLikeToggle={(postId, nextLiked, nextLikeCount) => {
+              setPosts((prev) =>
+                prev.map((p) =>
+                  Number(p.id) === postId
+                    ? { ...p, liked: nextLiked, likes: nextLikeCount }
+                    : p
+                )
+              )
+            }}
+            onBookmarkToggle={(postId, nextBookmarked) => {
+              setPosts((prev) =>
+                prev.map((p) =>
+                  Number(p.id) === postId
+                    ? { ...p, bookmarked: nextBookmarked }
+                    : p
+                )
+              )
+            }}
           />
         ))}
       </div>
