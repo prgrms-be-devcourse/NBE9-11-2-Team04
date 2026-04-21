@@ -1,10 +1,15 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { getAccessToken } from "@/lib/auth-storage"
 
 type CommentSectionProps = {
   postId: number
+}
+
+type LoginRequiredPopupState = {
+  open: boolean
+  message: string
 }
 
 type SuccessResponse<T> = {
@@ -122,6 +127,27 @@ function extractCreatedCommentId(responseBody: unknown): number | null {
   const validId = possibleIds.find((value) => typeof value === "number")
 
   return typeof validId === "number" ? validId : null
+}
+
+function isUnauthorizedStatus(status: number): boolean {
+  return status === 401 || status === 403
+}
+
+function isLoginRequiredMessage(message: string | null | undefined): boolean {
+  if (!message) {
+    return false
+  }
+
+  return message.includes("인증") || message.includes("로그인")
+}
+
+async function extractErrorMessage(response: Response, fallbackMessage: string): Promise<string> {
+  try {
+    const errorData = await response.json()
+    return errorData?.message ?? errorData?.resultMessage ?? errorData?.msg ?? fallbackMessage
+  } catch {
+    return fallbackMessage
+  }
 }
 
 type ReplyFilesMap = Record<number, File[]>
@@ -319,6 +345,33 @@ export default function CommentSection({ postId }: CommentSectionProps) {
   const [newCommentFiles, setNewCommentFiles] = useState<File[]>([])
   const [replyFiles, setReplyFiles] = useState<ReplyFilesMap>({})
 
+  const [loginRequiredPopup, setLoginRequiredPopup] = useState<LoginRequiredPopupState>({
+    open: false,
+    message: "로그인이 필요한 기능입니다.",
+  })
+
+  const loginPath = useMemo(() => "/login", [])
+
+  const openLoginRequiredPopup = useCallback((message = "로그인이 필요한 기능입니다.") => {
+    setLoginRequiredPopup({
+      open: true,
+      message,
+    })
+  }, [])
+
+  const closeLoginRequiredPopup = useCallback(() => {
+    setLoginRequiredPopup((prev) => ({
+      ...prev,
+      open: false,
+    }))
+  }, [])
+
+  const moveToLoginPage = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.location.href = loginPath
+    }
+  }, [loginPath])
+
   const loadComments = useCallback(async () => {
     try {
       setLoading(true)
@@ -441,7 +494,13 @@ export default function CommentSection({ postId }: CommentSectionProps) {
       })
 
       if (!response.ok) {
-        throw new Error("댓글 작성에 실패했습니다.")
+        if (isUnauthorizedStatus(response.status)) {
+          openLoginRequiredPopup("로그인이 필요한 기능입니다.")
+          return
+        }
+
+        const message = await extractErrorMessage(response, "댓글 작성에 실패했습니다.")
+        throw new Error(message)
       }
 
       const createdComment = await response.json()
@@ -486,7 +545,13 @@ export default function CommentSection({ postId }: CommentSectionProps) {
       })
 
       if (!response.ok) {
-        throw new Error("대댓글 작성에 실패했습니다.")
+        if (isUnauthorizedStatus(response.status)) {
+          openLoginRequiredPopup("로그인이 필요한 기능입니다.")
+          return
+        }
+
+        const message = await extractErrorMessage(response, "대댓글 작성에 실패했습니다.")
+        throw new Error(message)
       }
 
       const createdReply = await response.json()
@@ -534,21 +599,16 @@ export default function CommentSection({ postId }: CommentSectionProps) {
       })
 
       if (!response.ok) {
-        let message = "댓글 신고에 실패했습니다."
+        let message = await extractErrorMessage(response, "댓글 신고에 실패했습니다.")
 
-        try {
-          const errorData = await response.json()
-          message =
-            errorData?.message ??
-            errorData?.resultMessage ??
-            errorData?.msg ??
-            message
+        if (isUnauthorizedStatus(response.status) || isLoginRequiredMessage(message)) {
+          setError(null)
+          openLoginRequiredPopup("로그인이 필요한 기능입니다.")
+          return
+        }
 
-          if (typeof message === "string" && message.includes("이미 신고")) {
-            message = "이미 신고한 댓글입니다."
-          }
-        } catch {
-          // 응답 본문이 JSON이 아니면 기본 메시지를 그대로 사용
+        if (typeof message === "string" && message.includes("이미 신고")) {
+          message = "이미 신고한 댓글입니다."
         }
 
         throw new Error(message)
@@ -557,7 +617,15 @@ export default function CommentSection({ postId }: CommentSectionProps) {
       alert("댓글 신고가 접수되었습니다.")
       window.dispatchEvent(new CustomEvent("notifications-updated"))
     } catch (err) {
-      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
+      const message = err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
+
+      if (isLoginRequiredMessage(message)) {
+        setError(null)
+        openLoginRequiredPopup("로그인이 필요한 기능입니다.")
+        return
+      }
+
+      setError(message)
     } finally {
       setReportSubmittingId(null)
     }
@@ -575,7 +643,13 @@ export default function CommentSection({ postId }: CommentSectionProps) {
       })
 
       if (!response.ok) {
-        throw new Error("댓글 삭제에 실패했습니다.")
+        if (isUnauthorizedStatus(response.status)) {
+          openLoginRequiredPopup("로그인이 필요한 기능입니다.")
+          return
+        }
+
+        const message = await extractErrorMessage(response, "댓글 삭제에 실패했습니다.")
+        throw new Error(message)
       }
 
       if (openedReplyId === commentId) {
@@ -622,7 +696,13 @@ export default function CommentSection({ postId }: CommentSectionProps) {
       })
 
       if (!response.ok) {
-        throw new Error("댓글 수정에 실패했습니다.")
+        if (isUnauthorizedStatus(response.status)) {
+          openLoginRequiredPopup("로그인이 필요한 기능입니다.")
+          return
+        }
+
+        const message = await extractErrorMessage(response, "댓글 수정에 실패했습니다.")
+        throw new Error(message)
       }
 
       setEditingCommentId(null)
@@ -684,6 +764,31 @@ export default function CommentSection({ postId }: CommentSectionProps) {
       )}
 
       {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
+
+      {loginRequiredPopup.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg">
+            <h3 className="text-lg font-semibold text-foreground">로그인 안내</h3>
+            <p className="mt-3 text-sm text-muted-foreground">{loginRequiredPopup.message}</p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeLoginRequiredPopup}
+                className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={moveToLoginPage}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+              >
+                로그인 하러가기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {!loading && !error && comments.length === 0 && (
         <p className="mt-4 text-sm text-muted-foreground">아직 댓글이 없습니다.</p>

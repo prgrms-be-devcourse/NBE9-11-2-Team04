@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import type React from "react"
 import { Heart, Bookmark } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -28,6 +28,11 @@ type BookmarkResponse = {
   postId: number
   bookmarked: boolean
   message?: string
+}
+
+type LoginRequiredPopupState = {
+  open: boolean
+  message: string
 }
 
 async function parseResponse(res: Response) {
@@ -62,6 +67,18 @@ function getAuthHeaders(): HeadersInit {
   return headers
 }
 
+function isUnauthorizedStatus(status: number): boolean {
+  return status === 401 || status === 403
+}
+
+function isLoginRequiredMessage(message: string | null | undefined): boolean {
+  if (!message) {
+    return false
+  }
+
+  return message.includes("인증") || message.includes("로그인")
+}
+
 export default function InteractionButtons({
   postId,
   initialLiked = false,
@@ -74,6 +91,33 @@ export default function InteractionButtons({
   const [likeCount, setLikeCount] = useState(initialLikeCount)
   const [likeLoading, setLikeLoading] = useState(false)
   const [bookmarkLoading, setBookmarkLoading] = useState(false)
+
+  const [loginRequiredPopup, setLoginRequiredPopup] = useState<LoginRequiredPopupState>({
+    open: false,
+    message: "로그인이 필요한 기능입니다.",
+  })
+
+  const loginPath = useMemo(() => "/login", [])
+
+  const openLoginRequiredPopup = useCallback((message = "로그인이 필요한 기능입니다.") => {
+    setLoginRequiredPopup({
+      open: true,
+      message,
+    })
+  }, [])
+
+  const closeLoginRequiredPopup = useCallback(() => {
+    setLoginRequiredPopup((prev) => ({
+      ...prev,
+      open: false,
+    }))
+  }, [])
+
+  const moveToLoginPage = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.location.href = loginPath
+    }
+  }, [loginPath])
 
   useEffect(() => {
     setLiked(initialLiked)
@@ -91,7 +135,7 @@ export default function InteractionButtons({
     const auth = getAuthSnapshot()
 
     if (!auth.isLoggedIn) {
-      alert("인증이 필요합니다.")
+      openLoginRequiredPopup("로그인이 필요한 기능입니다.")
       return false
     }
 
@@ -119,15 +163,15 @@ export default function InteractionButtons({
       const parsed = await parseResponse(res)
 
       if (!res.ok) {
-        if (res.status === 401) {
-          alert("인증이 필요합니다.")
-          return
-        }
-
         const message =
           typeof parsed === "string"
             ? parsed || "좋아요 처리 실패"
             : parsed?.message || "좋아요 처리 실패"
+
+        if (isUnauthorizedStatus(res.status) || isLoginRequiredMessage(message)) {
+          openLoginRequiredPopup("로그인이 필요한 기능입니다.")
+          return
+        }
 
         throw new Error(message)
       }
@@ -141,7 +185,14 @@ export default function InteractionButtons({
       window.dispatchEvent(new CustomEvent("notifications-updated"))
     } catch (error: any) {
       console.error("좋아요 처리 실패:", error)
-      alert(error.message || "좋아요 처리 실패")
+      const message = error?.message || "좋아요 처리 실패"
+
+      if (isLoginRequiredMessage(message)) {
+        openLoginRequiredPopup("로그인이 필요한 기능입니다.")
+        return
+      }
+
+      alert(message)
     } finally {
       setLikeLoading(false)
     }
@@ -168,15 +219,15 @@ export default function InteractionButtons({
       const parsed = await parseResponse(res)
 
       if (!res.ok) {
-        if (res.status === 401) {
-          alert("인증이 필요합니다.")
-          return
-        }
-
         const message =
           typeof parsed === "string"
             ? parsed || "북마크 처리 실패"
             : parsed?.message || "북마크 처리 실패"
+
+        if (isUnauthorizedStatus(res.status) || isLoginRequiredMessage(message)) {
+          openLoginRequiredPopup("로그인이 필요한 기능입니다.")
+          return
+        }
 
         throw new Error(message)
       }
@@ -190,7 +241,14 @@ export default function InteractionButtons({
       window.dispatchEvent(new CustomEvent("notifications-updated"))
     } catch (error: any) {
       console.error("북마크 처리 실패:", error)
-      alert(error.message || "북마크 처리 실패")
+      const message = error?.message || "북마크 처리 실패"
+
+      if (isLoginRequiredMessage(message)) {
+        openLoginRequiredPopup("로그인이 필요한 기능입니다.")
+        return
+      }
+
+      alert(message)
     } finally {
       setBookmarkLoading(false)
     }
@@ -201,6 +259,30 @@ export default function InteractionButtons({
       className="flex items-center gap-2"
       onClick={(e) => e.stopPropagation()}
     >
+      {loginRequiredPopup.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg">
+            <h3 className="text-lg font-semibold text-foreground">로그인 안내</h3>
+            <p className="mt-3 text-sm text-muted-foreground">{loginRequiredPopup.message}</p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeLoginRequiredPopup}
+                className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={moveToLoginPage}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+              >
+                로그인 하러가기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <Button
         type="button"
         variant={liked ? "default" : "outline"}
