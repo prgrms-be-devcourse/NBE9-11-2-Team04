@@ -7,10 +7,7 @@ import com.back.devc.domain.interaction.report.entity.ReportStatus;
 import com.back.devc.domain.interaction.report.service.AdminReportService;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
-import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
-
-import com.back.devc.global.exception.ApiException;
-import com.back.devc.global.exception.ErrorCode;
+import com.back.devc.global.response.SuccessCode;
 import com.back.devc.global.response.SuccessResponse;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;

@@ -2,6 +2,7 @@ package com.back.devc.domain.interaction.report.dto;
 
 import com.back.devc.domain.interaction.report.entity.Report;
 import com.back.devc.domain.interaction.report.entity.ReportStatus;
+import com.back.devc.domain.interaction.report.entity.TargetType;
 
 import java.time.LocalDateTime;
 
@@ -12,7 +13,7 @@ public record ReportResponseDTO(
         String reporterEmail,
         String reporterNickname,
 
-        String targetType,
+        TargetType targetType,
         Long targetId,
 
         String targetNickname,

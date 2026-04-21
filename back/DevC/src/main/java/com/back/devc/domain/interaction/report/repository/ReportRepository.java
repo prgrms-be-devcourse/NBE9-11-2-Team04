@@ -2,6 +2,7 @@ package com.back.devc.domain.interaction.report.repository;
 
 import com.back.devc.domain.interaction.report.entity.Report;
 import com.back.devc.domain.interaction.report.entity.ReportStatus;
+import com.back.devc.domain.interaction.report.entity.TargetType;
 import com.back.devc.domain.member.member.entity.Member;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,9 +35,9 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     )
     Page<Object[]> findGroupedReports(@Param("status") ReportStatus status, Pageable pageable);
 
-    List<Report> findAllByTargetTypeAndTargetIdAndStatus(String targetType, Long targetId, ReportStatus reportStatus);
+    List<Report> findAllByTargetTypeAndTargetIdAndStatus(TargetType targetType, Long targetId, ReportStatus reportStatus);
 
-    List<Report> findAllByTargetTypeAndTargetId(String targetType, Long targetId);
+    List<Report> findAllByTargetTypeAndTargetId(TargetType targetType, Long targetId);
 
-    boolean existsByReporterAndTargetTypeAndTargetId(Member reporter, String type, Long targetId);
+    boolean existsByReporterAndTargetTypeAndTargetId(Member reporter, TargetType targetType, Long targetId);
 }
