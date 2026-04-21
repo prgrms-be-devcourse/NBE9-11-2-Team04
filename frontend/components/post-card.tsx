@@ -24,6 +24,7 @@ export interface Post {
 
 interface PostCardProps {
   post: Post
+  onBookmarkToggle?: (postId: number, nextBookmarked: boolean) => void
 }
 
 const toPlainText = (value: string) =>
@@ -118,6 +119,9 @@ export function PostCard({ post }: PostCardProps) {
           initialLiked={post.liked ?? false}
           initialBookmarked={post.bookmarked ?? false}
           initialLikeCount={post.likes ?? 0}
+          onBookmarkToggle={(nextBookmarked) =>
+            onBookmarkToggle?.(Number(post.id), nextBookmarked)
+          }
         />
       </div>
     </article>

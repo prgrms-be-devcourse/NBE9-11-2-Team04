@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import type React from "react"
 import { Heart, Bookmark } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { getAccessToken } from "@/lib/auth-storage"
+import { getAccessToken, getAuthSnapshot } from "@/lib/auth-storage"
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
@@ -14,6 +14,7 @@ type InteractionButtonsProps = {
   initialLiked?: boolean
   initialBookmarked?: boolean
   initialLikeCount?: number
+  onBookmarkToggle?: (nextBookmarked: boolean) => void
 }
 
 type LikeResponse = {
@@ -66,6 +67,7 @@ export default function InteractionButtons({
   initialLiked = false,
   initialBookmarked = false,
   initialLikeCount = 0,
+  onBookmarkToggle,
 }: InteractionButtonsProps) {
   const [liked, setLiked] = useState(initialLiked)
   const [bookmarked, setBookmarked] = useState(initialBookmarked)
@@ -85,11 +87,24 @@ export default function InteractionButtons({
     setLikeCount(initialLikeCount)
   }, [initialLikeCount])
 
+  const requireAuth = () => {
+    const auth = getAuthSnapshot()
+
+    if (!auth.isLoggedIn) {
+      alert("인증이 필요합니다.")
+      return false
+    }
+
+    return true
+  }
+
   const handleLike = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
     e.stopPropagation()
 
+    if (!requireAuth()) return
     if (likeLoading) return
+
     setLikeLoading(true)
 
     try {
@@ -104,10 +119,16 @@ export default function InteractionButtons({
       const parsed = await parseResponse(res)
 
       if (!res.ok) {
+        if (res.status === 401) {
+          alert("인증이 필요합니다.")
+          return
+        }
+
         const message =
           typeof parsed === "string"
             ? parsed || "좋아요 처리 실패"
             : parsed?.message || "좋아요 처리 실패"
+
         throw new Error(message)
       }
 
@@ -130,7 +151,9 @@ export default function InteractionButtons({
     e.preventDefault()
     e.stopPropagation()
 
+    if (!requireAuth()) return
     if (bookmarkLoading) return
+
     setBookmarkLoading(true)
 
     try {
@@ -145,15 +168,24 @@ export default function InteractionButtons({
       const parsed = await parseResponse(res)
 
       if (!res.ok) {
+        if (res.status === 401) {
+          alert("인증이 필요합니다.")
+          return
+        }
+
         const message =
           typeof parsed === "string"
             ? parsed || "북마크 처리 실패"
             : parsed?.message || "북마크 처리 실패"
+
         throw new Error(message)
       }
 
       const data = parsed as BookmarkResponse
-      setBookmarked(Boolean(data.bookmarked))
+      const nextBookmarked = Boolean(data.bookmarked)
+
+      setBookmarked(nextBookmarked)
+      onBookmarkToggle?.(nextBookmarked)
 
       window.dispatchEvent(new CustomEvent("notifications-updated"))
     } catch (error: any) {

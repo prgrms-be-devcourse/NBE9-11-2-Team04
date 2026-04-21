@@ -12,6 +12,7 @@ import com.back.devc.domain.post.comment.dto.CommentResponse;
 import com.back.devc.domain.post.comment.dto.CommentUpdateRequest;
 import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
+import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +43,7 @@ public class CommentServiceImpl implements CommentService {
         postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
 
-        Comment comment = Comment.create(postId, loginUserId, null, request.getContent());
+        Comment comment = Comment.create(postId, loginUserId, null, request.content());
         Comment savedComment = commentRepository.save(comment);
 
         notificationService.createCommentNotification(postId, loginUserId, savedComment.getId());
@@ -57,7 +58,7 @@ public class CommentServiceImpl implements CommentService {
         Comment parentComment = findCommentOrThrow(parentCommentId, "부모 댓글을 찾을 수 없습니다. id=" + parentCommentId);
         validateReplyWritable(parentComment, parentCommentId);
 
-        Comment reply = Comment.create(parentComment.getPostId(), loginUserId, parentCommentId, request.getContent());
+        Comment reply = Comment.create(parentComment.getPostId(), loginUserId, parentCommentId, request.content());
         Comment savedReply = commentRepository.save(reply);
 
         notificationService.createReplyNotification(parentCommentId, loginUserId, savedReply.getId());
@@ -73,7 +74,7 @@ public class CommentServiceImpl implements CommentService {
         validateCommentOwner(comment, loginUserId, "본인의 댓글만 수정할 수 있습니다.");
         validateCommentNotDeleted(comment, "삭제된 댓글은 수정할 수 없습니다.");
 
-        comment.updateContent(request.getContent());
+        comment.updateContent(request.content());
 
         Member member = memberRepository.findById(comment.getUserId()).orElse(null);
         return toResponse(comment, member);
@@ -170,9 +171,13 @@ public class CommentServiceImpl implements CommentService {
     }
 
     private CommentResponse toResponse(Comment comment, Member member) {
+        Post post = postRepository.findById(comment.getPostId())
+                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + comment.getPostId()));
+
         CommentResponse response = CommentResponse.of(
                 comment.getId(),
                 comment.getPostId(),
+                post.getTitle(),
                 comment.getUserId(),
                 MemberDisplayUtil.getDisplayName(member),
                 comment.getParentCommentId(),

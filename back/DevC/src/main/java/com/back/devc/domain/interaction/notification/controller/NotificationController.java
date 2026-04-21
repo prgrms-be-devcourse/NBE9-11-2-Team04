@@ -15,7 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.core.Authentication;
 
 /**
- * 알림 조회/읽음 처리 API 컨트롤러.
+ * 알림 조회/읽음 처리 API 컨트롤러
  *
  * 이 컨트롤러는 현재 로그인한 사용자를 기준으로만 알림을 조회하고 읽음 처리
  *
@@ -40,6 +40,7 @@ public class NotificationController {
     // OAuth 로그인 사용자는 JwtPrincipal이 없을 수 있어서,
     // email 기반으로 Member를 다시 찾아 userId를 얻을 때 사용
     private final MemberRepository memberRepository;
+
     /**
      * 현재 로그인한 사용자의 알림 목록 조회
      *
@@ -50,6 +51,7 @@ public class NotificationController {
     public ResponseEntity<NotificationListResponse> getMyNotifications(Authentication authentication) {
         return ResponseEntity.ok(notificationService.getMyNotifications(getAuthenticatedUserId(authentication)));
     }
+
     /**
      * 현재 로그인한 사용자의 특정 알림을 읽음 처리
      *
@@ -63,6 +65,7 @@ public class NotificationController {
     ) {
         return ResponseEntity.ok(notificationService.readNotification(notificationId, getAuthenticatedUserId(authentication)));
     }
+
     /**
      * SecurityContext에 들어있는 인증 객체에서 현재 로그인 사용자의 userId를 추출
      *
