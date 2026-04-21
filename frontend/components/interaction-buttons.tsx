@@ -14,6 +14,7 @@ type InteractionButtonsProps = {
   initialLiked?: boolean
   initialBookmarked?: boolean
   initialLikeCount?: number
+  onLikeToggle?: (nextLiked: boolean, nextLikeCount: number) => void
   onBookmarkToggle?: (nextBookmarked: boolean) => void
 }
 
@@ -28,6 +29,12 @@ type BookmarkResponse = {
   postId: number
   bookmarked: boolean
   message?: string
+}
+
+type BookmarkWrappedResponse = {
+  code?: string
+  message?: string
+  data?: BookmarkResponse
 }
 
 type LoginRequiredPopupState = {
@@ -81,6 +88,7 @@ export default function InteractionButtons({
   initialLiked = false,
   initialBookmarked = false,
   initialLikeCount = 0,
+  onLikeToggle,
   onBookmarkToggle,
 }: InteractionButtonsProps) {
   const [liked, setLiked] = useState(initialLiked)
@@ -110,9 +118,17 @@ export default function InteractionButtons({
     }
   }, [loginPath])
 
-  useEffect(() => setLiked(initialLiked), [initialLiked])
-  useEffect(() => setBookmarked(initialBookmarked), [initialBookmarked])
-  useEffect(() => setLikeCount(initialLikeCount), [initialLikeCount])
+  useEffect(() => {
+    setLiked(initialLiked)
+  }, [initialLiked])
+
+  useEffect(() => {
+    setBookmarked(initialBookmarked)
+  }, [initialBookmarked])
+
+  useEffect(() => {
+    setLikeCount(initialLikeCount)
+  }, [initialLikeCount])
 
   const requireAuth = () => {
     const auth = getAuthSnapshot()
@@ -143,12 +159,20 @@ export default function InteractionButtons({
       const parsed = await parseResponse(res)
 
       if (!res.ok) {
+        if (isUnauthorizedStatus(res.status) || isLoginRequiredMessage(parsed?.message)) {
+          openLoginRequiredPopup(parsed?.message || "로그인이 필요한 기능입니다.")
+          return
+        }
         throw new Error(parsed?.message || "좋아요 실패")
       }
 
       const data = parsed as LikeResponse
-      setLiked(Boolean(data.liked))
-      setLikeCount(data.likeCount ?? likeCount)
+      const nextLiked = Boolean(data.liked)
+      const nextLikeCount = data.likeCount ?? likeCount
+
+      setLiked(nextLiked)
+      setLikeCount(nextLikeCount)
+      onLikeToggle?.(nextLiked, nextLikeCount)
     } catch (err) {
       console.error(err)
     } finally {
@@ -156,7 +180,6 @@ export default function InteractionButtons({
     }
   }
 
-  // ⭐⭐⭐ 핵심 수정된 부분
   const handleBookmark = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
     e.stopPropagation()
@@ -166,7 +189,6 @@ export default function InteractionButtons({
     const prev = bookmarked
     const optimistic = !prev
 
-    // ✅ 즉시 UI 반영
     setBookmarked(optimistic)
     onBookmarkToggle?.(optimistic)
 
@@ -184,13 +206,26 @@ export default function InteractionButtons({
       const parsed = await parseResponse(res)
 
       if (!res.ok) {
-        throw new Error(parsed?.message || "북마크 실패")
+        const errorMessage =
+          parsed?.message || parsed?.data?.message || "북마크 실패"
+
+        if (isUnauthorizedStatus(res.status) || isLoginRequiredMessage(errorMessage)) {
+          openLoginRequiredPopup(errorMessage || "로그인이 필요한 기능입니다.")
+          setBookmarked(prev)
+          onBookmarkToggle?.(prev)
+          return
+        }
+
+        throw new Error(errorMessage)
       }
 
-      const data = parsed as BookmarkResponse
-      setBookmarked(Boolean(data.bookmarked))
+      const wrapped = parsed as BookmarkWrappedResponse
+      const nextBookmarked = Boolean(wrapped.data?.bookmarked)
+
+      setBookmarked(nextBookmarked)
+      onBookmarkToggle?.(nextBookmarked)
     } catch (err) {
-      // ❌ 실패 시 롤백
+      console.error(err)
       setBookmarked(prev)
       onBookmarkToggle?.(prev)
     } finally {
