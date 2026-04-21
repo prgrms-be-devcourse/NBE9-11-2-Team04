@@ -201,6 +201,7 @@ public class OAuth2MemberService {
 
     private LoginResponse toLoginResponse(Member member) {
         String accessToken = jwtProvider.createAccessToken(member);
+
         return new LoginResponse(
                 member.getUserId(),
                 member.getEmail(),
