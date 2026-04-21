@@ -30,20 +30,15 @@ public class PostController {
             @AuthenticationPrincipal JwtPrincipal principal,
             @RequestBody @Valid PostCreateRequest request
     ) {
-        Post post = postService.write(
-                getAuthenticatedUserId(principal),
-                request.categoryId(),
-                request.title(),
-                request.content()
-        );
+        Long userId = getAuthenticatedUserId(principal);
 
-        PostCreateResponse response = PostCreateResponse.from(post);
+        PostCreateResponse response = postService.write(userId, request);
+
         SuccessCode successCode = SuccessCode.POST_CREATE_SUCCESS;
 
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, response));
-
     }
 
     //게시글 상세조회
@@ -100,17 +95,12 @@ public class PostController {
     public ResponseEntity<SuccessResponse<PostUpdateResponse>> update(
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long postId,
-            @RequestBody @Valid PostUpdateRequest postUpdateRequest
+            @RequestBody @Valid PostUpdateRequest request
     ) {
-        Post post = postService.update(
-                getAuthenticatedUserId(principal),
-                postId,
-                postUpdateRequest.title(),
-                postUpdateRequest.content(),
-                postUpdateRequest.categoryId()
-        );
+        Long userId = getAuthenticatedUserId(principal);
 
-        PostUpdateResponse response = PostUpdateResponse.from(post);
+        PostUpdateResponse response = postService.update(userId, postId, request);
+
         SuccessCode successCode = SuccessCode.POST_UPDATE_SUCCESS;
 
         return ResponseEntity
