@@ -41,7 +41,7 @@ const toPlainText = (value: string) =>
     .replace(/\s+/g, " ")
     .trim()
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({ post, onBookmarkToggle }: PostCardProps) {
   const authorProfileHref = post.author.userId
     ? `/users/${post.author.userId}`
     : undefined
