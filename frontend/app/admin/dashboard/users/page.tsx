@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -299,6 +300,10 @@ export default function UsersManagementPage() {
       >
         <DialogContent>
           <DialogTitle>사용자 처리</DialogTitle>
+
+          <DialogDescription>
+            사용자 상태 변경 및 제재 처리를 수행합니다.
+          </DialogDescription>
 
           {actionDialog.type === "suspend" && (
             <div className="space-y-2">

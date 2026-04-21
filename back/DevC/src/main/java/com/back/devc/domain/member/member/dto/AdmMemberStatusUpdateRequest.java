@@ -6,7 +6,7 @@ import lombok.Builder;
 
 @Builder
 public record AdmMemberStatusUpdateRequest(
-        @NotNull Long userId,
         @NotNull(message = "변경할 상태값은 필수입니다.")
-        MemberStatus status
+        MemberStatus status,
+        Integer days
 ) {}
