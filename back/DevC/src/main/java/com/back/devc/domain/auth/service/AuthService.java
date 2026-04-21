@@ -36,12 +36,12 @@ public class AuthService {
         Member member = memberRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ApiException(ErrorCode.EMAIL_NOT_FOUND));
 
-        if (member.getStatus() == MemberStatus.BLACKLISTED) {
-            throw new ApiException(ErrorCode.MEMBER_BLACKLISTED);
-        }
-
         if (!passwordEncoder.matches(request.password(), member.getPasswordHash())) {
             throw new ApiException(ErrorCode.PASSWORD_MISMATCH);
+        }
+
+        if (member.getStatus() == MemberStatus.BLACKLISTED) {
+            throw new ApiException(ErrorCode.MEMBER_BLACKLISTED);
         }
 
         String accessToken = jwtProvider.createAccessToken(member);
@@ -79,5 +79,4 @@ public class AuthService {
                 savedMember.getStatus()
         );
     }
-
 }
