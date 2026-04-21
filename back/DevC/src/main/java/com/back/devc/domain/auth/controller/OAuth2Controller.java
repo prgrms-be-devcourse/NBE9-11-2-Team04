@@ -6,16 +6,11 @@ import com.back.devc.domain.auth.dto.oauth.OAuthExchangeRequest;
 import com.back.devc.domain.auth.dto.oauth.OAuthPendingSignup;
 import com.back.devc.domain.auth.dto.oauth.OAuthSignupCompleteRequest;
 import com.back.devc.domain.auth.service.OAuth2MemberService;
-import com.back.devc.domain.auth.service.OAuthLoginCodeService;
-import com.back.devc.domain.member.member.entity.Member;
-import com.back.devc.domain.member.member.entity.MemberStatus;
-import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
-import com.back.devc.global.response.SuccessCode;
 import com.back.devc.global.response.SuccessResponse;
+import com.back.devc.global.response.successCode.AuthSuccessCode;
 import com.back.devc.global.security.jwt.AuthCookieService;
-import com.back.devc.global.security.jwt.JwtProvider;
 import com.back.devc.global.security.oauth2.OAuth2LoginSuccessHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,20 +34,20 @@ import java.util.Map;
 public class OAuth2Controller {
 
     private final OAuth2MemberService oAuth2MemberService;
-    private final OAuthLoginCodeService oAuthLoginCodeService;
-    private final MemberRepository memberRepository;
-    private final JwtProvider jwtProvider;
     private final AuthCookieService authCookieService;
 
     @Value("${custom.jwt.access-token-expiration-seconds:3600}")
     private long accessTokenExpirationSeconds;
 
+    // OAuth2 로그인 상태/회원가입 대기 상태를 조회한다.
     @GetMapping("/me")
-    public OAuth2MeResponse me(
+    public ResponseEntity<SuccessResponse<OAuth2MeResponse>> me(
             @AuthenticationPrincipal OAuth2User oauth2User,
             HttpServletRequest httpServletRequest
     ) {
+        OAuth2MeResponse body;
         HttpSession session = httpServletRequest.getSession(false);
+
         if (session != null) {
             Object raw = session.getAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY);
             if (raw instanceof OAuthPendingSignup pending) {
@@ -63,12 +58,20 @@ public class OAuth2Controller {
                 attributes.put("email", pending.emailFromProvider());
                 attributes.put("login", pending.loginFromProvider());
 
-                return new OAuth2MeResponse(false, null, List.of(), attributes);
+                body = new OAuth2MeResponse(false, null, List.of(), attributes);
+                AuthSuccessCode successCode = AuthSuccessCode.OAUTH_200_ME_SUCCESS;
+                return ResponseEntity
+                        .status(successCode.getStatus())
+                        .body(SuccessResponse.of(successCode, body));
             }
         }
 
         if (oauth2User == null) {
-            return new OAuth2MeResponse(false, null, List.of(), Map.of("pendingSignup", false));
+            body = new OAuth2MeResponse(false, null, List.of(), Map.of("pendingSignup", false));
+            AuthSuccessCode successCode = AuthSuccessCode.OAUTH_200_ME_SUCCESS;
+            return ResponseEntity
+                    .status(successCode.getStatus())
+                    .body(SuccessResponse.of(successCode, body));
         }
 
         List<String> authorities = oauth2User.getAuthorities().stream()
@@ -77,43 +80,30 @@ public class OAuth2Controller {
 
         Map<String, Object> attributes = new LinkedHashMap<>(oauth2User.getAttributes());
         attributes.put("pendingSignup", false);
+        body = new OAuth2MeResponse(true, oauth2User.getName(), authorities, attributes);
 
-        return new OAuth2MeResponse(true, oauth2User.getName(), authorities, attributes);
-    }
-
-    @PostMapping("/exchange")
-    public ResponseEntity<SuccessResponse<LoginResponse>> exchange(
-            @Valid @RequestBody OAuthExchangeRequest request,
-            HttpServletResponse response
-    ) {
-        Long userId = oAuthLoginCodeService.consume(request.code())
-                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED));
-
-        Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
-
-        if (member.getStatus() == MemberStatus.BLACKLISTED) {
-            throw new ApiException(ErrorCode.MEMBER_BLACKLISTED);
-        }
-
-        String accessToken = jwtProvider.createAccessToken(member);
-        authCookieService.setAccessTokenCookie(response, accessToken, accessTokenExpirationSeconds);
-
-        LoginResponse body = new LoginResponse(
-                member.getUserId(),
-                member.getEmail(),
-                member.getNickname(),
-                member.getRole(),
-                member.getStatus(),
-                accessToken
-        );
-
-        SuccessCode successCode = SuccessCode.LOGIN_SUCCESS;
+        AuthSuccessCode successCode = AuthSuccessCode.OAUTH_200_ME_SUCCESS;
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, body));
     }
 
+    // OAuth2 로그인 코드를 교환해 로그인 정보를 반환하고 토큰 쿠키를 설정한다.
+    @PostMapping("/exchange")
+    public ResponseEntity<SuccessResponse<LoginResponse>> exchange(
+            @Valid @RequestBody OAuthExchangeRequest request,
+            HttpServletResponse response
+    ) {
+        LoginResponse body = oAuth2MemberService.exchangeLoginCode(request.code());
+        authCookieService.setAccessTokenCookie(response, body.accessToken(), accessTokenExpirationSeconds);
+
+        AuthSuccessCode successCode = AuthSuccessCode.OAUTH_200_EXCHANGE_SUCCESS;
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, body));
+    }
+
+    // 세션의 pendingSignup 정보를 이용해 OAuth2 회원가입을 완료하고 로그인 정보를 반환한다.
     @PostMapping("/signup/complete")
     public ResponseEntity<SuccessResponse<LoginResponse>> completeSignup(
             @Valid @RequestBody OAuthSignupCompleteRequest request,
@@ -130,22 +120,11 @@ public class OAuth2Controller {
             throw new ApiException(ErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED);
         }
 
-        Member member = oAuth2MemberService.completeSignup(pending, request.nickname());
+        LoginResponse body = oAuth2MemberService.completeSignupAndIssueToken(pending, request.nickname());
         session.removeAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY);
+        authCookieService.setAccessTokenCookie(response, body.accessToken(), accessTokenExpirationSeconds);
 
-        String accessToken = jwtProvider.createAccessToken(member);
-        authCookieService.setAccessTokenCookie(response, accessToken, accessTokenExpirationSeconds);
-
-        LoginResponse body = new LoginResponse(
-                member.getUserId(),
-                member.getEmail(),
-                member.getNickname(),
-                member.getRole(),
-                member.getStatus(),
-                accessToken
-        );
-
-        SuccessCode successCode = SuccessCode.SIGN_UP_SUCCESS;
+        AuthSuccessCode successCode = AuthSuccessCode.OAUTH_201_SIGNUP_COMPLETE_SUCCESS;
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, body));
