@@ -96,6 +96,7 @@ public class BookmarkService {
                             post.getPostId(),
                             post.getTitle(),
                             MemberDisplayUtil.getDisplayName(post.getMember()),
+                            post.getCategory().getCategoryId(),
                             post.getLikeCount(),
                             post.getCommentCount(),
                             post.getCreatedAt()
