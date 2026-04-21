@@ -7,6 +7,7 @@ import { getAccessToken } from "@/lib/auth-storage"
 import { categoryLabelMap, categorySlugMap } from "@/constants/category"
 
 type PostPageResponse = {
+  data:{
   content: {
     postId: number
     userId?: number
@@ -22,7 +23,7 @@ type PostPageResponse = {
     createdAt: string
   }[]
 }
-
+}
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
 
@@ -61,17 +62,18 @@ export default function LatestPage() {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/posts?sort=LATEST`, {
+        const response = await fetch(`${API_BASE_URL}/api/posts?sort=LATEST`, {
           headers: getAuthHeaders(),
           credentials: "include",
           cache: "no-store",
         })
 
-        if (!res.ok) {
+        if (!response.ok) {
           throw new Error("최신글을 불러오지 못했습니다.")
         }
 
-        const data: PostPageResponse = await res.json()
+        const res = await response.json()
+        const data: PostPageResponse["data"] = res.data
 
         const mapped: Post[] = data.content.map((post) => ({
           id: String(post.postId),

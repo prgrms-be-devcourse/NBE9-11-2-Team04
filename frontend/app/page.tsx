@@ -14,6 +14,7 @@ import {
 import { apiFetch } from "@/lib/api"
 
 type PostPageResponse = {
+  data: {
   content: {
     postId: number
     title: string
@@ -27,6 +28,7 @@ type PostPageResponse = {
     liked?: boolean
     bookmarked?: boolean
   }[]
+}
 }
 
 type BookmarkedPostResponse = {
@@ -150,7 +152,8 @@ export default function HomePage() {
           throw new Error("게시글 목록을 불러오지 못했습니다.")
         }
 
-        const data: PostPageResponse = await response.json()
+        const res = await response.json()
+        const data: PostPageResponse["data"] = res.data
 
         const mapped: Post[] = data.content.map((post) => ({
           id: String(post.postId),
