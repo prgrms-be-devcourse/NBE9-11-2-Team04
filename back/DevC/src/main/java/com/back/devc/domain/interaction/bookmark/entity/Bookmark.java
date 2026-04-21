@@ -4,6 +4,7 @@ import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.post.post.entity.Post;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -36,9 +37,18 @@ public class Bookmark {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    public Bookmark(Member member, Post post) {
+    @Builder
+    private Bookmark(Member member, Post post, LocalDateTime createdAt) {
         this.member = member;
         this.post = post;
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = createdAt;
+    }
+
+    public static Bookmark create(Member member, Post post) {
+        return Bookmark.builder()
+                .member(member)
+                .post(post)
+                .createdAt(LocalDateTime.now())
+                .build();
     }
 }

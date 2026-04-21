@@ -1,5 +1,7 @@
 package com.back.devc.domain.interaction.bookmark.service;
 
+import com.back.devc.domain.interaction.bookmark.dto.BookmarkCreateCommand;
+import com.back.devc.domain.interaction.bookmark.dto.BookmarkDeleteCommand;
 import com.back.devc.domain.interaction.bookmark.dto.BookmarkResponse;
 import com.back.devc.domain.interaction.bookmark.dto.BookmarkedPostResponse;
 import com.back.devc.domain.interaction.bookmark.entity.Bookmark;
@@ -26,38 +28,36 @@ public class BookmarkService {
     private final PostRepository postRepository;
 
     @Transactional
-    public BookmarkResponse createBookmark(Long userId, Long postId) {
-        Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
+    public BookmarkResponse createBookmark(BookmarkCreateCommand command) {
+        Member member = memberRepository.findById(command.memberId())
+                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + command.memberId()));
 
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
+        Post post = postRepository.findById(command.postId())
+                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + command.postId()));
 
         if (bookmarkRepository.existsByMemberAndPost(member, post)) {
             return new BookmarkResponse(
                     post.getPostId(),
-                    true,
-                    "이미 북마크한 게시글입니다."
+                    true
             );
         }
 
-        Bookmark bookmark = new Bookmark(member, post);
+        Bookmark bookmark = Bookmark.create(member, post);
         bookmarkRepository.save(bookmark);
 
         return new BookmarkResponse(
                 post.getPostId(),
-                true,
-                "북마크가 추가되었습니다."
+                true
         );
     }
 
     @Transactional
-    public BookmarkResponse cancelBookmark(Long userId, Long postId) {
-        Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
+    public BookmarkResponse cancelBookmark(BookmarkDeleteCommand command) {
+        Member member = memberRepository.findById(command.memberId())
+                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + command.memberId()));
 
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
+        Post post = postRepository.findById(command.postId())
+                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + command.postId()));
 
         Bookmark bookmark = bookmarkRepository.findByMemberAndPost(member, post)
                 .orElse(null);
@@ -65,8 +65,7 @@ public class BookmarkService {
         if (bookmark == null) {
             return new BookmarkResponse(
                     post.getPostId(),
-                    false,
-                    "북마크가 이미 취소된 상태입니다."
+                    false
             );
         }
 
@@ -74,8 +73,7 @@ public class BookmarkService {
 
         return new BookmarkResponse(
                 post.getPostId(),
-                false,
-                "북마크가 취소되었습니다."
+                false
         );
     }
 
