@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { PostCard, type Post } from "@/components/post-card"
 import Link from "next/link"
 import { useParams } from "next/navigation"
+import { categoryLabelMap, categorySlugMap } from "@/constants/category"
 
 type PostPageResponse = {
   content: {
@@ -21,22 +22,6 @@ type PostPageResponse = {
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
-
-// slug → categoryId 매핑
-const categoryMap: Record<string, number> = {
-  tech: 1,
-  "job-market": 2,
-  trend: 3,
-  free: 4,
-}
-
-// 기존 유지
-const allCategories = [
-  { slug: "tech", name: "IT 기술 정보" },
-  { slug: "job-market", name: "취업 시장 정보" },
-  { slug: "trend", name: "개발자 트렌드" },
-  { slug: "free", name: "자유 주제" },
-]
 
 const formatTimeAgo = (dateString: string) => {
   const date = new Date(dateString)
@@ -60,14 +45,27 @@ export default function CategoryPage() {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
 
-  const categoryName =
-    allCategories.find((c) => c.slug === slug)?.name || slug
+  // slug → categoryId 자동 변환
+  const categoryMap: Record<string, number> = Object.fromEntries(
+    Object.entries(categorySlugMap).map(([id, slug]) => [slug, Number(id)])
+  )
+
+  const categoryId = categoryMap[slug]
+
+  //category 이름도 constants 기반
+  const categoryName = categoryLabelMap[categoryId] ?? slug
+
+  //navigation도 자동 생성
+  const allCategories = Object.entries(categorySlugMap).map(
+    ([id, slug]) => ({
+      slug,
+      name: categoryLabelMap[Number(id)],
+    })
+  )
 
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const categoryId = categoryMap[slug]
-
         if (!categoryId) return
 
         const response = await fetch(
@@ -85,7 +83,9 @@ export default function CategoryPage() {
           title: post.title,
           excerpt: post.content,
           author: { name: post.nickName },
-          category: categoryName,
+          category: categoryLabelMap[post.categoryId],
+          categorySlug: categorySlugMap[post.categoryId], 
+          categoryId : post.categoryId,
           createdAt: formatTimeAgo(post.createdAt),
           likes: post.likeCount,
           comments: post.commentCount,
@@ -102,7 +102,7 @@ export default function CategoryPage() {
     }
 
     fetchPosts()
-  }, [slug])
+  }, [slug, categoryId])
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

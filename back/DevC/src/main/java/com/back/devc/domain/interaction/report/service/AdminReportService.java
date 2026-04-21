@@ -4,9 +4,7 @@ import com.back.devc.domain.interaction.notification.service.NotificationService
 import com.back.devc.domain.interaction.report.dto.AdminReportRequestDTO;
 import com.back.devc.domain.interaction.report.dto.ReportGroupResponseDTO;
 import com.back.devc.domain.interaction.report.dto.ReportResponseDTO;
-import com.back.devc.domain.interaction.report.entity.Report;
-import com.back.devc.domain.interaction.report.entity.ReportStatus;
-import com.back.devc.domain.interaction.report.entity.SanctionType;
+import com.back.devc.domain.interaction.report.entity.*;
 import com.back.devc.domain.interaction.report.repository.ReportRepository;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.entity.MemberStatus;
@@ -38,7 +36,9 @@ public class AdminReportService {
     private final CommentRepository commentRepository;
     private final NotificationService notificationService;
 
-    // 1. 단건 신고 조회
+    /* =========================================================
+     * 1. 단건 신고 조회
+     * ========================================================= */
     @Transactional(readOnly = true)
     public Page<ReportResponseDTO> getReports(ReportStatus status, Pageable pageable) {
         Page<Report> reports = (status == null)
@@ -48,20 +48,24 @@ public class AdminReportService {
         return reports.map(this::toDtoWithTargetInfo);
     }
 
-    // 2. 단건 승인 처리
+    /* =========================================================
+     * 2. 단건 승인
+     * ========================================================= */
     public void approveReport(Long adminId, AdminReportRequestDTO dto) {
-        Report report = findReportOrThrow(dto.getReportId());
+        Report report = findReportOrThrow(dto.reportId());
         Member admin = findMemberOrThrow(adminId);
 
         validatePendingStatus(report);
 
         report.processReport(admin);
-        handleTargetAction(report, admin, true, dto.getSanctionType(), dto.getSuspensionDays());
+        handleTargetAction(report, admin, true, dto.sanctionType(), dto.suspensionDays());
     }
 
-    // 3. 단건 반려
+    /* =========================================================
+     * 3. 단건 반려
+     * ========================================================= */
     public void rejectReport(Long adminId, AdminReportRequestDTO dto) {
-        Report report = findReportOrThrow(dto.getReportId());
+        Report report = findReportOrThrow(dto.reportId());
         Member admin = findMemberOrThrow(adminId);
 
         validatePendingStatus(report);
@@ -70,13 +74,16 @@ public class AdminReportService {
         handleTargetAction(report, admin, false, null, null);
     }
 
-    // 4. 그룹(게시글/댓글 사용자별) 조회
+    /* =========================================================
+     * 4. 그룹 조회
+     * ========================================================= */
     @Transactional(readOnly = true)
     public Page<ReportGroupResponseDTO> getGroupedReports(ReportStatus status, Pageable pageable) {
         Page<Object[]> result = reportRepository.findGroupedReports(status, pageable);
 
         return result.map(row -> {
-            String targetType = (String) row[0];
+
+            TargetType targetType = (TargetType) row[0];
             Long targetId = (Long) row[1];
             Long reportCount = (Long) row[2];
             LocalDateTime latestCreatedAt = (LocalDateTime) row[3];
@@ -86,20 +93,21 @@ public class AdminReportService {
             String targetContent = null;
 
             List<String> reasonTypes = new ArrayList<>();
-            List<Report> reports = reportRepository.findAllByTargetTypeAndTargetId(targetType, targetId);
+            List<Report> reports =
+                    reportRepository.findAllByTargetTypeAndTargetId(targetType, targetId);
 
             for (Report r : reports) {
                 reasonTypes.add(r.getReasonType());
             }
 
-            if ("POST".equals(targetType)) {
+            if (targetType == TargetType.POST) {
                 Post post = postRepository.findById(targetId).orElse(null);
                 if (post != null) {
                     targetNickname = post.getMember().getNickname();
                     targetTitle = post.getTitle();
                     targetContent = post.getContent();
                 }
-            } else if ("COMMENT".equals(targetType)) {
+            } else if (targetType == TargetType.COMMENT) {
                 Comment comment = commentRepository.findById(targetId).orElse(null);
                 if (comment != null) {
                     targetContent = comment.getContent();
@@ -109,22 +117,31 @@ public class AdminReportService {
             }
 
             return new ReportGroupResponseDTO(
-                    targetType, targetId, targetNickname, targetTitle, targetContent,
-                    reportCount, reasonTypes, ReportStatus.PENDING, latestCreatedAt
+                    targetType,
+                    targetId,
+                    targetNickname,
+                    targetTitle,
+                    targetContent,
+                    reportCount,
+                    reasonTypes,
+                    ReportStatus.PENDING,
+                    latestCreatedAt
             );
         });
     }
 
-    // 5. 그룹 승인 처리
+    /* =========================================================
+     * 5. 그룹 승인
+     * ========================================================= */
     public void approveReportGroup(Long adminId, AdminReportRequestDTO dto) {
         Member admin = findMemberOrThrow(adminId);
 
-        // targetType, targetId는 DTO에서 가져옴 (reportId가 그룹 대표 targetId로 사용됨)
-        String targetType = dto.getTargetType();
-        Long targetId = dto.getReportId(); // 프론트에서 targetId를 reportId로 전달
+        TargetType targetType = dto.targetType();
+        Long targetId = dto.reportId();
 
-        List<Report> reports = reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
-                targetType, targetId, ReportStatus.PENDING);
+        List<Report> reports =
+                reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
+                        targetType, targetId, ReportStatus.PENDING);
 
         if (reports.isEmpty()) return;
 
@@ -132,18 +149,22 @@ public class AdminReportService {
             report.processReport(admin);
         }
 
-        handleGroupTargetAction(targetType, targetId, admin, true, dto.getSanctionType(), dto.getSuspensionDays());
+        handleGroupTargetAction(targetType, targetId, admin, true,
+                dto.sanctionType(), dto.suspensionDays());
     }
 
-    // 6. 그룹 반려 처리
+    /* =========================================================
+     * 6. 그룹 반려
+     * ========================================================= */
     public void rejectReportGroup(Long adminId, AdminReportRequestDTO dto) {
         Member admin = findMemberOrThrow(adminId);
 
-        String targetType = dto.getTargetType();
-        Long targetId = dto.getReportId();
+        TargetType targetType = dto.targetType();
+        Long targetId = dto.reportId();
 
-        List<Report> reports = reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
-                targetType, targetId, ReportStatus.PENDING);
+        List<Report> reports =
+                reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
+                        targetType, targetId, ReportStatus.PENDING);
 
         if (reports.isEmpty()) return;
 
@@ -151,79 +172,82 @@ public class AdminReportService {
             report.rejectReport(admin);
         }
 
-        handleGroupTargetAction(targetType, targetId, admin, false, null, null);
+        handleGroupTargetAction(targetType, targetId, admin,
+                false, null, null);
     }
 
     /* =========================================================
-     * 공통 처리 로직
+     * 공통 처리
      * ========================================================= */
 
     private void handleTargetAction(Report report, Member admin, boolean approved,
                                     SanctionType sanctionType, Integer suspensionDays) {
+
         notify(report, admin);
         if (approved) {
             deleteTarget(report.getTargetType(), report.getTargetId());
-            applyTargetMemberSanction(report.getTargetType(), report.getTargetId(), sanctionType, suspensionDays);
+            applyTargetMemberSanction(
+                    report.getTargetType(),
+                    report.getTargetId(),
+                    sanctionType,
+                    suspensionDays
+            );
         }
     }
 
-    private void handleGroupTargetAction(String targetType, Long targetId, Member admin,
+    private void handleGroupTargetAction(TargetType targetType, Long targetId, Member admin,
                                          boolean approved, SanctionType sanctionType, Integer suspensionDays) {
+
         notifyGroup(targetType, targetId, admin);
+
         if (approved) {
             deleteTarget(targetType, targetId);
             applyTargetMemberSanction(targetType, targetId, sanctionType, suspensionDays);
         }
     }
 
-    /**
-     * 대상 게시글/댓글을 삭제(soft delete) 처리한다.
-     */
-    private void deleteTarget(String targetType, Long targetId) {
-        if ("POST".equals(targetType)) {
+    /* =========================================================
+     * Target 처리
+     * ========================================================= */
+
+    private void deleteTarget(TargetType targetType, Long targetId) {
+        if (targetType == TargetType.POST) {
             postRepository.findById(targetId).ifPresent(post -> {
                 if (!post.isDeleted()) post.delete();
             });
-        } else if ("COMMENT".equals(targetType)) {
+        } else if (targetType == TargetType.COMMENT) {
             commentRepository.findById(targetId).ifPresent(comment -> {
                 if (!comment.isDeleted()) comment.softDelete();
             });
         }
     }
 
-    /**
-     * 대상 게시글/댓글의 작성자를 찾아 관리자가 선택한 제재를 직접 적용한다.
-     * 자동 escalate 방식을 제거하고 관리자가 명시적으로 선택한 SanctionType을 따른다.
-     */
-    private void applyTargetMemberSanction(String targetType, Long targetId,
+    private void applyTargetMemberSanction(TargetType targetType, Long targetId,
                                            SanctionType sanctionType, Integer suspensionDays) {
+
         if (sanctionType == null) return;
 
         Member member = null;
 
-        if ("POST".equals(targetType)) {
+        if (targetType == TargetType.POST) {
             Post post = postRepository.findById(targetId).orElse(null);
             if (post != null) member = post.getMember();
-        } else if ("COMMENT".equals(targetType)) {
+
+        } else if (targetType == TargetType.COMMENT) {
             Comment comment = commentRepository.findById(targetId).orElse(null);
-            if (comment != null) member = memberRepository.findById(comment.getUserId()).orElse(null);
+            if (comment != null) {
+                member = memberRepository.findById(comment.getUserId()).orElse(null);
+            }
         }
 
         if (member == null) return;
+
         applySanction(member, sanctionType, suspensionDays);
     }
 
-    /**
-     * 관리자가 선택한 제재 유형에 따라 회원 상태를 직접 설정한다.
-     *
-     * - WARNED      : 경고 상태로 변경 (이미 상위 제재 상태면 변경하지 않음)
-     * - SUSPENDED   : suspensionDays 기간만큼 정지, suspendedUntil 설정
-     * - BLACKLISTED : 영구 차단
-     */
     private void applySanction(Member member, SanctionType sanctionType, Integer suspensionDays) {
         switch (sanctionType) {
             case WARNED -> {
-                // 이미 정지/차단 상태라면 경고로 되돌리지 않는다 (하향 방지)
                 if (member.getStatus() == MemberStatus.ACTIVE) {
                     member.updateStatus(MemberStatus.WARNED);
                 }
@@ -235,30 +259,39 @@ public class AdminReportService {
             }
             case BLACKLISTED -> {
                 member.updateStatus(MemberStatus.BLACKLISTED);
-                member.setSuspendedUntil(null); // 영구 차단은 기간 불필요
+                member.setSuspendedUntil(null);
             }
         }
     }
 
     /* =========================================================
-     * 알림 및 편의 메서드
+     * Notification
      * ========================================================= */
 
     private void notify(Report report, Member admin) {
-        if ("POST".equals(report.getTargetType())) {
-            notificationService.createPostReportNotification(report.getTargetId(), admin.getUserId());
-        } else if ("COMMENT".equals(report.getTargetType())) {
-            notificationService.createCommentReportNotification(report.getTargetId(), admin.getUserId());
+
+
+        if (report.getTargetType() == TargetType.POST) {
+            notificationService.createPostReportNotification(
+                    report.getTargetId(), admin.getUserId());
+
+        } else if (report.getTargetType() == TargetType.COMMENT) {
+            notificationService.createCommentReportNotification(
+                    report.getTargetId(), admin.getUserId());
         }
     }
 
-    private void notifyGroup(String targetType, Long targetId, Member admin) {
-        if ("POST".equals(targetType)) {
+    private void notifyGroup(TargetType targetType, Long targetId, Member admin) {
+        if (targetType == TargetType.POST) {
             notificationService.createPostReportNotification(targetId, admin.getUserId());
-        } else if ("COMMENT".equals(targetType)) {
+        } else if (targetType == TargetType.COMMENT) {
             notificationService.createCommentReportNotification(targetId, admin.getUserId());
         }
     }
+
+    /* =========================================================
+     * Util
+     * ========================================================= */
 
     private void validatePendingStatus(Report report) {
         if (report.getStatus() != ReportStatus.PENDING) {
@@ -277,22 +310,25 @@ public class AdminReportService {
     }
 
     private ReportResponseDTO toDtoWithTargetInfo(Report report) {
+
         String targetNickname = null;
         String targetTitle = null;
         String targetContent = null;
 
-        if ("POST".equals(report.getTargetType())) {
+
+        if (report.getTargetType() == TargetType.POST) {
             Post post = postRepository.findById(report.getTargetId()).orElse(null);
             if (post != null) {
                 targetNickname = post.getMember().getNickname();
                 targetTitle = post.getTitle();
                 targetContent = post.getContent();
             }
-        } else if ("COMMENT".equals(report.getTargetType())) {
+        } else if (report.getTargetType() == TargetType.COMMENT) {
             Comment comment = commentRepository.findById(report.getTargetId()).orElse(null);
             if (comment != null) {
                 targetNickname = memberRepository.findById(comment.getUserId())
-                        .map(Member::getNickname).orElse(null);
+                        .map(Member::getNickname)
+                        .orElse(null);
                 targetContent = comment.getContent();
             }
         }

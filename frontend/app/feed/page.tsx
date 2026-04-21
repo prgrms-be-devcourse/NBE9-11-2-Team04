@@ -9,11 +9,13 @@ import { Input } from "@/components/ui/input"
 import { apiFetch } from "@/lib/api"
 import { getAuthSnapshot } from "@/lib/auth-storage"
 import Link from "next/link"
+import { categoryLabelMap, categorySlugMap } from "@/constants/category"
 
 type BookmarkedPostResponse = {
   postId: number
   title: string
   authorNickname: string
+  categoryId : number
   likeCount: number
   commentCount: number
   createdAt: string
@@ -53,7 +55,9 @@ function mapBookmarkedPostsToPostCard(
     title: post.title,
     excerpt: "",
     author: { name: post.authorNickname },
-    category: "북마크",
+    category: categoryLabelMap[post.categoryId],
+    categorySlug: categorySlugMap[post.categoryId],
+    categoryId: post.categoryId,
     createdAt: formatRelativeDate(post.createdAt),
     likes: post.likeCount,
     comments: post.commentCount,

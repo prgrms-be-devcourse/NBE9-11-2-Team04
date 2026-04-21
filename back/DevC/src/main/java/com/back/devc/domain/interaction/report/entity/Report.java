@@ -38,8 +38,8 @@ public class Report {
     @JoinColumn(name = "reporter_user_id", nullable = false)
     private Member reporter;
 
-    @Column(name = "target_type", nullable = false, length = 20)
-    private String targetType;
+    @Enumerated(EnumType.STRING)
+    private TargetType  targetType;
 
     @Column(name = "target_id", nullable = false)
     private Long targetId;
@@ -67,7 +67,7 @@ public class Report {
 
     @Builder
     public Report(Member reporter,
-                  String targetType,
+                  TargetType  targetType,
                   Long targetId,
                   String reasonType,
                   String reasonDetail) {

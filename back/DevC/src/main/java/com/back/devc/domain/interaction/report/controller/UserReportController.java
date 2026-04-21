@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
 
 @RestController
 @RequestMapping("/api/report")
@@ -30,7 +29,9 @@ public class UserReportController {
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
         reportService.reportPost(getAuthenticatedUserId(principal), requestDto);
-        return ResponseEntity.ok(SuccessResponse.of(SuccessCode.REPORT_SUCCESS, null));
+        return ResponseEntity
+                .status(SuccessCode.REPORT_POST_SUCCESS.getStatus())
+                .body(SuccessResponse.of(SuccessCode.REPORT_POST_SUCCESS, null));
     }
 
     @PostMapping("/comment")
@@ -39,7 +40,9 @@ public class UserReportController {
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
         reportService.reportComment(getAuthenticatedUserId(principal), requestDto);
-        return ResponseEntity.ok(SuccessResponse.of(SuccessCode.REPORT_SUCCESS, null));
+        return ResponseEntity
+                .status(SuccessCode.REPORT_COMMENT_SUCCESS.getStatus())
+                .body(SuccessResponse.of(SuccessCode.REPORT_COMMENT_SUCCESS, null));
     }
 
     private Long getAuthenticatedUserId(JwtPrincipal principal) {

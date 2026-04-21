@@ -7,43 +7,95 @@ type CommentSectionProps = {
   postId: number
 }
 
+type SuccessResponse<T> = {
+    code: string
+    message: string
+    data: T
+}
+
 type CommentAttachmentItem = {
-  attachmentId: number
-  fileName: string
-  fileUrl: string
-  fileType?: string | null
-  mimeType?: string | null
+    attachmentId?: number
+    id?: number
+    fileName: string
+    fileUrl: string
+    fileType?: string | null
+    mimeType?: string | null
 }
 
 type CommentItem = {
-  commentId: number
-  postId: number
-  userId: number
-  nickname: string | null
-  parentCommentId: number | null
-  content: string
-  createdAt: string
-  updatedAt: string
-  deleted: boolean
-  attachments?: CommentAttachmentItem[]
-  replies: CommentItem[]
+    commentId: number
+    postId: number
+    postTitle?: string
+    userId: number
+    nickname: string | null
+    parentCommentId: number | null
+    content: string
+    createdAt: string
+    updatedAt: string
+    deleted?: boolean
+    isDeleted?: boolean
+    attachments?: CommentAttachmentItem[]
+    replies: CommentItem[]
 }
 
 type CommentListResponse = {
   comments: CommentItem[]
 }
 
+function normalizeAttachment(attachment: CommentAttachmentItem): CommentAttachmentItem {
+    return {
+        ...attachment,
+        attachmentId: attachment.attachmentId ?? attachment.id,
+    }
+}
+
+function normalizeComment(comment: CommentItem): CommentItem {
+    return {
+        ...comment,
+        deleted: comment.deleted ?? comment.isDeleted ?? false,
+        attachments: (comment.attachments ?? []).map(normalizeAttachment),
+        replies: (comment.replies ?? []).map(normalizeComment),
+    }
+}
+
+function extractCommentListResponse(responseBody: unknown): CommentListResponse {
+    if (!responseBody || typeof responseBody !== "object") {
+        return { comments: [] }
+    }
+
+    const body = responseBody as
+        | CommentListResponse
+        | SuccessResponse<CommentListResponse>
+        | { data?: CommentListResponse }
+
+    if (Array.isArray((body as CommentListResponse).comments)) {
+        return {
+            comments: ((body as CommentListResponse).comments ?? []).map(normalizeComment),
+        }
+    }
+
+    const nestedComments = (body as SuccessResponse<CommentListResponse>).data?.comments
+
+    if (Array.isArray(nestedComments)) {
+        return {
+            comments: nestedComments.map(normalizeComment),
+        }
+    }
+
+    return { comments: [] }
+}
+
 type CreatedCommentApiResponse = {
-  id?: number
-  commentId?: number
-  data?: {
     id?: number
     commentId?: number
-    comment?: {
-      id?: number
-      commentId?: number
+    data?: {
+        id?: number
+        commentId?: number
+        comment?: {
+            id?: number
+            commentId?: number
+        }
     }
-  }
 }
 
 /**
@@ -52,20 +104,20 @@ type CreatedCommentApiResponse = {
  * 다양한 백엔드 응답 형식에 대응한다.
  */
 function extractCreatedCommentId(responseBody: unknown): number | null {
-  if (!responseBody || typeof responseBody !== "object") {
-    return null
-  }
+    if (!responseBody || typeof responseBody !== "object") {
+        return null
+    }
 
   const candidate = responseBody as CreatedCommentApiResponse
 
-  const possibleIds = [
-    candidate.commentId,
-    candidate.id,
-    candidate.data?.commentId,
-    candidate.data?.id,
-    candidate.data?.comment?.commentId,
-    candidate.data?.comment?.id,
-  ]
+    const possibleIds = [
+        candidate.commentId,
+        candidate.id,
+        candidate.data?.commentId,
+        candidate.data?.id,
+        candidate.data?.comment?.commentId,
+        candidate.data?.comment?.id,
+    ]
 
   const validId = possibleIds.find((value) => typeof value === "number")
 
@@ -212,32 +264,32 @@ function renderAttachments(attachments: CommentAttachmentItem[] | undefined) {
           const fileUrl = `http://localhost:8080${attachment.fileUrl}`
           const isImage = isImageAttachment(attachment)
 
-          return (
-            <div
-              key={attachment.attachmentId}
-              className="flex flex-col gap-2 rounded-md border border-border/70 p-3"
-            >
-              {isImage && (
-                <img
-                  src={fileUrl}
-                  alt={attachment.fileName}
-                  className="max-h-80 w-fit max-w-full rounded-md border border-border object-contain"
-                />
-              )}
-              <a
-                href={fileUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="w-fit max-w-full break-all text-sm text-primary underline-offset-2 hover:underline"
-              >
-                {attachment.fileName}
-              </a>
+                    return (
+                        <div
+                            key={attachment.attachmentId ?? attachment.id ?? attachment.fileName}
+                            className="flex flex-col gap-2 rounded-md border border-border/70 p-3"
+                        >
+                            {isImage && (
+                                <img
+                                    src={fileUrl}
+                                    alt={attachment.fileName}
+                                    className="max-h-80 w-fit max-w-full rounded-md border border-border object-contain"
+                                />
+                            )}
+                            <a
+                                href={fileUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-fit text-sm text-primary underline-offset-2 hover:underline"
+                            >
+                                {attachment.fileName}
+                            </a>
+                        </div>
+                    )
+                })}
             </div>
-          )
-        })}
-      </div>
-    </div>
-  )
+        </div>
+    )
 }
 
 function sortCommentsByNewest(comments: CommentItem[]): CommentItem[] {
@@ -278,14 +330,15 @@ export default function CommentSection({ postId }: CommentSectionProps) {
         throw new Error("댓글을 불러오지 못했습니다.")
       }
 
-      const data: CommentListResponse = await response.json()
-      setComments(sortCommentsByNewest(data.comments ?? []))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
-    } finally {
-      setLoading(false)
-    }
-  }, [postId])
+            const responseBody = await response.json()
+            const data = extractCommentListResponse(responseBody)
+            setComments(sortCommentsByNewest(data.comments ?? []))
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
+        } finally {
+            setLoading(false)
+        }
+    }, [postId])
 
   useEffect(() => {
     void loadComments()
@@ -593,17 +646,19 @@ export default function CommentSection({ postId }: CommentSectionProps) {
           className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
         />
 
-        <label className="mt-3 inline-flex w-fit cursor-pointer items-center rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50">
-          파일 첨부
-          <input
-            type="file"
-            multiple
-            onChange={(event) => {
-              setNewCommentFiles(Array.from(event.target.files ?? []))
-            }}
-            className="hidden"
-          />
-        </label>
+                <label className="mt-3 inline-flex w-fit cursor-pointer items-center rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50">
+                    파일 첨부
+                    <input
+                        type="file"
+                        multiple
+                        onChange={(event) => {
+                            const selectedFiles = Array.from(event.target.files ?? [])
+                            setNewCommentFiles(selectedFiles)
+                            event.target.value = ""
+                        }}
+                        className="hidden"
+                    />
+                </label>
 
         <div className="flex items-center justify-between gap-3">
           {newCommentFiles.length > 0 ? (
@@ -634,50 +689,50 @@ export default function CommentSection({ postId }: CommentSectionProps) {
         <p className="mt-4 text-sm text-muted-foreground">아직 댓글이 없습니다.</p>
       )}
 
-      <div className="mt-4 space-y-4">
-        {comments.map((comment) => (
-          <div key={comment.commentId} className="rounded-lg border border-border p-4">
-            {editingCommentId === comment.commentId ? (
-              <div className="space-y-2">
-                <textarea
-                  value={editInputs[comment.commentId] ?? ""}
-                  onChange={(e) =>
-                    setEditInputs((prev) => ({
-                      ...prev,
-                      [comment.commentId]: e.target.value,
-                    }))
-                  }
-                  className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                />
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditingCommentId(null)}
-                    className="rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground"
-                  >
-                    취소
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleUpdateComment(comment.commentId)}
-                    disabled={
-                      editingSubmittingId === comment.commentId ||
-                      !(editInputs[comment.commentId] ?? "").trim()
-                    }
-                    className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {editingSubmittingId === comment.commentId ? "수정 중..." : "수정 완료"}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <p className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm text-foreground">
-                  {comment.content}
-                </p>
-                {renderAttachments(comment.attachments)}
-              </>
-            )}
+            <div className="mt-4 space-y-4">
+                {comments.map((comment) => (
+                    <div key={comment.commentId} className="rounded-lg border border-border p-4">
+                        {editingCommentId === comment.commentId ? (
+                            <div className="space-y-2">
+                                <textarea
+                                    value={editInputs[comment.commentId] ?? ""}
+                                    onChange={(e) =>
+                                        setEditInputs((prev) => ({
+                                            ...prev,
+                                            [comment.commentId]: e.target.value,
+                                        }))
+                                    }
+                                    className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditingCommentId(null)}
+                                        className="rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground"
+                                    >
+                                        취소
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleUpdateComment(comment.commentId)}
+                                        disabled={
+                                            editingSubmittingId === comment.commentId ||
+                                            !(editInputs[comment.commentId] ?? "").trim()
+                                        }
+                                        className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        {editingSubmittingId === comment.commentId ? "수정 중..." : "수정 완료"}
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-sm text-foreground">
+                                    {comment.deleted ? "삭제된 댓글입니다." : comment.content}
+                                </p>
+                                {renderAttachments(comment.attachments)}
+                            </>
+                        )}
 
             <div className="mt-2 flex items-center justify-between gap-3">
               <p className="text-xs text-muted-foreground">
@@ -742,20 +797,22 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                     className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
                   />
 
-                  <label className="mt-3 inline-flex w-fit cursor-pointer items-center rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50">
-                    파일 첨부
-                    <input
-                      type="file"
-                      multiple
-                      onChange={(event) => {
-                        setReplyFiles((prev) => ({
-                          ...prev,
-                          [comment.commentId]: Array.from(event.target.files ?? []),
-                        }))
-                      }}
-                      className="hidden"
-                    />
-                  </label>
+                                    <label className="mt-3 inline-flex w-fit cursor-pointer items-center rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50">
+                                        파일 첨부
+                                        <input
+                                            type="file"
+                                            multiple
+                                            onChange={(event) => {
+                                                const selectedFiles = Array.from(event.target.files ?? [])
+                                                setReplyFiles((prev) => ({
+                                                    ...prev,
+                                                    [comment.commentId]: selectedFiles,
+                                                }))
+                                                event.target.value = ""
+                                            }}
+                                            className="hidden"
+                                        />
+                                    </label>
 
                   {(replyFiles[comment.commentId]?.length ?? 0) > 0 ? (
                     <p className="mt-2 text-xs text-muted-foreground">
@@ -782,51 +839,51 @@ export default function CommentSection({ postId }: CommentSectionProps) {
               </div>
             )}
 
-            {comment.replies?.length > 0 && (
-              <div className="mt-4 ml-4 space-y-2 border-l-2 border-border/70 pl-4">
-                {comment.replies.map((reply) => (
-                  <div key={reply.commentId} className="rounded-md bg-muted/50 p-3 shadow-sm">
-                    {editingCommentId === reply.commentId ? (
-                      <div className="space-y-2">
-                        <textarea
-                          value={editInputs[reply.commentId] ?? ""}
-                          onChange={(e) =>
-                            setEditInputs((prev) => ({
-                              ...prev,
-                              [reply.commentId]: e.target.value,
-                            }))
-                          }
-                          className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                        />
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setEditingCommentId(null)}
-                            className="rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground"
-                          >
-                            취소
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateComment(reply.commentId)}
-                            disabled={
-                              editingSubmittingId === reply.commentId ||
-                              !(editInputs[reply.commentId] ?? "").trim()
-                            }
-                            className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {editingSubmittingId === reply.commentId ? "수정 중..." : "수정 완료"}
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <p className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm text-foreground">
-                          {reply.content}
-                        </p>
-                        {renderAttachments(reply.attachments)}
-                      </>
-                    )}
+                        {comment.replies?.length > 0 && (
+                            <div className="mt-4 ml-4 space-y-2 border-l-2 border-border/70 pl-4">
+                                {comment.replies.map((reply) => (
+                                    <div key={reply.commentId} className="rounded-md bg-muted/50 p-3 shadow-sm">
+                                        {editingCommentId === reply.commentId ? (
+                                            <div className="space-y-2">
+                                                <textarea
+                                                    value={editInputs[reply.commentId] ?? ""}
+                                                    onChange={(e) =>
+                                                        setEditInputs((prev) => ({
+                                                            ...prev,
+                                                            [reply.commentId]: e.target.value,
+                                                        }))
+                                                    }
+                                                    className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                                                />
+                                                <div className="flex justify-end gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setEditingCommentId(null)}
+                                                        className="rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground"
+                                                    >
+                                                        취소
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleUpdateComment(reply.commentId)}
+                                                        disabled={
+                                                            editingSubmittingId === reply.commentId ||
+                                                            !(editInputs[reply.commentId] ?? "").trim()
+                                                        }
+                                                        className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                                    >
+                                                        {editingSubmittingId === reply.commentId ? "수정 중..." : "수정 완료"}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <p className="text-sm text-foreground">
+                                                    {reply.deleted ? "삭제된 댓글입니다." : reply.content}
+                                                </p>
+                                                {renderAttachments(reply.attachments)}
+                                            </>
+                                        )}
 
                     <div className="mt-2 flex items-center justify-between gap-3">
                       <p className="text-xs text-muted-foreground">
