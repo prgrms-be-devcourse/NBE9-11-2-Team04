@@ -39,5 +39,5 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
 
     List<Report> findAllByTargetTypeAndTargetId(TargetType targetType, Long targetId);
 
-    boolean existsByReporterAndTargetTypeAndTargetId(Member reporter, String type, Long targetId);
+    boolean existsByReporterAndTargetTypeAndTargetId(Member reporter, TargetType targetType, Long targetId);
 }
