@@ -40,11 +40,13 @@ public class OAuth2Controller {
     private long accessTokenExpirationSeconds;
 
     @GetMapping("/me")
-    public OAuth2MeResponse me(
+    public ResponseEntity<SuccessResponse<OAuth2MeResponse>> me(
             @AuthenticationPrincipal OAuth2User oauth2User,
             HttpServletRequest httpServletRequest
     ) {
+        OAuth2MeResponse body;
         HttpSession session = httpServletRequest.getSession(false);
+
         if (session != null) {
             Object raw = session.getAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY);
             if (raw instanceof OAuthPendingSignup pending) {
@@ -55,12 +57,20 @@ public class OAuth2Controller {
                 attributes.put("email", pending.emailFromProvider());
                 attributes.put("login", pending.loginFromProvider());
 
-                return new OAuth2MeResponse(false, null, List.of(), attributes);
+                body = new OAuth2MeResponse(false, null, List.of(), attributes);
+                AuthSuccessCode successCode = AuthSuccessCode.OAUTH_200_ME_SUCCESS;
+                return ResponseEntity
+                        .status(successCode.getStatus())
+                        .body(SuccessResponse.of(successCode, body));
             }
         }
 
         if (oauth2User == null) {
-            return new OAuth2MeResponse(false, null, List.of(), Map.of("pendingSignup", false));
+            body = new OAuth2MeResponse(false, null, List.of(), Map.of("pendingSignup", false));
+            AuthSuccessCode successCode = AuthSuccessCode.OAUTH_200_ME_SUCCESS;
+            return ResponseEntity
+                    .status(successCode.getStatus())
+                    .body(SuccessResponse.of(successCode, body));
         }
 
         List<String> authorities = oauth2User.getAuthorities().stream()
@@ -69,8 +79,12 @@ public class OAuth2Controller {
 
         Map<String, Object> attributes = new LinkedHashMap<>(oauth2User.getAttributes());
         attributes.put("pendingSignup", false);
+        body = new OAuth2MeResponse(true, oauth2User.getName(), authorities, attributes);
 
-        return new OAuth2MeResponse(true, oauth2User.getName(), authorities, attributes);
+        AuthSuccessCode successCode = AuthSuccessCode.OAUTH_200_ME_SUCCESS;
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, body));
     }
 
     @PostMapping("/exchange")
@@ -82,7 +96,6 @@ public class OAuth2Controller {
         authCookieService.setAccessTokenCookie(response, body.accessToken(), accessTokenExpirationSeconds);
 
         AuthSuccessCode successCode = AuthSuccessCode.OAUTH_200_EXCHANGE_SUCCESS;
-
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, body));
@@ -109,7 +122,6 @@ public class OAuth2Controller {
         authCookieService.setAccessTokenCookie(response, body.accessToken(), accessTokenExpirationSeconds);
 
         AuthSuccessCode successCode = AuthSuccessCode.OAUTH_201_SIGNUP_COMPLETE_SUCCESS;
-
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, body));
