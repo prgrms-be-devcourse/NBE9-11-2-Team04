@@ -38,7 +38,7 @@ public class MemberController {
         }
 
         MyInfoResponse body = memberService.getMyInfo(principal.userId());
-        MemberSuccessCode successCode = MemberSuccessCode.MEMBER_ME_SUCCESS;
+        MemberSuccessCode successCode = MemberSuccessCode.MEMBER_200_ME_SUCCESS;
 
         return ResponseEntity
                 .status(successCode.getStatus())
@@ -50,7 +50,7 @@ public class MemberController {
             @PathVariable Long userId
     ) {
         PublicProfileResponse body = memberService.getPublicProfile(userId);
-        MemberSuccessCode successCode = MemberSuccessCode.MEMBER_PUBLIC_PROFILE_GET_SUCCESS;
+        MemberSuccessCode successCode = MemberSuccessCode.MEMBER_200_PUBLIC_PROFILE_GET_SUCCESS;
 
         return ResponseEntity
                 .status(successCode.getStatus())
@@ -68,7 +68,7 @@ public class MemberController {
         MemberWithdrawResponse body = memberService.withdraw(principal.userId());
         SecurityContextHolder.clearContext();
 
-        MemberSuccessCode successCode = MemberSuccessCode.MEMBER_WITHDRAW_SUCCESS;
+        MemberSuccessCode successCode = MemberSuccessCode.MEMBER_200_WITHDRAW_SUCCESS;
 
         return ResponseEntity
                 .status(successCode.getStatus())
