@@ -13,6 +13,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
 
+import com.back.devc.global.response.SuccessResponse;
+import com.back.devc.global.response.SuccessCode;
+
 import java.util.List;
 
 @RestController
@@ -29,7 +32,7 @@ public class CommentAttachmentController {
      * 따라서 현재 로그인 사용자를 SecurityContext 안의 JwtPrincipal 에서 확인한 뒤 처리
      */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<CommentAttachmentListResponse> uploadCommentAttachments(
+    public ResponseEntity<SuccessResponse<CommentAttachmentListResponse>> uploadCommentAttachments(
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long commentId,
             @RequestParam("files") List<MultipartFile> files,
@@ -37,17 +40,21 @@ public class CommentAttachmentController {
     ) {
         getAuthenticatedUserId(principal);
 
+        CommentAttachmentListResponse response = commentAttachmentService.uploadAttachments(commentId, files, fileOrders);
+
         return ResponseEntity.ok(
-                commentAttachmentService.uploadAttachments(commentId, files, fileOrders)
+                SuccessResponse.of(SuccessCode.COMMENT_ATTACHMENT_UPLOAD_SUCCESS, response)
         );
     }
 
     @GetMapping
-    public ResponseEntity<CommentAttachmentListResponse> getCommentAttachments(
+    public ResponseEntity<SuccessResponse<CommentAttachmentListResponse>> getCommentAttachments(
             @PathVariable Long commentId
     ) {
+        CommentAttachmentListResponse response = commentAttachmentService.getAttachments(commentId);
+
         return ResponseEntity.ok(
-                commentAttachmentService.getAttachments(commentId)
+                SuccessResponse.of(SuccessCode.COMMENT_ATTACHMENT_LIST_SUCCESS, response)
         );
     }
 
@@ -57,15 +64,17 @@ public class CommentAttachmentController {
      * 업로드와 동일하게 현재 로그인한 사용자 기준으로만 요청을 허용
      */
     @DeleteMapping("/{attachmentId}")
-    public ResponseEntity<CommentAttachmentDeleteResponse> deleteCommentAttachment(
+    public ResponseEntity<SuccessResponse<CommentAttachmentDeleteResponse>> deleteCommentAttachment(
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long commentId,
             @PathVariable Long attachmentId
     ) {
         getAuthenticatedUserId(principal);
 
+        CommentAttachmentDeleteResponse response = commentAttachmentService.deleteAttachment(commentId, attachmentId);
+
         return ResponseEntity.ok(
-                commentAttachmentService.deleteAttachment(commentId, attachmentId)
+                SuccessResponse.of(SuccessCode.COMMENT_ATTACHMENT_DELETE_SUCCESS, response)
         );
     }
 
