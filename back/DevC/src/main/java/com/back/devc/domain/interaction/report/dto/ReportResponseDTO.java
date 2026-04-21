@@ -2,34 +2,31 @@ package com.back.devc.domain.interaction.report.dto;
 
 import com.back.devc.domain.interaction.report.entity.Report;
 import com.back.devc.domain.interaction.report.entity.ReportStatus;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 
 import java.time.LocalDateTime;
-@Getter
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class ReportResponseDTO {
 
-    private final Long reportId;
+public record ReportResponseDTO(
 
-    private final String reporterEmail;
-    private final String reporterNickname;
+        Long reportId,
 
-    private final String targetType;
-    private final Long targetId;
+        String reporterEmail,
+        String reporterNickname,
 
-    private final String targetNickname;
-    private final String targetTitle;
-    private final String targetContent;
+        String targetType,
+        Long targetId,
 
-    private final String reasonType;
-    private final String reasonDetail;
+        String targetNickname,
+        String targetTitle,
+        String targetContent,
 
-    private final ReportStatus status;
+        String reasonType,
+        String reasonDetail,
 
-    private final LocalDateTime createdAt;
-    private final LocalDateTime processedAt;
+        ReportStatus status,
+
+        LocalDateTime createdAt,
+        LocalDateTime processedAt
+) {
 
     public static ReportResponseDTO of(
             Report report,

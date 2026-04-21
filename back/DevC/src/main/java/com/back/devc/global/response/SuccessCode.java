@@ -16,7 +16,16 @@ public enum SuccessCode {
     MEMBER_SEARCH_SUCCESS(HttpStatus.OK, "ADM_200_MEMBER_SEARCH", "회원 검색이 완료되었습니다."),
 
     // 신고 관련 성공 코드
-    REPORT_SUCCESS(HttpStatus.OK, "REPORT_200", "신고가 정상적으로 접수되었습니다."),
+    REPORT_LIST_SUCCESS(HttpStatus.OK, "REPORT_200_LIST", "신고 목록 조회 성공"),
+    REPORT_GROUP_LIST_SUCCESS(HttpStatus.OK, "REPORT_200_GROUP_LIST", "그룹 신고 조회 성공"),
+    REPORT_GROUP_APPROVE_SUCCESS(HttpStatus.OK, "REPORT_200_GROUP_APPROVE", "그룹 신고 승인 완료"),
+    REPORT_GROUP_REJECT_SUCCESS(HttpStatus.OK, "REPORT_200_GROUP_REJECT", "그룹 신고 반려 완료"),
+
+    REPORT_POST_SUCCESS(HttpStatus.CREATED, "REPORT_201_POST", "게시글 신고가 정상적으로 접수되었습니다."),
+    REPORT_COMMENT_SUCCESS(HttpStatus.CREATED, "REPORT_201_COMMENT", "댓글 신고가 정상적으로 접수되었습니다."),
+
+    // 대시보드 관련 성공 코드
+    DASHBOARD_LIST(HttpStatus.OK, "DASHBOARD_200_LIST", "대시보드 조회 성공"),
 
     // 알림 관련 성공 코드
     NOTIFICATION_LIST_SUCCESS(HttpStatus.OK, "NOTIFICATION_200_LIST", "알림 목록 조회 성공"),
