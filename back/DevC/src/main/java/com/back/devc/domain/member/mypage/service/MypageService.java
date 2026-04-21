@@ -3,6 +3,7 @@ package com.back.devc.domain.member.mypage.service;
 import com.back.devc.domain.interaction.bookmark.dto.BookmarkedPostResponse;
 import com.back.devc.domain.interaction.bookmark.service.BookmarkService;
 import com.back.devc.domain.interaction.postLike.dto.LikedPostResponse;
+import com.back.devc.domain.interaction.postLike.dto.LikedPostsQuery;
 import com.back.devc.domain.interaction.postLike.service.PostLikeService;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
@@ -86,7 +87,11 @@ public class MypageService {
         memberRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
 
-        return postLikeService.getLikedPosts(userId);
+        LikedPostsQuery query = LikedPostsQuery.builder()
+                .userId(userId)
+                .build();
+
+        return postLikeService.getLikedPosts(query);
     }
 
     public List<BookmarkedPostResponse> getMyBookmarkedPosts(Long userId) {

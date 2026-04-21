@@ -4,6 +4,7 @@ import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.post.post.entity.Post;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -36,9 +37,24 @@ public class PostLike {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    public PostLike(Member member, Post post) {
+    /**
+     * 외부에서 builder를 직접 열지 않고,
+     * create()를 통해서만 생성 규칙을 타도록 제한한다.
+     */
+    @Builder(access = AccessLevel.PRIVATE)
+    private PostLike(Member member, Post post, LocalDateTime createdAt) {
         this.member = member;
         this.post = post;
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = createdAt != null ? createdAt : LocalDateTime.now();
+    }
+
+    /**
+     * 좋아요 엔티티 생성 정적 팩토리 메서드
+     */
+    public static PostLike create(Member member, Post post) {
+        return PostLike.builder()
+                .member(member)
+                .post(post)
+                .build();
     }
 }

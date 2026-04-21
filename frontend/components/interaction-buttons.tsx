@@ -48,7 +48,7 @@ async function parseResponse(res: Response) {
   }
 
   if (rawText.includes("<!DOCTYPE html>") || rawText.includes("<html")) {
-    throw new Error("서버가 JSON 대신 HTML을 반환했습니다. API 주소를 확인해주세요.")
+    throw new Error("서버가 JSON 대신 HTML을 반환했습니다.")
   }
 
   return rawText
@@ -72,10 +72,7 @@ function isUnauthorizedStatus(status: number): boolean {
 }
 
 function isLoginRequiredMessage(message: string | null | undefined): boolean {
-  if (!message) {
-    return false
-  }
-
+  if (!message) return false
   return message.includes("인증") || message.includes("로그인")
 }
 
@@ -100,17 +97,11 @@ export default function InteractionButtons({
   const loginPath = useMemo(() => "/login", [])
 
   const openLoginRequiredPopup = useCallback((message = "로그인이 필요한 기능입니다.") => {
-    setLoginRequiredPopup({
-      open: true,
-      message,
-    })
+    setLoginRequiredPopup({ open: true, message })
   }, [])
 
   const closeLoginRequiredPopup = useCallback(() => {
-    setLoginRequiredPopup((prev) => ({
-      ...prev,
-      open: false,
-    }))
+    setLoginRequiredPopup((prev) => ({ ...prev, open: false }))
   }, [])
 
   const moveToLoginPage = useCallback(() => {
@@ -119,26 +110,16 @@ export default function InteractionButtons({
     }
   }, [loginPath])
 
-  useEffect(() => {
-    setLiked(initialLiked)
-  }, [initialLiked])
-
-  useEffect(() => {
-    setBookmarked(initialBookmarked)
-  }, [initialBookmarked])
-
-  useEffect(() => {
-    setLikeCount(initialLikeCount)
-  }, [initialLikeCount])
+  useEffect(() => setLiked(initialLiked), [initialLiked])
+  useEffect(() => setBookmarked(initialBookmarked), [initialBookmarked])
+  useEffect(() => setLikeCount(initialLikeCount), [initialLikeCount])
 
   const requireAuth = () => {
     const auth = getAuthSnapshot()
-
     if (!auth.isLoggedIn) {
-      openLoginRequiredPopup("로그인이 필요한 기능입니다.")
+      openLoginRequiredPopup()
       return false
     }
-
     return true
   }
 
@@ -146,8 +127,7 @@ export default function InteractionButtons({
     e.preventDefault()
     e.stopPropagation()
 
-    if (!requireAuth()) return
-    if (likeLoading) return
+    if (!requireAuth() || likeLoading) return
 
     setLikeLoading(true)
 
@@ -163,52 +143,37 @@ export default function InteractionButtons({
       const parsed = await parseResponse(res)
 
       if (!res.ok) {
-        const message =
-          typeof parsed === "string"
-            ? parsed || "좋아요 처리 실패"
-            : parsed?.message || "좋아요 처리 실패"
-
-        if (isUnauthorizedStatus(res.status) || isLoginRequiredMessage(message)) {
-          openLoginRequiredPopup("로그인이 필요한 기능입니다.")
-          return
-        }
-
-        throw new Error(message)
+        throw new Error(parsed?.message || "좋아요 실패")
       }
 
       const data = parsed as LikeResponse
       setLiked(Boolean(data.liked))
-      setLikeCount(
-        typeof data.likeCount === "number" ? data.likeCount : likeCount
-      )
-
-      window.dispatchEvent(new CustomEvent("notifications-updated"))
-    } catch (error: any) {
-      console.error("좋아요 처리 실패:", error)
-      const message = error?.message || "좋아요 처리 실패"
-
-      if (isLoginRequiredMessage(message)) {
-        openLoginRequiredPopup("로그인이 필요한 기능입니다.")
-        return
-      }
-
-      alert(message)
+      setLikeCount(data.likeCount ?? likeCount)
+    } catch (err) {
+      console.error(err)
     } finally {
       setLikeLoading(false)
     }
   }
 
+  // ⭐⭐⭐ 핵심 수정된 부분
   const handleBookmark = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
     e.stopPropagation()
 
-    if (!requireAuth()) return
-    if (bookmarkLoading) return
+    if (!requireAuth() || bookmarkLoading) return
+
+    const prev = bookmarked
+    const optimistic = !prev
+
+    // ✅ 즉시 UI 반영
+    setBookmarked(optimistic)
+    onBookmarkToggle?.(optimistic)
 
     setBookmarkLoading(true)
 
     try {
-      const method = bookmarked ? "DELETE" : "POST"
+      const method = prev ? "DELETE" : "POST"
 
       const res = await fetch(`${API_BASE_URL}/api/posts/${postId}/bookmarks`, {
         method,
@@ -219,80 +184,44 @@ export default function InteractionButtons({
       const parsed = await parseResponse(res)
 
       if (!res.ok) {
-        const message =
-          typeof parsed === "string"
-            ? parsed || "북마크 처리 실패"
-            : parsed?.message || "북마크 처리 실패"
-
-        if (isUnauthorizedStatus(res.status) || isLoginRequiredMessage(message)) {
-          openLoginRequiredPopup("로그인이 필요한 기능입니다.")
-          return
-        }
-
-        throw new Error(message)
+        throw new Error(parsed?.message || "북마크 실패")
       }
 
       const data = parsed as BookmarkResponse
-      const nextBookmarked = Boolean(data.bookmarked)
-
-      setBookmarked(nextBookmarked)
-      onBookmarkToggle?.(nextBookmarked)
-
-      window.dispatchEvent(new CustomEvent("notifications-updated"))
-    } catch (error: any) {
-      console.error("북마크 처리 실패:", error)
-      const message = error?.message || "북마크 처리 실패"
-
-      if (isLoginRequiredMessage(message)) {
-        openLoginRequiredPopup("로그인이 필요한 기능입니다.")
-        return
-      }
-
-      alert(message)
+      setBookmarked(Boolean(data.bookmarked))
+    } catch (err) {
+      // ❌ 실패 시 롤백
+      setBookmarked(prev)
+      onBookmarkToggle?.(prev)
     } finally {
       setBookmarkLoading(false)
     }
   }
 
   return (
-    <div
-      className="flex items-center gap-2"
-      onClick={(e) => e.stopPropagation()}
-    >
+    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
       {loginRequiredPopup.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg">
-            <h3 className="text-lg font-semibold text-foreground">로그인 안내</h3>
-            <p className="mt-3 text-sm text-muted-foreground">{loginRequiredPopup.message}</p>
+          <div className="w-full max-w-sm rounded-xl border bg-card p-6">
+            <h3 className="text-lg font-semibold">로그인 안내</h3>
+            <p className="mt-3 text-sm">{loginRequiredPopup.message}</p>
             <div className="mt-6 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={closeLoginRequiredPopup}
-                className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground"
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                onClick={moveToLoginPage}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-              >
-                로그인 하러가기
-              </button>
+              <button onClick={closeLoginRequiredPopup}>취소</button>
+              <button onClick={moveToLoginPage}>로그인</button>
             </div>
           </div>
         </div>
       )}
+
       <Button
         type="button"
         variant={liked ? "default" : "outline"}
         size="sm"
         onClick={handleLike}
         disabled={likeLoading}
-        className="gap-1"
       >
         <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
-        <span>{likeCount}</span>
+        {likeCount}
       </Button>
 
       <Button
@@ -303,7 +232,6 @@ export default function InteractionButtons({
         disabled={bookmarkLoading}
       >
         <Bookmark className={`h-4 w-4 ${bookmarked ? "fill-current" : ""}`} />
-        <span className="sr-only">북마크</span>
       </Button>
     </div>
   )
