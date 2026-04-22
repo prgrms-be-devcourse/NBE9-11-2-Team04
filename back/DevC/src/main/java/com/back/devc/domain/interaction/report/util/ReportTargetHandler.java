@@ -1,4 +1,4 @@
-package com.back.devc.domain.interaction.report.service;
+package com.back.devc.domain.interaction.report.util;
 import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.domain.interaction.report.dto.ReportResponseDTO;
 import com.back.devc.domain.interaction.report.entity.Report;

@@ -7,6 +7,7 @@ import com.back.devc.domain.interaction.report.entity.Report;
 import com.back.devc.domain.interaction.report.entity.ReportStatus;
 import com.back.devc.domain.interaction.report.entity.TargetType;
 import com.back.devc.domain.interaction.report.repository.ReportRepository;
+import com.back.devc.domain.interaction.report.util.ReportTargetHandler;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.global.exception.ApiException;

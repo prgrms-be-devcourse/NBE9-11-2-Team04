@@ -7,15 +7,14 @@ import com.back.devc.domain.interaction.report.entity.ReportStatus;
 import com.back.devc.domain.interaction.report.service.AdminReportService;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
-import com.back.devc.global.response.SuccessCode;
 import com.back.devc.global.response.SuccessResponse;
+import com.back.devc.global.response.successCode.ReportSuccessCode;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -39,9 +38,12 @@ public class AdminReportController {
             Pageable pageable
     ) {
         Page<ReportResponseDTO> reports = adminReportService.getReports(status, pageable);
+
+
+        ReportSuccessCode successCode = ReportSuccessCode.REPORT_LIST_SUCCESS;
         return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(SuccessResponse.of(SuccessCode.REPORT_LIST_SUCCESS, reports));
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, reports));
     }
 
     /* =========================
@@ -59,10 +61,12 @@ public class AdminReportController {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
-        Page<ReportGroupResponseDTO> result = adminReportService.getGroupedReports(status, pageable);
+        Page<ReportGroupResponseDTO> groups = adminReportService.getGroupedReports(status, pageable);
+
+        ReportSuccessCode successCode = ReportSuccessCode.REPORT_GROUP_LIST_SUCCESS;
         return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(SuccessResponse.of(SuccessCode.REPORT_GROUP_LIST_SUCCESS, result));
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, groups));
     }
 
     /* =========================
@@ -78,9 +82,11 @@ public class AdminReportController {
         }
 
         adminReportService.approveReportGroup(getAuthenticatedUserId(principal), requestDto);
+
+        ReportSuccessCode successCode = ReportSuccessCode.REPORT_GROUP_APPROVE_SUCCESS;
         return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(SuccessResponse.of(SuccessCode.REPORT_GROUP_APPROVE_SUCCESS, null));
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, null));
     }
 
     /* =========================
@@ -96,9 +102,11 @@ public class AdminReportController {
         }
 
         adminReportService.rejectReportGroup(getAuthenticatedUserId(principal), requestDto);
+
+        ReportSuccessCode successCode = ReportSuccessCode.REPORT_GROUP_REJECT_SUCCESS;
         return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(SuccessResponse.of(SuccessCode.REPORT_GROUP_REJECT_SUCCESS, null));
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, null));
     }
 
     private Long getAuthenticatedUserId(JwtPrincipal principal) {

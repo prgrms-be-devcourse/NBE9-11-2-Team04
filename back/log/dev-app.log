@@ -2475,7 +2475,7 @@ Caused by: java.lang.NoClassDefFoundError: com/back/devc/domain/interaction/repo
 	at java.base/java.lang.Class.getDeclaredConstructors(Class.java:2354)
 	at org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor.determineCandidateConstructors(AutowiredAnnotationBeanPostProcessor.java:363)
 	... 37 common frames omitted
-Caused by: java.lang.ClassNotFoundException: com.back.devc.domain.interaction.report.service.ReportTargetHandler
+Caused by: java.lang.ClassNotFoundException: com.back.devc.domain.interaction.report.util.ReportTargetHandler
 	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:580)
 	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:490)
 	at java.base/java.lang.Class.forName0(Native Method)
@@ -2657,7 +2657,7 @@ Caused by: java.lang.NoClassDefFoundError: com/back/devc/domain/interaction/repo
 	at java.base/java.lang.Class.getDeclaredConstructors(Class.java:2354)
 	at org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor.determineCandidateConstructors(AutowiredAnnotationBeanPostProcessor.java:363)
 	... 37 common frames omitted
-Caused by: java.lang.ClassNotFoundException: com.back.devc.domain.interaction.report.service.ReportTargetHandler
+Caused by: java.lang.ClassNotFoundException: com.back.devc.domain.interaction.report.util.ReportTargetHandler
 	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:580)
 	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:490)
 	at java.base/java.lang.Class.forName0(Native Method)
@@ -7030,7 +7030,7 @@ com.back.devc.global.exception.ApiException: 존재하지 않는 이메일입니
 2026-04-22 01:19:45.597 TRACE 324170 --- [ http-nio-8080-exec-7 ] org.hibernate.orm.jdbc.extract - extracted value (2:BIGINT) -> [2]
 2026-04-22 01:19:45.597 TRACE 324170 --- [ http-nio-8080-exec-7 ] org.hibernate.orm.jdbc.extract - extracted value (3:BIGINT) -> [1]
 2026-04-22 01:19:45.597 TRACE 324170 --- [ http-nio-8080-exec-7 ] org.hibernate.orm.jdbc.extract - extracted value (4:TIMESTAMP) -> [2026-04-22T01:19:33.223257]
-2026-04-22 01:19:45.597 TRACE 324170 --- [ http-nio-8080-exec-7 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [com.back.devc.domain.interaction.report.service.ReportTargetHandler.getTargetInfo]
+2026-04-22 01:19:45.597 TRACE 324170 --- [ http-nio-8080-exec-7 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [com.back.devc.domain.interaction.report.util.ReportTargetHandler.getTargetInfo]
 2026-04-22 01:19:45.597 TRACE 324170 --- [ http-nio-8080-exec-7 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findById]
 2026-04-22 01:19:45.598 TRACE 324171 --- [ http-nio-8080-exec-7 ] org.hibernate.orm.jdbc.bind - binding parameter (1:BIGINT) <- [2]
 2026-04-22 01:19:45.598 TRACE 324171 --- [ http-nio-8080-exec-7 ] org.hibernate.orm.jdbc.extract - extracted value (2:BIGINT) -> [1]
@@ -7056,7 +7056,7 @@ com.back.devc.global.exception.ApiException: 존재하지 않는 이메일입니
 2026-04-22 01:19:45.599 TRACE 324172 --- [ http-nio-8080-exec-7 ] org.hibernate.orm.jdbc.extract - extracted value (9:ENUM) -> [WITHDRAWN]
 2026-04-22 01:19:45.599 TRACE 324172 --- [ http-nio-8080-exec-7 ] org.hibernate.orm.jdbc.extract - extracted value (10:TIMESTAMP) -> [2026-04-21T17:18:22.404655]
 2026-04-22 01:19:45.599 TRACE 324172 --- [ http-nio-8080-exec-7 ] org.hibernate.orm.jdbc.extract - extracted value (11:TIMESTAMP) -> [2026-04-20T17:22:14.681622]
-2026-04-22 01:19:45.599 TRACE 324172 --- [ http-nio-8080-exec-7 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [com.back.devc.domain.interaction.report.service.ReportTargetHandler.getTargetInfo]
+2026-04-22 01:19:45.599 TRACE 324172 --- [ http-nio-8080-exec-7 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [com.back.devc.domain.interaction.report.util.ReportTargetHandler.getTargetInfo]
 2026-04-22 01:19:45.600 TRACE 324173 --- [ http-nio-8080-exec-7 ] o.s.t.interceptor.TransactionInterceptor - No need to create transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findReasonTypesByTarget]: This method is not transactional.
 2026-04-22 01:19:45.602 TRACE 324175 --- [ http-nio-8080-exec-7 ] org.hibernate.orm.jdbc.bind - binding parameter (1:ENUM) <- [POST]
 2026-04-22 01:19:45.602 TRACE 324175 --- [ http-nio-8080-exec-7 ] org.hibernate.orm.jdbc.bind - binding parameter (2:BIGINT) <- [2]
@@ -7084,7 +7084,7 @@ com.back.devc.global.exception.ApiException: 존재하지 않는 이메일입니
 2026-04-22 01:19:45.614 TRACE 324187 --- [ http-nio-8080-exec-10 ] org.hibernate.orm.jdbc.extract - extracted value (2:BIGINT) -> [2]
 2026-04-22 01:19:45.614 TRACE 324187 --- [ http-nio-8080-exec-10 ] org.hibernate.orm.jdbc.extract - extracted value (3:BIGINT) -> [1]
 2026-04-22 01:19:45.614 TRACE 324187 --- [ http-nio-8080-exec-10 ] org.hibernate.orm.jdbc.extract - extracted value (4:TIMESTAMP) -> [2026-04-22T01:19:33.223257]
-2026-04-22 01:19:45.615 TRACE 324188 --- [ http-nio-8080-exec-10 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [com.back.devc.domain.interaction.report.service.ReportTargetHandler.getTargetInfo]
+2026-04-22 01:19:45.615 TRACE 324188 --- [ http-nio-8080-exec-10 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [com.back.devc.domain.interaction.report.util.ReportTargetHandler.getTargetInfo]
 2026-04-22 01:19:45.615 TRACE 324188 --- [ http-nio-8080-exec-10 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findById]
 2026-04-22 01:19:45.615 TRACE 324188 --- [ http-nio-8080-exec-10 ] org.hibernate.orm.jdbc.bind - binding parameter (1:BIGINT) <- [2]
 2026-04-22 01:19:45.615 TRACE 324188 --- [ http-nio-8080-exec-10 ] org.hibernate.orm.jdbc.extract - extracted value (2:BIGINT) -> [1]
@@ -7110,7 +7110,7 @@ com.back.devc.global.exception.ApiException: 존재하지 않는 이메일입니
 2026-04-22 01:19:45.618 TRACE 324191 --- [ http-nio-8080-exec-10 ] org.hibernate.orm.jdbc.extract - extracted value (9:ENUM) -> [WITHDRAWN]
 2026-04-22 01:19:45.618 TRACE 324191 --- [ http-nio-8080-exec-10 ] org.hibernate.orm.jdbc.extract - extracted value (10:TIMESTAMP) -> [2026-04-21T17:18:22.404655]
 2026-04-22 01:19:45.618 TRACE 324191 --- [ http-nio-8080-exec-10 ] org.hibernate.orm.jdbc.extract - extracted value (11:TIMESTAMP) -> [2026-04-20T17:22:14.681622]
-2026-04-22 01:19:45.618 TRACE 324191 --- [ http-nio-8080-exec-10 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [com.back.devc.domain.interaction.report.service.ReportTargetHandler.getTargetInfo]
+2026-04-22 01:19:45.618 TRACE 324191 --- [ http-nio-8080-exec-10 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [com.back.devc.domain.interaction.report.util.ReportTargetHandler.getTargetInfo]
 2026-04-22 01:19:45.618 TRACE 324191 --- [ http-nio-8080-exec-10 ] o.s.t.interceptor.TransactionInterceptor - No need to create transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findReasonTypesByTarget]: This method is not transactional.
 2026-04-22 01:19:45.618 TRACE 324191 --- [ http-nio-8080-exec-10 ] org.hibernate.orm.jdbc.bind - binding parameter (1:ENUM) <- [POST]
 2026-04-22 01:19:45.618 TRACE 324191 --- [ http-nio-8080-exec-10 ] org.hibernate.orm.jdbc.bind - binding parameter (2:BIGINT) <- [2]
@@ -7159,7 +7159,7 @@ com.back.devc.global.exception.ApiException: 존재하지 않는 이메일입니
 2026-04-22 01:19:51.919 TRACE 330492 --- [ http-nio-8080-exec-3 ] org.hibernate.orm.jdbc.extract - extracted value (8:ENUM) -> [PENDING]
 2026-04-22 01:19:51.919 TRACE 330492 --- [ http-nio-8080-exec-3 ] org.hibernate.orm.jdbc.extract - extracted value (9:BIGINT) -> [2]
 2026-04-22 01:19:51.919 TRACE 330492 --- [ http-nio-8080-exec-3 ] org.hibernate.orm.jdbc.extract - extracted value (10:ENUM) -> [POST]
-2026-04-22 01:19:51.919 TRACE 330492 --- [ http-nio-8080-exec-3 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [com.back.devc.domain.interaction.report.service.ReportTargetHandler.handleApproved]
+2026-04-22 01:19:51.919 TRACE 330492 --- [ http-nio-8080-exec-3 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [com.back.devc.domain.interaction.report.util.ReportTargetHandler.handleApproved]
 2026-04-22 01:19:51.921 TRACE 330494 --- [ http-nio-8080-exec-3 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [com.back.devc.domain.interaction.notification.service.NotificationService.createPostReportNotification]
 2026-04-22 01:19:51.921 TRACE 330494 --- [ http-nio-8080-exec-3 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findById]
 2026-04-22 01:19:51.921 TRACE 330494 --- [ http-nio-8080-exec-3 ] org.hibernate.orm.jdbc.bind - binding parameter (1:BIGINT) <- [2]
@@ -7285,7 +7285,7 @@ com.back.devc.global.exception.ApiException: 존재하지 않는 이메일입니
 2026-04-22 01:19:51.933 TRACE 330506 --- [ http-nio-8080-exec-3 ] org.hibernate.orm.jdbc.extract - extracted value (9:ENUM) -> [WITHDRAWN]
 2026-04-22 01:19:51.933 TRACE 330506 --- [ http-nio-8080-exec-3 ] org.hibernate.orm.jdbc.extract - extracted value (10:TIMESTAMP) -> [2026-04-21T17:18:22.404655]
 2026-04-22 01:19:51.933 TRACE 330506 --- [ http-nio-8080-exec-3 ] org.hibernate.orm.jdbc.extract - extracted value (11:TIMESTAMP) -> [2026-04-20T17:22:14.681622]
-2026-04-22 01:19:51.933 TRACE 330506 --- [ http-nio-8080-exec-3 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [com.back.devc.domain.interaction.report.service.ReportTargetHandler.handleApproved]
+2026-04-22 01:19:51.933 TRACE 330506 --- [ http-nio-8080-exec-3 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [com.back.devc.domain.interaction.report.util.ReportTargetHandler.handleApproved]
 2026-04-22 01:19:51.933 TRACE 330506 --- [ http-nio-8080-exec-3 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [com.back.devc.domain.interaction.report.service.AdminReportService.approveReportGroup]
 2026-04-22 01:19:51.934 TRACE 330507 --- [ http-nio-8080-exec-3 ] org.hibernate.orm.jdbc.bind - binding parameter (1:TIMESTAMP) <- [2026-04-22T01:19:51.919802700]
 2026-04-22 01:19:51.934 TRACE 330507 --- [ http-nio-8080-exec-3 ] org.hibernate.orm.jdbc.bind - binding parameter (2:BIGINT) <- [1]
@@ -7365,7 +7365,7 @@ com.back.devc.global.exception.ApiException: 존재하지 않는 이메일입니
 2026-04-22 01:19:53.749 TRACE 332322 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (2:BIGINT) -> [1]
 2026-04-22 01:19:53.749 TRACE 332322 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (3:BIGINT) -> [1]
 2026-04-22 01:19:53.749 TRACE 332322 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (4:TIMESTAMP) -> [2026-04-20T16:28:51.881449]
-2026-04-22 01:19:53.749 TRACE 332322 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [com.back.devc.domain.interaction.report.service.ReportTargetHandler.getTargetInfo]
+2026-04-22 01:19:53.749 TRACE 332322 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [com.back.devc.domain.interaction.report.util.ReportTargetHandler.getTargetInfo]
 2026-04-22 01:19:53.749 TRACE 332322 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findById]
 2026-04-22 01:19:53.749 TRACE 332322 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.bind - binding parameter (1:BIGINT) <- [2]
 2026-04-22 01:19:53.749 TRACE 332322 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (2:BIGINT) -> [1]
@@ -7391,12 +7391,12 @@ com.back.devc.global.exception.ApiException: 존재하지 않는 이메일입니
 2026-04-22 01:19:53.750 TRACE 332323 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (9:ENUM) -> [WITHDRAWN]
 2026-04-22 01:19:53.750 TRACE 332323 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (10:TIMESTAMP) -> [2026-04-21T17:18:22.404655]
 2026-04-22 01:19:53.750 TRACE 332323 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (11:TIMESTAMP) -> [2026-04-20T17:22:14.681622]
-2026-04-22 01:19:53.750 TRACE 332323 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [com.back.devc.domain.interaction.report.service.ReportTargetHandler.getTargetInfo]
+2026-04-22 01:19:53.750 TRACE 332323 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [com.back.devc.domain.interaction.report.util.ReportTargetHandler.getTargetInfo]
 2026-04-22 01:19:53.750 TRACE 332323 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - No need to create transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findReasonTypesByTarget]: This method is not transactional.
 2026-04-22 01:19:53.750 TRACE 332323 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.bind - binding parameter (1:ENUM) <- [POST]
 2026-04-22 01:19:53.750 TRACE 332323 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.bind - binding parameter (2:BIGINT) <- [2]
 2026-04-22 01:19:53.750 TRACE 332323 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (1:VARCHAR) -> [ETC]
-2026-04-22 01:19:53.750 TRACE 332323 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [com.back.devc.domain.interaction.report.service.ReportTargetHandler.getTargetInfo]
+2026-04-22 01:19:53.750 TRACE 332323 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [com.back.devc.domain.interaction.report.util.ReportTargetHandler.getTargetInfo]
 2026-04-22 01:19:53.750 TRACE 332323 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findById]
 2026-04-22 01:19:53.750 TRACE 332323 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.bind - binding parameter (1:BIGINT) <- [3]
 2026-04-22 01:19:53.750 TRACE 332323 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (2:BIGINT) -> [2]
@@ -7422,13 +7422,13 @@ com.back.devc.global.exception.ApiException: 존재하지 않는 이메일입니
 2026-04-22 01:19:53.751 TRACE 332324 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (9:ENUM) -> [SUSPENDED]
 2026-04-22 01:19:53.751 TRACE 332324 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (10:TIMESTAMP) -> [2026-04-27T17:18:54.774555]
 2026-04-22 01:19:53.751 TRACE 332324 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (11:TIMESTAMP) -> [2026-04-20T17:18:54.775550]
-2026-04-22 01:19:53.751 TRACE 332324 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [com.back.devc.domain.interaction.report.service.ReportTargetHandler.getTargetInfo]
+2026-04-22 01:19:53.751 TRACE 332324 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [com.back.devc.domain.interaction.report.util.ReportTargetHandler.getTargetInfo]
 2026-04-22 01:19:53.751 TRACE 332324 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - No need to create transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findReasonTypesByTarget]: This method is not transactional.
 2026-04-22 01:19:53.751 TRACE 332324 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.bind - binding parameter (1:ENUM) <- [POST]
 2026-04-22 01:19:53.751 TRACE 332324 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.bind - binding parameter (2:BIGINT) <- [3]
 2026-04-22 01:19:53.751 TRACE 332324 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (1:VARCHAR) -> [ETC]
 2026-04-22 01:19:53.751 TRACE 332324 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (1:VARCHAR) -> [ETC]
-2026-04-22 01:19:53.751 TRACE 332324 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [com.back.devc.domain.interaction.report.service.ReportTargetHandler.getTargetInfo]
+2026-04-22 01:19:53.751 TRACE 332324 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [com.back.devc.domain.interaction.report.util.ReportTargetHandler.getTargetInfo]
 2026-04-22 01:19:53.751 TRACE 332324 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findById]
 2026-04-22 01:19:53.752 TRACE 332325 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.bind - binding parameter (1:BIGINT) <- [3]
 2026-04-22 01:19:53.752 TRACE 332325 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (2:VARCHAR) -> [삭제된 댓글입니다.]
@@ -7442,12 +7442,12 @@ com.back.devc.global.exception.ApiException: 존재하지 않는 이메일입니
 2026-04-22 01:19:53.752 TRACE 332325 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findById]
 2026-04-22 01:19:53.752 TRACE 332325 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findById]
 2026-04-22 01:19:53.752 TRACE 332325 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findById]
-2026-04-22 01:19:53.752 TRACE 332325 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [com.back.devc.domain.interaction.report.service.ReportTargetHandler.getTargetInfo]
+2026-04-22 01:19:53.752 TRACE 332325 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [com.back.devc.domain.interaction.report.util.ReportTargetHandler.getTargetInfo]
 2026-04-22 01:19:53.752 TRACE 332325 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - No need to create transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findReasonTypesByTarget]: This method is not transactional.
 2026-04-22 01:19:53.753 TRACE 332326 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.bind - binding parameter (1:ENUM) <- [COMMENT]
 2026-04-22 01:19:53.753 TRACE 332326 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.bind - binding parameter (2:BIGINT) <- [3]
 2026-04-22 01:19:53.753 TRACE 332326 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (1:VARCHAR) -> [ETC]
-2026-04-22 01:19:53.753 TRACE 332326 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [com.back.devc.domain.interaction.report.service.ReportTargetHandler.getTargetInfo]
+2026-04-22 01:19:53.753 TRACE 332326 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [com.back.devc.domain.interaction.report.util.ReportTargetHandler.getTargetInfo]
 2026-04-22 01:19:53.753 TRACE 332326 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findById]
 2026-04-22 01:19:53.753 TRACE 332326 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.bind - binding parameter (1:BIGINT) <- [2]
 2026-04-22 01:19:53.753 TRACE 332326 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (2:VARCHAR) -> [삭제된 댓글입니다.]
@@ -7461,12 +7461,12 @@ com.back.devc.global.exception.ApiException: 존재하지 않는 이메일입니
 2026-04-22 01:19:53.753 TRACE 332326 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findById]
 2026-04-22 01:19:53.753 TRACE 332326 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findById]
 2026-04-22 01:19:53.753 TRACE 332326 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findById]
-2026-04-22 01:19:53.753 TRACE 332326 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [com.back.devc.domain.interaction.report.service.ReportTargetHandler.getTargetInfo]
+2026-04-22 01:19:53.753 TRACE 332326 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [com.back.devc.domain.interaction.report.util.ReportTargetHandler.getTargetInfo]
 2026-04-22 01:19:53.754 TRACE 332327 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - No need to create transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findReasonTypesByTarget]: This method is not transactional.
 2026-04-22 01:19:53.754 TRACE 332327 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.bind - binding parameter (1:ENUM) <- [COMMENT]
 2026-04-22 01:19:53.754 TRACE 332327 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.bind - binding parameter (2:BIGINT) <- [2]
 2026-04-22 01:19:53.754 TRACE 332327 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (1:VARCHAR) -> [ETC]
-2026-04-22 01:19:53.754 TRACE 332327 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [com.back.devc.domain.interaction.report.service.ReportTargetHandler.getTargetInfo]
+2026-04-22 01:19:53.754 TRACE 332327 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [com.back.devc.domain.interaction.report.util.ReportTargetHandler.getTargetInfo]
 2026-04-22 01:19:53.754 TRACE 332327 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Getting transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findById]
 2026-04-22 01:19:53.754 TRACE 332327 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.bind - binding parameter (1:BIGINT) <- [1]
 2026-04-22 01:19:53.755 TRACE 332328 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (2:BIGINT) -> [1]
@@ -7481,7 +7481,7 @@ com.back.devc.global.exception.ApiException: 존재하지 않는 이메일입니
 2026-04-22 01:19:53.755 TRACE 332328 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (11:TIMESTAMP) -> [2026-04-20T17:18:30.479408]
 2026-04-22 01:19:53.755 TRACE 332328 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.extract - extracted value (12:INTEGER) -> [0]
 2026-04-22 01:19:53.755 TRACE 332328 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findById]
-2026-04-22 01:19:53.755 TRACE 332328 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [com.back.devc.domain.interaction.report.service.ReportTargetHandler.getTargetInfo]
+2026-04-22 01:19:53.755 TRACE 332328 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - Completing transaction for [com.back.devc.domain.interaction.report.util.ReportTargetHandler.getTargetInfo]
 2026-04-22 01:19:53.755 TRACE 332328 --- [ http-nio-8080-exec-4 ] o.s.t.interceptor.TransactionInterceptor - No need to create transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findReasonTypesByTarget]: This method is not transactional.
 2026-04-22 01:19:53.756 TRACE 332329 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.bind - binding parameter (1:ENUM) <- [POST]
 2026-04-22 01:19:53.756 TRACE 332329 --- [ http-nio-8080-exec-4 ] org.hibernate.orm.jdbc.bind - binding parameter (2:BIGINT) <- [1]
