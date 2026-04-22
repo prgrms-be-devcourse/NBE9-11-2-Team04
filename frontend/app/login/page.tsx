@@ -105,7 +105,7 @@ export default function LoginPage() {
         <div className="mb-8 text-center">
           <Link href="/" className="inline-flex items-center gap-2">
             <Code2 className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold text-foreground">DevHub</span>
+            <span className="text-2xl font-bold text-foreground">DevC</span>
           </Link>
           <p className="mt-2 text-muted-foreground">계정으로 로그인하세요</p>
         </div>
