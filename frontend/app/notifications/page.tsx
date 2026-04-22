@@ -480,31 +480,19 @@ export default function NotificationsPage() {
                                         </div>
 
                                         <div className="min-w-0 flex-1">
-                                            <div className="flex items-start gap-2">
-                                                <Avatar className="h-6 w-6">
-                                                    <AvatarImage
-                                                        src={undefined}
-                                                        alt={notification.actorNickname ?? `${notification.actorUserId}번 사용자`}
-                                                    />
-                                                    <AvatarFallback
-                                                        className="bg-secondary text-xs text-secondary-foreground">
-                                                        {notification.actorNickname?.trim()?.slice(0, 2) || `U${notification.actorUserId}`}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div className="flex-1">
-                                                    <p className="text-sm text-foreground">{notification.message}</p>
-                                                    {notification.postId ? (
-                                                        <Link
-                                                            href={`/posts/${notification.postId}`}
-                                                            className="mt-1 line-clamp-1 text-sm text-primary hover:underline"
-                                                        >
-                                                            게시글로 이동
-                                                        </Link>
-                                                    ) : null}
-                                                    <p className="mt-1 text-xs text-muted-foreground">
-                                                        {formatRelativeDate(notification.createdAt)}
-                                                    </p>
-                                                </div>
+                                            <div className="flex-1">
+                                                <p className="text-sm text-foreground">{notification.message}</p>
+                                                {notification.postId ? (
+                                                    <Link
+                                                        href={`/posts/${notification.postId}`}
+                                                        className="mt-1 line-clamp-1 text-sm text-primary hover:underline"
+                                                    >
+                                                        게시글로 이동
+                                                    </Link>
+                                                ) : null}
+                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                    {formatRelativeDate(notification.createdAt)}
+                                                </p>
                                             </div>
                                         </div>
 
