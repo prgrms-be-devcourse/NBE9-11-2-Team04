@@ -5,12 +5,15 @@ import com.back.devc.domain.interaction.report.dto.ReportGroupResponseDTO;
 import com.back.devc.domain.interaction.report.dto.ReportResponseDTO;
 import com.back.devc.domain.interaction.report.entity.Report;
 import com.back.devc.domain.interaction.report.entity.ReportStatus;
+import com.back.devc.domain.interaction.report.entity.SanctionType;
 import com.back.devc.domain.interaction.report.entity.TargetType;
 import com.back.devc.domain.interaction.report.repository.ReportRepository;
+import com.back.devc.domain.interaction.report.util.ReportTargetHandler;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
+import com.back.devc.global.exception.errorCode.ReportErrorCode;
 import com.back.devc.global.exception.errorCode.MemberErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -83,11 +86,13 @@ public class AdminReportService {
      * 3. 단건 승인
      * ========================================================= */
     public void approveReport(Long adminId, AdminReportRequestDTO dto) {
-
         Member admin = findMemberOrThrow(adminId);
-        Report report = findReportOrThrow(dto.reportId());
+        validateAdminRole(admin);
 
+        Report report = findReportOrThrow(dto.reportId());
         validatePendingStatus(report);
+        validateTargetExists(report.getTargetType(), report.getTargetId());
+        validateSanctionDetails(dto);
 
         report.processReport(admin);
 
@@ -104,10 +109,10 @@ public class AdminReportService {
      * 4. 단건 반려
      * ========================================================= */
     public void rejectReport(Long adminId, AdminReportRequestDTO dto) {
-
         Member admin = findMemberOrThrow(adminId);
-        Report report = findReportOrThrow(dto.reportId());
+        validateAdminRole(admin);
 
+        Report report = findReportOrThrow(dto.reportId());
         validatePendingStatus(report);
 
         report.rejectReport(admin);
@@ -123,27 +128,26 @@ public class AdminReportService {
      * 5. 그룹 승인
      * ========================================================= */
     public void approveReportGroup(Long adminId, AdminReportRequestDTO dto) {
-
         Member admin = findMemberOrThrow(adminId);
+        validateAdminRole(admin);
 
         TargetType targetType = dto.targetType();
         Long targetId = dto.reportId();
 
-        List<Report> reports =
-                reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
-                        targetType, targetId, ReportStatus.PENDING
-                );
+        validateTargetExists(targetType, targetId);
+        validateSanctionDetails(dto);
 
-        if (reports.isEmpty()) return;
+        List<Report> reports = reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
+                targetType, targetId, ReportStatus.PENDING);
+
+        if (reports.isEmpty()) {
+            throw new ApiException(ReportErrorCode.REPORT_404_PENDING_LIST);
+        }
 
         reports.forEach(r -> r.processReport(admin));
 
         reportTargetHandler.handleApproved(
-                targetType,
-                targetId,
-                admin,
-                dto.sanctionType(),
-                dto.suspensionDays()
+                targetType, targetId, admin, dto.sanctionType(), dto.suspensionDays()
         );
     }
 
@@ -151,18 +155,18 @@ public class AdminReportService {
      * 6. 그룹 반려
      * ========================================================= */
     public void rejectReportGroup(Long adminId, AdminReportRequestDTO dto) {
-
         Member admin = findMemberOrThrow(adminId);
+        validateAdminRole(admin); // [보완] 그룹 반려 시에도 권한 체크 추가
 
         TargetType targetType = dto.targetType();
         Long targetId = dto.reportId();
 
-        List<Report> reports =
-                reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
-                        targetType, targetId, ReportStatus.PENDING
-                );
+        List<Report> reports = reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
+                targetType, targetId, ReportStatus.PENDING);
 
-        if (reports.isEmpty()) return;
+        if (reports.isEmpty()) {
+            throw new ApiException(ReportErrorCode.REPORT_404_PENDING_LIST); // [보완] 대상 없으면 에러
+        }
 
         reports.forEach(r -> r.rejectReport(admin));
 
@@ -170,18 +174,38 @@ public class AdminReportService {
     }
 
     /* =========================================================
-     * Util
+     * Util (Private Helper Methods)
      * ========================================================= */
+
+    private void validateAdminRole(Member member) {
+        if (!member.isAdmin()) {
+            throw new ApiException(ReportErrorCode.REPORT_403_UNAUTHORIZED_ADMIN);
+        }
+    }
+
+    private void validateTargetExists(TargetType type, Long targetId) {
+        if (!reportTargetHandler.exists(type, targetId)) {
+            throw new ApiException(ReportErrorCode.REPORT_404_TARGET);
+        }
+    }
+
+    private void validateSanctionDetails(AdminReportRequestDTO dto) {
+        // SanctionType.SUSPENDED 인지 enum으로 체크하는 것이 좋습니다.
+        if (SanctionType.SUSPENDED.equals(dto.sanctionType()) &&
+                (dto.suspensionDays() == null || dto.suspensionDays() <= 0)) {
+            throw new ApiException(ReportErrorCode.REPORT_400_INVALID_SANCTION_PARAMETER);
+        }
+    }
 
     private void validatePendingStatus(Report report) {
         if (report.getStatus() != ReportStatus.PENDING) {
-            throw new ApiException(ErrorCode.REPORT_ALREADY_PROCESSED);
+            throw new ApiException(ReportErrorCode.REPORT_409_ALREADY_REPORT);
         }
     }
 
     private Report findReportOrThrow(Long reportId) {
         return reportRepository.findById(reportId)
-                .orElseThrow(() -> new ApiException(ErrorCode.REPORT_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_404_REPORT));
     }
 
     private Member findMemberOrThrow(Long userId) {

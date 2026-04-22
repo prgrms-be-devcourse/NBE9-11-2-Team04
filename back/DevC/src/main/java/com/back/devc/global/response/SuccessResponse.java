@@ -2,6 +2,7 @@ package com.back.devc.global.response;
 
 import com.back.devc.global.response.successCode.AuthSuccessCode;
 import com.back.devc.global.response.successCode.MemberSuccessCode;
+import com.back.devc.global.response.successCode.ReportSuccessCode;
 
 import java.time.LocalDateTime;
 
@@ -64,6 +65,16 @@ public record SuccessResponse<T>(
      * 예: CommentSuccessCode, NotificationSuccessCode, CommentAttachmentSuccessCode
      */
     public static <T> SuccessResponse<T> of(SuccessCodeSpec successCode, T data) {
+        return new SuccessResponse<>(
+                successCode.getCode(),
+                successCode.getMessage(),
+                LocalDateTime.now(),
+                data
+        );
+    }
+
+    //예비
+    public static <T> SuccessResponse<T> of(ReportSuccessCode successCode, T data) {
         return new SuccessResponse<>(
                 successCode.getCode(),
                 successCode.getMessage(),

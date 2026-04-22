@@ -1,7 +1,8 @@
 package com.back.devc.domain.interaction.report.service;
 
 import com.back.devc.domain.interaction.report.dto.ReportRequestDTO;
-import com.back.devc.domain.interaction.report.entity.*;
+import com.back.devc.domain.interaction.report.entity.Report;
+import com.back.devc.domain.interaction.report.entity.TargetType;
 import com.back.devc.domain.interaction.report.repository.ReportRepository;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
@@ -11,6 +12,7 @@ import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
+import com.back.devc.global.exception.errorCode.ReportErrorCode;
 import com.back.devc.global.exception.errorCode.AuthErrorCode;
 import com.back.devc.global.exception.errorCode.MemberErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -68,27 +70,27 @@ public class UserReportService {
 
         if (type == TargetType.POST) {
             Post post = postRepository.findById(targetId)
-                    .orElseThrow(() -> new ApiException(ErrorCode.POST_NOT_FOUND));
+                    .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_404_TARGET));
 
             if (post.getMember().getUserId().equals(reporterId)) {
-                throw new ApiException(ErrorCode.CANNOT_REPORT_SELF);
+                throw new ApiException(ReportErrorCode.REPORT_400_REPORT_SELF);
             }
 
             if (post.isDeleted()) {
-                throw new ApiException(AuthErrorCode.ALREADY_DELETED);
+                throw new ApiException(ReportErrorCode.REPORT_410_ALREADY_DELETED);
             }
         }
 
         if (type == TargetType.COMMENT) {
             Comment comment = commentRepository.findById(targetId)
-                    .orElseThrow(() -> new ApiException(ErrorCode.COMMENT_NOT_FOUND));
+                    .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_404_TARGET));
 
             if (comment.getUserId().equals(reporterId)) {
-                throw new ApiException(ErrorCode.CANNOT_REPORT_SELF);
+                throw new ApiException(ReportErrorCode.REPORT_400_REPORT_SELF);
             }
 
             if (comment.isDeleted()) {
-                throw new ApiException(AuthErrorCode.ALREADY_DELETED);
+                throw new ApiException(ReportErrorCode.REPORT_410_ALREADY_DELETED);
             }
         }
     }
@@ -96,7 +98,7 @@ public class UserReportService {
     private void validateDuplicateReport(Member reporter, TargetType type, Long targetId) {
         if (reportRepository.existsByReporterAndTargetTypeAndTargetId(
                 reporter, type, targetId)) {
-            throw new ApiException(ErrorCode.REPORT_ALREADY_EXISTS);
+            throw new ApiException(ReportErrorCode.REPORT_409_ALREADY_REPORT_USER);
         }
     }
 

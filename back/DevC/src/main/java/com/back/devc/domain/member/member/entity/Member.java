@@ -185,6 +185,10 @@ public class Member {
         updatedAt = now;
     }
 
+    public boolean isAdmin() {
+        return this.role == MemberRole.ADMIN;
+    }
+
     @PreUpdate
     void preUpdate() {
         updatedAt = LocalDateTime.now();
@@ -193,4 +197,6 @@ public class Member {
     public void setSuspendedUntil(LocalDateTime suspendedUntil) {
         this.suspendedUntil = suspendedUntil;
     }
+
+
 }
