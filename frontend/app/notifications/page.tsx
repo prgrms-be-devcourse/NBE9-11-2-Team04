@@ -3,7 +3,7 @@
 import {useCallback, useEffect, useMemo, useState} from "react"
 import Link from "next/link"
 import {useRouter} from "next/navigation"
-import {Bell, MessageCircle, Heart, UserPlus, Check} from "lucide-react"
+import {Bell, MessageCircle, Heart, UserPlus, Check, TriangleAlert} from "lucide-react"
 import {Button} from "@/components/ui/button"
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar"
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
@@ -11,7 +11,7 @@ import {getAuthSnapshot} from "@/lib/auth-storage"
 
 const API_BASE_URL = "http://localhost:8080"
 
-type NotificationType = "comment" | "reply" | "like" | "follow"
+type NotificationType = "comment" | "reply" | "like" | "follow" | "report"
 
 type NotificationItem = {
     notificationId: number
@@ -107,7 +107,7 @@ function mapBackendType(type: string): NotificationType {
         case "BOOKMARK":
             return "like"
         case "REPORT":
-            return "comment"
+            return "report"
         default:
             return "comment"
     }
@@ -122,6 +122,8 @@ function getNotificationIcon(type: NotificationType) {
             return <Heart className="h-4 w-4"/>
         case "follow":
             return <UserPlus className="h-4 w-4"/>
+        case "report":
+            return <TriangleAlert className="h-4 w-4"/>
         default:
             return <Bell className="h-4 w-4"/>
     }
@@ -136,6 +138,8 @@ function getNotificationColor(type: NotificationType) {
             return "bg-red-500/20 text-red-400"
         case "follow":
             return "bg-green-500/20 text-green-400"
+        case "report":
+            return "bg-yellow-500/20 text-yellow-400"
         default:
             return "bg-primary/20 text-primary"
     }
