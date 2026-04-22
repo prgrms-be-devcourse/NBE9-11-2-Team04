@@ -14,6 +14,10 @@ type RequestOptions = RequestInit & {
   retryOnUnauthorized?: boolean
 }
 
+const ERROR_MESSAGE_MAP: Record<string, string> = {
+  MYPAGE_409_NICKNAME_ALREADY_EXISTS: "중복된 이름입니다.",
+}
+
 export class ApiError extends Error {
   status: number
   code?: string
@@ -76,6 +80,31 @@ async function performFetch(path: string, requestInit: RequestInit): Promise<Res
     ...requestInit,
     credentials: "include",
   })
+}
+
+function getUserFriendlyErrorMessage(
+  err: ErrorResponse | null,
+  status: number
+): string {
+  const validationMessage = err?.validation
+    ? Object.values(err.validation)[0]
+    : undefined
+
+  const errorKey = err?.code || err?.message || ""
+
+  if (errorKey && ERROR_MESSAGE_MAP[errorKey]) {
+    return ERROR_MESSAGE_MAP[errorKey]
+  }
+
+  if (validationMessage) {
+    return validationMessage
+  }
+
+  if (err?.message) {
+    return err.message
+  }
+
+  return `API request failed (${status})`
 }
 
 export async function apiFetch<T>(
@@ -141,18 +170,11 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     const err = parsed as ErrorResponse | null
-    const validationMessage = err?.validation
-      ? Object.values(err.validation)[0]
-      : undefined
 
-    throw new ApiError(
-      validationMessage || err?.message || `API request failed (${res.status})`,
-      res.status,
-      {
-        code: err?.code,
-        validation: err?.validation,
-      }
-    )
+    throw new ApiError(getUserFriendlyErrorMessage(err, res.status), res.status, {
+      code: err?.code,
+      validation: err?.validation,
+    })
   }
 
   return parsed as T
