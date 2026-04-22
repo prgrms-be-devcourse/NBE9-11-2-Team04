@@ -9,6 +9,7 @@ import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
 import com.back.devc.global.exception.errorCode.AuthErrorCode;
+import com.back.devc.global.exception.errorCode.MemberErrorCode;
 import com.back.devc.global.security.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -41,7 +42,7 @@ public class OAuth2MemberService {
                 .orElseThrow(() -> new ApiException(AuthErrorCode.UNAUTHORIZED));
 
         Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         if (member.getStatus() == MemberStatus.BLACKLISTED) {
             throw new ApiException(AuthErrorCode.MEMBER_BLACKLISTED);

@@ -12,6 +12,7 @@ import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
 import com.back.devc.global.exception.errorCode.AuthErrorCode;
+import com.back.devc.global.exception.errorCode.MemberErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -101,6 +102,6 @@ public class UserReportService {
 
     private Member findMemberOrThrow(Long userId) {
         return memberRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(MemberErrorCode.MEMBER_NOT_FOUND));
     }
 }

@@ -104,6 +104,6 @@ public class AdmMemberService {
 
     private Member findMemberOrThrow(Long userId) {
         return memberRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(MemberErrorCode.MEMBER_NOT_FOUND));
     }
 }

@@ -4,11 +4,6 @@ public class ApiException extends RuntimeException {
 
     private final ErrorCodeSpec errorCode;
 
-    public ApiException(ErrorCode errorCode) {
-        super(errorCode.getMessage());
-        this.errorCode = errorCode;
-    }
-
     public ApiException(ErrorCodeSpec errorCode) {
         super(errorCode.getMessage());
         this.errorCode = errorCode;

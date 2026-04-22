@@ -27,7 +27,7 @@ public class MemberService {
     @Transactional(readOnly = true)
     public MyInfoResponse getMyInfo(Long userId) {
         Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         return new MyInfoResponse(
                 member.getUserId(),
@@ -43,7 +43,7 @@ public class MemberService {
     @Transactional(readOnly = true)
     public PublicProfileResponse getPublicProfile(Long userId) {
         Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         List<PublicProfilePostResponse> posts = postRepository
                 .findTop20ByMemberAndIsDeletedFalseOrderByCreatedAtDesc(member)
@@ -68,7 +68,7 @@ public class MemberService {
     @Transactional
     public MemberWithdrawResponse withdraw(Long userId) {
         Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         member.withdraw();
         return new MemberWithdrawResponse(member.getUserId());
