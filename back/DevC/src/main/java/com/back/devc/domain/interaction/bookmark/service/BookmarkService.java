@@ -11,6 +11,7 @@ import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.member.member.util.MemberDisplayUtil;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
+import com.back.devc.global.exception.errorcode.BookmarkErrorCode;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,10 +31,14 @@ public class BookmarkService {
     @Transactional
     public BookmarkResponse createBookmark(BookmarkCreateCommand command) {
         Member member = memberRepository.findById(command.memberId())
-                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + command.memberId()));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.getCode()
+                ));
 
         Post post = postRepository.findById(command.postId())
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + command.postId()));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        BookmarkErrorCode.BOOKMARK_404_POST_NOT_FOUND.getCode()
+                ));
 
         if (bookmarkRepository.existsByMemberAndPost(member, post)) {
             return new BookmarkResponse(
@@ -54,10 +59,14 @@ public class BookmarkService {
     @Transactional
     public BookmarkResponse cancelBookmark(BookmarkDeleteCommand command) {
         Member member = memberRepository.findById(command.memberId())
-                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + command.memberId()));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.getCode()
+                ));
 
         Post post = postRepository.findById(command.postId())
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + command.postId()));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        BookmarkErrorCode.BOOKMARK_404_POST_NOT_FOUND.getCode()
+                ));
 
         Bookmark bookmark = bookmarkRepository.findByMemberAndPost(member, post)
                 .orElse(null);
@@ -79,7 +88,9 @@ public class BookmarkService {
 
     public List<BookmarkedPostResponse> getBookmarkedPosts(Long userId) {
         Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.getCode()
+                ));
 
         List<Bookmark> bookmarks = bookmarkRepository.findAllByMember(member);
 
