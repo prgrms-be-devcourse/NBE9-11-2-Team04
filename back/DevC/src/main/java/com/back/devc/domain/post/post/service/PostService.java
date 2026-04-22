@@ -15,6 +15,7 @@ import com.back.devc.domain.post.post.type.PostSearchType;
 import com.back.devc.domain.post.post.type.PostSortType;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.errorCode.CategoryErrorCode;
+import com.back.devc.global.exception.errorCode.MemberErrorCode;
 import com.back.devc.global.exception.errorCode.PostErrorCode;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +38,7 @@ public class PostService {
     public PostCreateResponse write(Long userId, PostCreateRequest request) {
 
         Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ApiException(MemberErrorCode.MEMBER_NOT_FOUND));;
 
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() -> new ApiException(CategoryErrorCode.CATEGORY_404_NOT_FOUND));;
