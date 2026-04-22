@@ -12,6 +12,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.back.devc.global.response.SuccessCode;
+import com.back.devc.global.response.SuccessResponse;
 
 import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
 
@@ -22,32 +24,44 @@ public class PostController {
 
     private final PostService postService;
 
+    // 게시글 생성
     @PostMapping
-    public ResponseEntity<PostCreateResponse> create(
+    public ResponseEntity<SuccessResponse<PostCreateResponse>> create(
             @AuthenticationPrincipal JwtPrincipal principal,
             @RequestBody @Valid PostCreateRequest request
     ) {
-        Post post = postService.write(
-                getAuthenticatedUserId(principal),
-                request.categoryId(),
-                request.title(),
-                request.content()
-        );
+        Long userId = getAuthenticatedUserId(principal);
 
-        return ResponseEntity.ok(PostCreateResponse.from(post));
+        PostCreateResponse response = postService.write(userId, request);
+
+        SuccessCode successCode = SuccessCode.POST_CREATE_SUCCESS;
+
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
     }
 
+    //게시글 상세조회
     @GetMapping("/{postid}")
-    public ResponseEntity<PostDetailResponse> detail(
+    public ResponseEntity<SuccessResponse<PostDetailResponse>> detail(
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long postid
     ) {
         Long loginUserId = principal != null ? principal.userId() : null;
-        return ResponseEntity.ok(postService.findDetailById(postid, loginUserId));
+
+        PostDetailResponse response = postService.findDetailById(postid, loginUserId);
+        SuccessCode successCode = SuccessCode.POST_DETAIL_SUCCESS;
+
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
+
     }
 
+
+    //게시글 목록조회
     @GetMapping
-    public ResponseEntity<Page<PostListResponse>> list(
+    public ResponseEntity<SuccessResponse<Page<PostListResponse>>> list(
             @AuthenticationPrincipal JwtPrincipal principal,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String keyword,
@@ -58,7 +72,7 @@ public class PostController {
     ) {
         Long loginUserId = principal != null ? getAuthenticatedUserId(principal) : null;
 
-        Page<PostListResponse> result = postService.getPosts(
+        Page<PostListResponse> response = postService.getPosts(
                 loginUserId,
                 categoryId,
                 keyword,
@@ -68,33 +82,46 @@ public class PostController {
                 size
         );
 
-        return ResponseEntity.ok(result);
+        SuccessCode successCode = SuccessCode.POST_LIST_SUCCESS;
+
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
+
     }
 
+    //게시글 수정
     @PutMapping("/{postId}")
-    public ResponseEntity<PostUpdateResponse> update(
+    public ResponseEntity<SuccessResponse<PostUpdateResponse>> update(
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long postId,
-            @RequestBody @Valid PostUpdateRequest postUpdateRequest
+            @RequestBody @Valid PostUpdateRequest request
     ) {
-        Post post = postService.update(
-                getAuthenticatedUserId(principal),
-                postId,
-                postUpdateRequest.title(),
-                postUpdateRequest.content(),
-                postUpdateRequest.categoryId()
-        );
+        Long userId = getAuthenticatedUserId(principal);
 
-        return ResponseEntity.ok(PostUpdateResponse.from(post));
+        PostUpdateResponse response = postService.update(userId, postId, request);
+
+        SuccessCode successCode = SuccessCode.POST_UPDATE_SUCCESS;
+
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
     }
 
+    //게시글 삭제
     @DeleteMapping("/{postId}")
-    public ResponseEntity<PostDeleteResponse> delete(
+    public ResponseEntity<SuccessResponse<PostDeleteResponse>> delete(
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long postId
     ) {
-        postService.delete(getAuthenticatedUserId(principal), postId);
+        Long userId = getAuthenticatedUserId(principal);
 
-        return ResponseEntity.ok(new PostDeleteResponse(postId, "삭제되었습니다."));
+        PostDeleteResponse response = postService.delete(userId, postId);
+
+        SuccessCode successCode = SuccessCode.POST_DELETE_SUCCESS;
+
+        return ResponseEntity
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, response));
     }
 }

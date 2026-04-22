@@ -8,20 +8,25 @@ import InteractionButtons from "@/components/interaction-buttons"
 import { getAccessToken } from "@/lib/auth-storage"
 
 type PostDetailResponse = {
-  postId: number
-  title: string
-  content: string
-  userId: number
-  writerName: string
-  categoryId: number
-  viewCount: number
-  likeCount: number
-  commentCount: number
-  bookmarkCount?: number
-  bookmarked?: boolean
-  createdAt: string
-  updatedAt: string
-  liked?: boolean
+  code: string
+  message: string
+  timestamp: string
+  data: {
+    postId: number
+    title: string
+    content: string
+    userId: number
+    writerName: string
+    categoryId: number
+    viewCount: number
+    likeCount: number
+    commentCount: number
+    bookmarkCount?: number
+    bookmarked?: boolean
+    createdAt: string
+    updatedAt: string
+    liked?: boolean
+  }
 }
 
 type LoginRequiredPopupState = {
@@ -179,7 +184,7 @@ async function extractErrorMessage(response: Response, fallbackMessage: string):
 export default function PostDetailPage() {
   const params = useParams()
 
-  const [post, setPost] = useState<PostDetailResponse | null>(null)
+  const [post, setPost] = useState<PostDetailResponse["data"] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [reportLoading, setReportLoading] = useState(false)
@@ -243,8 +248,8 @@ export default function PostDetailPage() {
           throw new Error("게시글을 불러오지 못했습니다.")
         }
 
-        const data: PostDetailResponse = await response.json()
-        setPost(data)
+        const res = await response.json()
+        setPost(res.data)
       } catch (err) {
         setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
       } finally {

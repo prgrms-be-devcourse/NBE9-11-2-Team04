@@ -109,9 +109,9 @@ class PostControllerTest{
                                 .content(objectMapper.writeValueAsString(request))
                 )
                 .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.postId").exists())
-                .andExpect(jsonPath("$.message").value("게시글이 생성되었습니다."));
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.postId").exists())
+                .andExpect(jsonPath("$.message").value("게시글 작성 성공"));
 
     }
 
@@ -129,9 +129,8 @@ class PostControllerTest{
         mvc.perform(get("/api/posts/" + post.getPostId()))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("테스트3"));
+                .andExpect(jsonPath("$.data.title").value("테스트3"));
     }
-
     // =========================
     // UPDATE
     // =========================
@@ -140,6 +139,7 @@ class PostControllerTest{
     void t3() throws Exception {
 
         setAuthentication();
+
         Post post = postRepository.save(
                 new Post(member, category, "수정 전 제목", "수정 전 내용")
         );
@@ -148,18 +148,17 @@ class PostControllerTest{
                         put("/api/posts/" + post.getPostId())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {
-                                          "title": "수정 후 제목",
-                                          "content": "수정 후 내용",
-                                          "categoryId": %d
-                                        }
-                                        """.formatted(category.getCategoryId()))
+                                    {
+                                      "title": "수정 후 제목",
+                                      "content": "수정 후 내용",
+                                      "categoryId": %d
+                                    }
+                                    """.formatted(category.getCategoryId()))
                 )
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("수정 후 제목"));
+                .andExpect(jsonPath("$.data.title").value("수정 후 제목"));
     }
-
     // =========================
     // DELETE
     // =========================
@@ -168,6 +167,7 @@ class PostControllerTest{
     void t4() throws Exception {
 
         setAuthentication();
+
         Post post = postRepository.save(
                 new Post(member, category, "title", "content")
         );
@@ -175,9 +175,10 @@ class PostControllerTest{
         mvc.perform(delete("/api/posts/" + post.getPostId()))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("삭제되었습니다."));
+                .andExpect(jsonPath("$.message").value("게시글 삭제 성공"));
 
         Post deleted = postRepository.findById(post.getPostId()).orElseThrow();
+
         assertThat(deleted.isDeleted()).isTrue();
         //삭제 후 isDeleted의 값이 true로 변경됨을 보여줌
     }
@@ -191,29 +192,25 @@ class PostControllerTest{
     @DisplayName("게시글 최신순 조회")
     void t5() throws Exception {
 
-        // given (게시글 2개 생성)
         Post post1 = postRepository.save(
                 new Post(member, category, "첫번째", "내용1")
         );
 
-        Thread.sleep(10); // 시간 차이 주기 (createdAt 다르게)
+        Thread.sleep(10);
 
         Post post2 = postRepository.save(
                 new Post(member, category, "두번째", "내용2")
         );
 
-        // when & then (최신순 조회)
         mvc.perform(get("/api/posts")
                         .param("sort", "LATEST")
                         .param("page", "0")
                         .param("size", "10"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                // 최신 글이 먼저 와야 함
-                .andExpect(jsonPath("$.content[0].title").value("두번째"))
-                .andExpect(jsonPath("$.content[1].title").value("첫번째"));
+                .andExpect(jsonPath("$.data.content[0].title").value("두번째"))
+                .andExpect(jsonPath("$.data.content[1].title").value("첫번째"));
     }
-
 
     @Test
     @DisplayName("게시글 좋아요순 조회, 만약 좋아요 개수가 같은경우 최신순으로 보여줌")
@@ -243,9 +240,9 @@ class PostControllerTest{
         // then
         result.andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].title").value("제목2")) // 좋아요 10
-                .andExpect(jsonPath("$.content[1].title").value("제목3")) // 좋아요 5 + 최신
-                .andExpect(jsonPath("$.content[2].title").value("제목1")); // 좋아요 5 + 오래됨
+                .andExpect(jsonPath("$.data.content[0].title").value("제목2")) // 좋아요 10
+                .andExpect(jsonPath("$.data.content[1].title").value("제목3")) // 좋아요 5 + 최신
+                .andExpect(jsonPath("$.data.content[2].title").value("제목1")); // 좋아요 5 + 오래됨
     }
 
 
@@ -277,9 +274,9 @@ class PostControllerTest{
         // then
         result.andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].title").value("제목2")) // 조회수 10
-                .andExpect(jsonPath("$.content[1].title").value("제목3")) // 조회수 5 + 최신
-                .andExpect(jsonPath("$.content[2].title").value("제목1")); // 조회수 5 + 오래됨
+                .andExpect(jsonPath("$.data.content[0].title").value("제목2")) // 조회수 10
+                .andExpect(jsonPath("$.data.content[1].title").value("제목3")) // 조회수 5 + 최신
+                .andExpect(jsonPath("$.data.content[2].title").value("제목1")); // 조회수 5 + 오래됨
     }
 
 
@@ -305,9 +302,9 @@ class PostControllerTest{
                 .andDo(print())
                 .andExpect(status().isOk())
                 // category1 글만 2개 나와야 함
-                .andExpect(jsonPath("$.content.length()").value(2))
-                .andExpect(jsonPath("$.content[0].categoryId").value(category.getCategoryId()))
-                .andExpect(jsonPath("$.content[1].categoryId").value(category.getCategoryId()));
+                .andExpect(jsonPath("$.data.content.length()").value(2))
+                .andExpect(jsonPath("$.data.content[0].categoryId").value(category.getCategoryId()))
+                .andExpect(jsonPath("$.data.content[1].categoryId").value(category.getCategoryId()));
     }
 
     @Test
@@ -332,10 +329,10 @@ class PostControllerTest{
                         .param("size", "10"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.data.content.length()").value(2))
                 // 최신순 → p2 먼저
-                .andExpect(jsonPath("$.content[0].title").value("자유2"))
-                .andExpect(jsonPath("$.content[1].title").value("자유1"));
+                .andExpect(jsonPath("$.data.content[0].title").value("자유2"))
+                .andExpect(jsonPath("$.data.content[1].title").value("자유1"));
     }
 
     @Test
@@ -366,10 +363,10 @@ class PostControllerTest{
                         .param("size", "10"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.data.content.length()").value(2))
                 // 좋아요 많은 p2 먼저
-                .andExpect(jsonPath("$.content[0].title").value("자유2"))
-                .andExpect(jsonPath("$.content[1].title").value("자유1"));
+                .andExpect(jsonPath("$.data.content[0].title").value("자유2"))
+                .andExpect(jsonPath("$.data.content[1].title").value("자유1"));
     }
 
     @Test
@@ -400,10 +397,10 @@ class PostControllerTest{
                         .param("size", "10"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.data.content.length()").value(2))
                 // 조회수 많은 p2 먼저
-                .andExpect(jsonPath("$.content[0].title").value("자유2"))
-                .andExpect(jsonPath("$.content[1].title").value("자유1"));
+                .andExpect(jsonPath("$.data.content[0].title").value("자유2"))
+                .andExpect(jsonPath("$.data.content[1].title").value("자유1"));
     }
 
     // =========================
@@ -425,8 +422,8 @@ class PostControllerTest{
                         .param("size", "10"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(1))
-                .andExpect(jsonPath("$.content[0].title").value("스프링 공부"));
+                .andExpect(jsonPath("$.data.content.length()").value(1))
+                .andExpect(jsonPath("$.data.content[0].title").value("스프링 공부"));
     }
 
     @Test
@@ -444,7 +441,7 @@ class PostControllerTest{
                         .param("size", "10"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(2));
+                .andExpect(jsonPath("$.data.content.length()").value(2));
     }
 
     @Test
@@ -462,7 +459,7 @@ class PostControllerTest{
                         .param("size", "10"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(2));
+                .andExpect(jsonPath("$.data.content.length()").value(2));
     }
 
     @Test
@@ -481,7 +478,7 @@ class PostControllerTest{
                         .param("size", "10"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].title").value("스프링 2")); // p2
+                .andExpect(jsonPath("$.data.content[0].title").value("스프링 2")); // p2
     }
 
     @Test
@@ -502,7 +499,7 @@ class PostControllerTest{
                         .param("size", "10"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].title").value("스프링 1")); // p1
+                .andExpect(jsonPath("$.data.content[0].title").value("스프링 1")); // p1
     }
 
 
@@ -526,7 +523,7 @@ class PostControllerTest{
                         .param("size", "10"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].title").value("스프링 2")); // p2
+                .andExpect(jsonPath("$.data.content[0].title").value("스프링 2")); // p2
     }
 
 
@@ -546,7 +543,7 @@ class PostControllerTest{
                         .param("size", "10"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].title").value("글2")); // p2
+                .andExpect(jsonPath("$.data.content[0].title").value("글2")); // p2
     }
 
     @Test
@@ -567,7 +564,7 @@ class PostControllerTest{
                         .param("size", "10"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].title").value("글1")); // p1
+                .andExpect(jsonPath("$.data.content[0].title").value("글1")); // p1
     }
 
     @Test
@@ -590,7 +587,7 @@ class PostControllerTest{
                         .param("size", "10"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].title").value("글2")); // p2
+                .andExpect(jsonPath("$.data.content[0].title").value("글2")); // p2
     }
 
     @Test
@@ -609,7 +606,7 @@ class PostControllerTest{
                         .param("size", "10"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].title").value("글2")); // p2
+                .andExpect(jsonPath("$.data.content[0].title").value("글2")); // p2
     }
 
     @Test
@@ -630,7 +627,7 @@ class PostControllerTest{
                         .param("size", "10"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].title").value("스프링 글1")); // p1
+                .andExpect(jsonPath("$.data.content[0].title").value("스프링 글1")); // p1
     }
 
     @Test
@@ -653,7 +650,7 @@ class PostControllerTest{
                         .param("size", "10"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].title").value("글2")); // p2
+                .andExpect(jsonPath("$.data.content[0].title").value("글2")); // p2
     }
 
 }

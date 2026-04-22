@@ -1,9 +1,14 @@
 package com.back.devc.domain.post.post.dto;
 
-import com.back.devc.domain.post.post.entity.Post;
+import lombok.Builder;
 
+@Builder
 public record PostDeleteResponse(
-        Long postId,
-        String message
+        Long postId
 ) {
+    public static PostDeleteResponse of(Long postId) {
+        return PostDeleteResponse.builder()
+                .postId(postId)
+                .build();
+    }
 }

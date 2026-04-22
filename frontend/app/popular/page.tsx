@@ -6,6 +6,7 @@ import { TrendingUp } from "lucide-react"
 import { categoryLabelMap, categorySlugMap } from "@/constants/category"
 
 type PostPageResponse = {
+  data : {
   content: {
     postId: number
     userId?: number
@@ -20,7 +21,7 @@ type PostPageResponse = {
     liked?: boolean
     bookmarked?: boolean
   }[]
-}
+}}
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
@@ -56,7 +57,8 @@ export default function PopularPage() {
           throw new Error("게시글을 불러오지 못했습니다.")
         }
 
-        const data: PostPageResponse = await response.json()
+        const res = await response.json()
+        const data: PostPageResponse["data"] = res.data
 
         const mapped: Post[] = data.content.map((post) => ({
           id: String(post.postId),
