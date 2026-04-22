@@ -10,7 +10,6 @@ import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.ApiException;
-import com.back.devc.global.exception.ErrorCode;
 import com.back.devc.global.exception.errorCode.MemberErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -28,6 +27,7 @@ public class AdmMemberService {
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    private final MemberSanctionService memberSanctionService;
 
     // 1. 목록 조회
     public Page<AdmMemberListResponse> getMembers(AdmMemberListRequest request) {
@@ -60,7 +60,8 @@ public class AdmMemberService {
                                                       AdmMemberStatusUpdateRequest request) {
 
         Member member = findMemberOrThrow(userId);
-        member.updateStatus(request.status());
+
+        memberSanctionService.apply(member, request.status(), request.days());
 
         return convertToDetailResponse(member);
     }

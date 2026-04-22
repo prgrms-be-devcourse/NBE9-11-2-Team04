@@ -12,7 +12,8 @@ public record AdmMemberDetailResponse(
         long postCount,         // 작성한 게시글 수
         long commentCount,      // 작성한 댓글 수
         MemberStatus status,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        LocalDateTime suspendedUntil
 ) {
     public static AdmMemberDetailResponse of(Member member, long postCount, long commentCount) {
         return new AdmMemberDetailResponse(
@@ -22,7 +23,8 @@ public record AdmMemberDetailResponse(
                 postCount,
                 commentCount,
                 member.getStatus(),
-                member.getCreatedAt()
+                member.getCreatedAt(),
+                member.getSuspendedUntil()
                 // 향후 누적 신고 정보도 가져오면 좋을 것 같습니다.
         );
     }

@@ -13,7 +13,8 @@ public record AdmMemberListResponse(
         long postCount,         // 작성한 게시글 수
         long commentCount,      // 작성한 댓글 수
         MemberStatus status,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+         LocalDateTime suspendedUntil
 ) {
     public static AdmMemberListResponse of(Member member, long postCount, long commentCount) {
         return new AdmMemberListResponse(
@@ -23,7 +24,8 @@ public record AdmMemberListResponse(
                 postCount,
                 commentCount,
                 member.getStatus(),
-                member.getCreatedAt()
+                member.getCreatedAt(),
+                member.getSuspendedUntil()
         );
     }
 }
