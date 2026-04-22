@@ -7,6 +7,7 @@ public record MyPostResponse(
         String title,
         long likeCount,
         long commentCount,
+        long viewCount,
         LocalDateTime createdAt
 ) {
 }
