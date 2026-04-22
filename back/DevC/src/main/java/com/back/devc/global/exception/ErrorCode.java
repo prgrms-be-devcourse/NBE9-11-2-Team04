@@ -11,9 +11,6 @@ public enum ErrorCode {
     PASSWORD_MISMATCH(HttpStatus.UNAUTHORIZED, "AUTH_401_PASSWORD_MISMATCH", "비밀번호가 일치하지 않습니다."),
     MEMBER_BLACKLISTED(HttpStatus.FORBIDDEN, "AUTH_403_MEMBER_BLACKLISTED", "이용할 수 없는 계정입니다."),
 
-    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_401_INVALID_TOKEN", "유효하지 않은 토큰입니다."),
-    EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_401_EXPIRED_TOKEN", "만료된 토큰입니다."),
-    INVALID_TOKEN_TYPE(HttpStatus.UNAUTHORIZED, "AUTH_401_INVALID_TOKEN_TYPE", "토큰 타입이 올바르지 않습니다."),
 
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "MEMBER_404_NOT_FOUND", "회원을 찾을 수 없습니다."),
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "AUTH_409_EMAIL", "이미 사용 중인 이메일입니다."),
