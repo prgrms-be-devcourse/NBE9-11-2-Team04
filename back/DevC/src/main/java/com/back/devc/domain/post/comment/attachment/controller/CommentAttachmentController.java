@@ -2,6 +2,7 @@ package com.back.devc.domain.post.comment.attachment.controller;
 
 import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentDeleteResponse;
 import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentListResponse;
+import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentUploadRequest;
 import com.back.devc.domain.post.comment.attachment.service.CommentAttachmentService;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
@@ -35,12 +36,11 @@ public class CommentAttachmentController {
     public ResponseEntity<SuccessResponse<CommentAttachmentListResponse>> uploadCommentAttachments(
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long commentId,
-            @RequestParam("files") List<MultipartFile> files,
-            @RequestParam(value = "fileOrder", required = false) List<Integer> fileOrders
+            @ModelAttribute CommentAttachmentUploadRequest request
     ) {
         getAuthenticatedUserId(principal);
 
-        CommentAttachmentListResponse response = commentAttachmentService.uploadAttachments(commentId, files, fileOrders);
+        CommentAttachmentListResponse response = commentAttachmentService.uploadAttachments(commentId, request);
         CommentAttachmentSuccessCode successCode = CommentAttachmentSuccessCode.COMMENT_ATTACHMENT_201_UPLOAD;
 
         return ResponseEntity
