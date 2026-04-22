@@ -113,6 +113,7 @@ public class PostLikeService {
                             MemberDisplayUtil.getDisplayName(post.getMember()),
                             post.getLikeCount(),
                             post.getCommentCount(),
+                            post.getViewCount(),
                             post.getCreatedAt()
                     );
                 })

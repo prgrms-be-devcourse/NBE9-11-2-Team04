@@ -46,6 +46,7 @@ type MyPostResponse = {
   title: string
   likeCount: number
   commentCount: number
+  viewCount: number
   createdAt: string
 }
 
@@ -67,6 +68,7 @@ type LikedPostResponse = {
   authorNickname: string
   likeCount: number
   commentCount: number
+  viewCount: number
   createdAt: string
 }
 
@@ -76,6 +78,7 @@ type BookmarkedPostResponse = {
   authorNickname: string
   likeCount: number
   commentCount: number
+  viewCount: number
   createdAt: string
 }
 
@@ -189,7 +192,7 @@ function mapMyPostsToPostCard(
     createdAt: formatRelativeDate(post.createdAt),
     likes: post.likeCount,
     comments: post.commentCount,
-    views: 0,
+    views: post.viewCount,
     tags: [],
     liked: likedPostIds.has(post.postId),
     bookmarked: bookmarkedPostIds.has(post.postId),
@@ -212,7 +215,7 @@ function mapBookmarkedPostsToPostCard(
     createdAt: formatRelativeDate(post.createdAt),
     likes: post.likeCount,
     comments: post.commentCount,
-    views: 0,
+    views: post.viewCount,
     tags: [],
     liked: likedPostIds.has(post.postId),
     bookmarked: bookmarkedPostIds.has(post.postId),
@@ -235,7 +238,7 @@ function mapLikedPostsToPostCard(
     createdAt: formatRelativeDate(post.createdAt),
     likes: post.likeCount,
     comments: post.commentCount,
-    views: 0,
+    views: post.viewCount,
     tags: [],
     liked: likedPostIds.has(post.postId),
     bookmarked: bookmarkedPostIds.has(post.postId),

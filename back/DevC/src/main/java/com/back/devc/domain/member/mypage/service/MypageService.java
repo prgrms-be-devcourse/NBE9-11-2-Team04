@@ -58,6 +58,7 @@ public class MypageService {
                         post.getTitle(),
                         post.getLikeCount(),
                         post.getCommentCount(),
+                        post.getViewCount(),
                         post.getCreatedAt()
                 ))
                 .toList();

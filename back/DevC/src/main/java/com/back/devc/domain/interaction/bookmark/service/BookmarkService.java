@@ -104,6 +104,7 @@ public class BookmarkService {
                             post.getCategory().getCategoryId(),
                             post.getLikeCount(),
                             post.getCommentCount(),
+                            post.getViewCount(),
                             post.getCreatedAt()
                     );
                 })
