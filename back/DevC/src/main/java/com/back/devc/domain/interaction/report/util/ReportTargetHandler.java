@@ -107,12 +107,12 @@ public class ReportTargetHandler {
         return switch (targetType) {
             case POST -> postRepository.findById(targetId)
                     .map(Post::getMember)
-                    .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_TARGET_USER_NOT_FOUND)); // [에러] 신고 대상 포스트가 없음
+                    .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_404_TARGET_USER)); // [에러] 신고 대상 포스트가 없음
 
             case COMMENT -> commentRepository.findById(targetId)
                     .map(Comment::getUserId)
                     .flatMap(memberRepository::findById)
-                    .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_TARGET_USER_NOT_FOUND)); // [에러] 신고 대상 댓글 혹은 작성자가 없음        };
+                    .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_404_TARGET_USER)); // [에러] 신고 대상 댓글 혹은 작성자가 없음        };
         };
     }
 
