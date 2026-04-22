@@ -12,12 +12,11 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     // 게시글 기준 댓글 조회
     List<Comment> findByPostIdOrderByCreatedAtAsc(Long postId);
 
-    // 내가 쓴 댓글 조회 (기존 - 유지)
+    // 내가 쓴 댓글 조회
     List<Comment> findByUserIdAndIsDeletedFalseOrderByCreatedAtDesc(Long userId);
 
     long countByUserIdAndIsDeletedFalse(Long userId);
 
-    // ✅ 추가 (핵심🔥)
     @Query("""
         SELECT new com.back.devc.domain.member.mypage.dto.MyCommentResponse(
             c.id,
@@ -30,6 +29,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
         JOIN Post p ON c.postId = p.postId
         WHERE c.userId = :userId
           AND c.isDeleted = false
+          AND p.isDeleted = false
         ORDER BY c.createdAt DESC
     """)
     List<MyCommentResponse> findMyComments(Long userId);

@@ -35,7 +35,7 @@ public class BookmarkService {
                         BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.getCode()
                 ));
 
-        Post post = postRepository.findById(command.postId())
+        Post post = postRepository.findByPostIdAndIsDeletedFalse(command.postId())
                 .orElseThrow(() -> new EntityNotFoundException(
                         BookmarkErrorCode.BOOKMARK_404_POST_NOT_FOUND.getCode()
                 ));
@@ -63,7 +63,7 @@ public class BookmarkService {
                         BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.getCode()
                 ));
 
-        Post post = postRepository.findById(command.postId())
+        Post post = postRepository.findByPostIdAndIsDeletedFalse(command.postId())
                 .orElseThrow(() -> new EntityNotFoundException(
                         BookmarkErrorCode.BOOKMARK_404_POST_NOT_FOUND.getCode()
                 ));
@@ -92,7 +92,7 @@ public class BookmarkService {
                         BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.getCode()
                 ));
 
-        List<Bookmark> bookmarks = bookmarkRepository.findAllByMember(member);
+        List<Bookmark> bookmarks = bookmarkRepository.findAllByMemberAndPost_IsDeletedFalse(member);
 
         return bookmarks.stream()
                 .map(bookmark -> {
