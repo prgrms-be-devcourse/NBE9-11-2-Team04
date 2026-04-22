@@ -2,9 +2,6 @@ package com.back.devc.domain.post.post.dto;
 
 import com.back.devc.domain.post.post.entity.Post;
 
-import lombok.Builder;
-
-@Builder
 public record PostUpdateResponse(
         Long postId,
         String title,
@@ -15,11 +12,11 @@ public record PostUpdateResponse(
 
         var category = post.getCategory();
 
-        return PostUpdateResponse.builder()
-                .postId(post.getPostId())
-                .title(post.getTitle())
-                .content(post.getContent())
-                .categoryId(category != null ? category.getCategoryId() : null)
-                .build();
+        return new PostUpdateResponse(
+                post.getPostId(),
+                post.getTitle(),
+                post.getContent(),
+                category != null ? category.getCategoryId() : null
+        );
     }
 }
