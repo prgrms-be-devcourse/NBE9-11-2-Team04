@@ -227,38 +227,38 @@ export default function PostDetailPage() {
     }
   }, [loginPath])
 
-  useEffect(() => {
-    const loadPost = async () => {
-      if (!postId || Number.isNaN(postId)) {
-        setLoading(false)
-        return
-      }
-
-      try {
-        setLoading(true)
-        setError(null)
-
-        const response = await fetch(`${API_BASE_URL}/api/posts/${postId}`, {
-          credentials: "include",
-          headers: getAuthHeaders(),
-          cache: "no-store",
-        })
-
-        if (!response.ok) {
-          throw new Error("게시글을 불러오지 못했습니다.")
-        }
-
-        const res = await response.json()
-        setPost(res.data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
-      } finally {
-        setLoading(false)
-      }
+  const loadPost = useCallback(async () => {
+    if (!postId || Number.isNaN(postId)) {
+      setLoading(false)
+      return
     }
 
-    void loadPost()
+    try {
+      setLoading(true)
+      setError(null)
+
+      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}`, {
+        credentials: "include",
+        headers: getAuthHeaders(),
+        cache: "no-store",
+      })
+
+      if (!response.ok) {
+        throw new Error("게시글을 불러오지 못했습니다.")
+      }
+
+      const res = await response.json()
+      setPost(res.data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
+    } finally {
+      setLoading(false)
+    }
   }, [postId])
+
+  useEffect(() => {
+    void loadPost()
+  }, [loadPost])
 
   useEffect(() => {
     const loadMe = async () => {
@@ -469,7 +469,7 @@ export default function PostDetailPage() {
         )}
       </section>
 
-      <CommentSection postId={postId} />
+      <CommentSection postId={postId} onCommentsChanged={loadPost} />
     </main>
   )
 }

@@ -242,9 +242,24 @@ export default function HomePage() {
       void loadPosts()
     }
 
+    const handleWindowFocus = () => {
+      void loadPosts()
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void loadPosts()
+      }
+    }
+
     window.addEventListener(AUTH_CHANGED_EVENT, handleAuthChanged)
+    window.addEventListener("focus", handleWindowFocus)
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+
     return () => {
       window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChanged)
+      window.removeEventListener("focus", handleWindowFocus)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
     }
   }, [loadPosts])
 

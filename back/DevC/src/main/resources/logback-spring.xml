@@ -10,7 +10,7 @@
     <!-- ========================= -->
     <springProfile name="dev">
 
-        <property name="LOG_LEVEL" value="DEBUG"/>
+        <property name="LOG_LEVEL" value="INFO"/>
 
         <property name="CONSOLE_PATTERN"
                   value="%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) %magenta(%-4relative) --- [ %thread{10} ] %cyan(%logger{30}) : %msg%n"/>
@@ -38,10 +38,12 @@
             </rollingPolicy>
         </appender>
 
-        <logger name="org.springframework.web.filter.CommonsRequestLoggingFilter" level="DEBUG"/>
-        <logger name="org.springframework" level="INFO"/>
-        <logger name="org.hibernate" level="INFO"/>
-        <logger name="org.h2.server.web" level="INFO"/>
+        <logger name="com.back.devc" level="INFO"/>
+        <logger name="org.springframework.web.filter.CommonsRequestLoggingFilter" level="WARN"/>
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="org.hibernate" level="WARN"/>
+        <logger name="org.h2.server.web" level="WARN"/>
+        <logger name="com.zaxxer.hikari" level="WARN"/>
 
         <root level="${LOG_LEVEL}">
             <appender-ref ref="CONSOLE"/>
