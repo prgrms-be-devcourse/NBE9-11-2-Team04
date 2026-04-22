@@ -2,14 +2,19 @@ package com.back.devc.global.exception;
 
 public class ApiException extends RuntimeException {
 
-    private final ErrorCode errorCode;
+    private final ErrorCodeSpec errorCode;
 
     public ApiException(ErrorCode errorCode) {
         super(errorCode.getMessage());
         this.errorCode = errorCode;
     }
 
-    public ErrorCode getErrorCode() {
+    public ApiException(ErrorCodeSpec errorCode) {
+        super(errorCode.getMessage());
+        this.errorCode = errorCode;
+    }
+
+    public ErrorCodeSpec getErrorCode() {
         return errorCode;
     }
 }
