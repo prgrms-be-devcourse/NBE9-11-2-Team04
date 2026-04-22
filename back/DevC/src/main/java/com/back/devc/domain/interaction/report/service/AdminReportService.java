@@ -140,7 +140,7 @@ public class AdminReportService {
                 targetType, targetId, ReportStatus.PENDING);
 
         if (reports.isEmpty()) {
-            throw new ApiException(ReportErrorCode.REPORT_NO_PENDING_FOUND);
+            throw new ApiException(ReportErrorCode.REPORT_404_PENDING_LIST);
         }
 
         reports.forEach(r -> r.processReport(admin));
@@ -164,7 +164,7 @@ public class AdminReportService {
                 targetType, targetId, ReportStatus.PENDING);
 
         if (reports.isEmpty()) {
-            throw new ApiException(ReportErrorCode.REPORT_NO_PENDING_FOUND); // [보완] 대상 없으면 에러
+            throw new ApiException(ReportErrorCode.REPORT_404_PENDING_LIST); // [보완] 대상 없으면 에러
         }
 
         reports.forEach(r -> r.rejectReport(admin));
@@ -178,13 +178,13 @@ public class AdminReportService {
 
     private void validateAdminRole(Member member) {
         if (!member.isAdmin()) {
-            throw new ApiException(ReportErrorCode.REPORT_UNAUTHORIZED_ADMIN_ACCESS);
+            throw new ApiException(ReportErrorCode.REPORT_403_UNAUTHORIZED_ADMIN);
         }
     }
 
     private void validateTargetExists(TargetType type, Long targetId) {
         if (!reportTargetHandler.exists(type, targetId)) {
-            throw new ApiException(ReportErrorCode.REPORT_TARGET_NOT_FOUND);
+            throw new ApiException(ReportErrorCode.REPORT_404_TARGET);
         }
     }
 
@@ -192,19 +192,19 @@ public class AdminReportService {
         // SanctionType.SUSPENDED 인지 enum으로 체크하는 것이 좋습니다.
         if (SanctionType.SUSPENDED.equals(dto.sanctionType()) &&
                 (dto.suspensionDays() == null || dto.suspensionDays() <= 0)) {
-            throw new ApiException(ReportErrorCode.REPORT_INVALID_SANCTION_PARAMETER);
+            throw new ApiException(ReportErrorCode.REPORT_400_INVALID_SANCTION_PARAMETER);
         }
     }
 
     private void validatePendingStatus(Report report) {
         if (report.getStatus() != ReportStatus.PENDING) {
-            throw new ApiException(ReportErrorCode.REPORT_REPORT_ALREADY_PROCESSED);
+            throw new ApiException(ReportErrorCode.REPORT_409_ALREADY_REPORT);
         }
     }
 
     private Report findReportOrThrow(Long reportId) {
         return reportRepository.findById(reportId)
-                .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_404_REPORT));
     }
 
     private Member findMemberOrThrow(Long userId) {

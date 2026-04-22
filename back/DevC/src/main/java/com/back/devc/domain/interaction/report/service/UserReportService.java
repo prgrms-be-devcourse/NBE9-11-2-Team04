@@ -68,27 +68,27 @@ public class UserReportService {
 
         if (type == TargetType.POST) {
             Post post = postRepository.findById(targetId)
-                    .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_TARGET_NOT_FOUND));
+                    .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_404_TARGET));
 
             if (post.getMember().getUserId().equals(reporterId)) {
-                throw new ApiException(ReportErrorCode.REPORT_CANNOT_REPORT_SELF);
+                throw new ApiException(ReportErrorCode.REPORT_400_REPORT_SELF);
             }
 
             if (post.isDeleted()) {
-                throw new ApiException(ReportErrorCode.REPORT_ALREADY_DELETED);
+                throw new ApiException(ReportErrorCode.REPORT_410_ALREADY_DELETED);
             }
         }
 
         if (type == TargetType.COMMENT) {
             Comment comment = commentRepository.findById(targetId)
-                    .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_TARGET_NOT_FOUND));
+                    .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_404_TARGET));
 
             if (comment.getUserId().equals(reporterId)) {
-                throw new ApiException(ReportErrorCode.REPORT_CANNOT_REPORT_SELF);
+                throw new ApiException(ReportErrorCode.REPORT_400_REPORT_SELF);
             }
 
             if (comment.isDeleted()) {
-                throw new ApiException(ReportErrorCode.REPORT_ALREADY_DELETED);
+                throw new ApiException(ReportErrorCode.REPORT_410_ALREADY_DELETED);
             }
         }
     }
@@ -96,7 +96,7 @@ public class UserReportService {
     private void validateDuplicateReport(Member reporter, TargetType type, Long targetId) {
         if (reportRepository.existsByReporterAndTargetTypeAndTargetId(
                 reporter, type, targetId)) {
-            throw new ApiException(ReportErrorCode.REPORT_ALREADY_EXISTS);
+            throw new ApiException(ReportErrorCode.REPORT_409_ALREADY_REPORT_USER);
         }
     }
 
