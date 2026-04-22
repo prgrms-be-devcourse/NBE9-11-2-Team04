@@ -5,6 +5,7 @@ import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.service.PostService;
 import com.back.devc.domain.post.post.type.PostSearchType;
 import com.back.devc.domain.post.post.type.PostSortType;
+import com.back.devc.global.response.successCode.PostSuccessCode;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,7 @@ public class PostController {
 
         PostCreateResponse response = postService.write(userId, request);
 
-        SuccessCode successCode = SuccessCode.POST_CREATE_SUCCESS;
+        PostSuccessCode successCode = PostSuccessCode.POST_201_CREATE_SUCCESS;
 
         return ResponseEntity
                 .status(successCode.getStatus())
@@ -50,14 +51,13 @@ public class PostController {
         Long loginUserId = principal != null ? principal.userId() : null;
 
         PostDetailResponse response = postService.findDetailById(postid, loginUserId);
-        SuccessCode successCode = SuccessCode.POST_DETAIL_SUCCESS;
+        PostSuccessCode successCode = PostSuccessCode.POST_200_DETAIL_SUCCESS;
 
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, response));
 
     }
-
 
     //게시글 목록조회
     @GetMapping
@@ -82,7 +82,7 @@ public class PostController {
                 size
         );
 
-        SuccessCode successCode = SuccessCode.POST_LIST_SUCCESS;
+        PostSuccessCode successCode = PostSuccessCode.POST_200_LIST_SUCCESS;
 
         return ResponseEntity
                 .status(successCode.getStatus())
@@ -101,7 +101,7 @@ public class PostController {
 
         PostUpdateResponse response = postService.update(userId, postId, request);
 
-        SuccessCode successCode = SuccessCode.POST_UPDATE_SUCCESS;
+        PostSuccessCode successCode = PostSuccessCode.POST_200_UPDATE_SUCCESS;
 
         return ResponseEntity
                 .status(successCode.getStatus())
@@ -118,7 +118,7 @@ public class PostController {
 
         PostDeleteResponse response = postService.delete(userId, postId);
 
-        SuccessCode successCode = SuccessCode.POST_DELETE_SUCCESS;
+        PostSuccessCode successCode = PostSuccessCode.POST_200_DELETE_SUCCESS;
 
         return ResponseEntity
                 .status(successCode.getStatus())

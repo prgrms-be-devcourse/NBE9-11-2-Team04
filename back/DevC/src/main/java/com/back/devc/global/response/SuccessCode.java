@@ -22,13 +22,6 @@ public enum SuccessCode {
     REPORT_COMMENT_SUCCESS(HttpStatus.CREATED, "REPORT_201_COMMENT", "댓글 신고가 정상적으로 접수되었습니다."),
 
 
-    POST_CREATE_SUCCESS(HttpStatus.CREATED,"POST_201_CREATE_SUCCESS", "게시글 작성 성공"),
-    POST_LIST_SUCCESS(HttpStatus.OK,"POST_200_LIST_SUCCESS", "게시글 목록 조회 성공"),
-    POST_DETAIL_SUCCESS(HttpStatus.OK,"POST_200_DETAIL_SUCCESS", "게시글 상세 조회 성공"),
-    POST_UPDATE_SUCCESS(HttpStatus.OK,"POST_200_UPDATE_SUCCESS", "게시글 수정 성공"),
-    POST_DELETE_SUCCESS(HttpStatus.OK,"POST_200_DELETE_SUCCESS", "게시글 삭제 성공"),
-
-
     // 대시보드 관련 성공 코드
     DASHBOARD_LIST(HttpStatus.OK, "DASHBOARD_200_LIST", "대시보드 조회 성공"),
 
