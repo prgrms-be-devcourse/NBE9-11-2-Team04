@@ -17,7 +17,7 @@ public class GlobalExceptionHandler {
     // 비즈니스 예외 처리 (예: 이메일/닉네임 중복)
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ErrorResponse> handleApiException(ApiException e) {
-        ErrorCode errorCode = e.getErrorCode();
+        ErrorCodeSpec errorCode = e.getErrorCode();
         return ResponseEntity
                 .status(errorCode.getStatus())
                 .body(ErrorResponse.of(errorCode));

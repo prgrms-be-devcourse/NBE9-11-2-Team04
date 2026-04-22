@@ -6,7 +6,8 @@ import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentRespons
 import com.back.devc.domain.post.comment.attachment.entity.CommentAttachment;
 import com.back.devc.domain.post.comment.attachment.repository.CommentAttachmentRepository;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.back.devc.global.exception.ApiException;
+import com.back.devc.global.exception.errorCode.CommentAttachmentErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +38,7 @@ public class CommentAttachmentService {
             List<Integer> fileOrders
     ) {
         commentRepository.findById(commentId)
-                .orElseThrow(() -> new EntityNotFoundException("댓글을 찾을 수 없습니다. id=" + commentId));
+                .orElseThrow(() -> new ApiException(CommentAttachmentErrorCode.COMMENT_ATTACHMENT_404_COMMENT_NOT_FOUND));
 
         if (files == null || files.isEmpty()) {
             return new CommentAttachmentListResponse(List.of());
@@ -109,7 +110,7 @@ public class CommentAttachmentService {
             Path targetPath = COMMENT_UPLOAD_DIR.resolve(storedName);
             Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            throw new UncheckedIOException("댓글 첨부파일 저장에 실패했습니다.", e);
+            throw new ApiException(CommentAttachmentErrorCode.COMMENT_ATTACHMENT_500_SAVE_FAILED);
         }
     }
 
@@ -118,13 +119,13 @@ public class CommentAttachmentService {
             Path targetPath = COMMENT_UPLOAD_DIR.resolve(storedName);
             Files.deleteIfExists(targetPath);
         } catch (IOException e) {
-            throw new UncheckedIOException("댓글 첨부파일 삭제에 실패했습니다.", e);
+            throw new ApiException(CommentAttachmentErrorCode.COMMENT_ATTACHMENT_500_DELETE_FAILED);
         }
     }
 
     public CommentAttachmentListResponse getAttachments(Long commentId) {
         commentRepository.findById(commentId)
-                .orElseThrow(() -> new EntityNotFoundException("댓글을 찾을 수 없습니다. id=" + commentId));
+                .orElseThrow(() -> new ApiException(CommentAttachmentErrorCode.COMMENT_ATTACHMENT_404_COMMENT_NOT_FOUND));
 
         List<CommentAttachmentResponse> responses = commentAttachmentRepository.findByCommentIdOrderByFileOrderAscIdAsc(commentId)
                 .stream()
@@ -148,10 +149,10 @@ public class CommentAttachmentService {
     @Transactional
     public CommentAttachmentDeleteResponse deleteAttachment(Long commentId, Long attachmentId) {
         commentRepository.findById(commentId)
-                .orElseThrow(() -> new EntityNotFoundException("댓글을 찾을 수 없습니다. id=" + commentId));
+                .orElseThrow(() -> new ApiException(CommentAttachmentErrorCode.COMMENT_ATTACHMENT_404_COMMENT_NOT_FOUND));
 
         CommentAttachment attachment = commentAttachmentRepository.findByIdAndCommentId(attachmentId, commentId)
-                .orElseThrow(() -> new EntityNotFoundException("댓글 첨부파일을 찾을 수 없습니다. id=" + attachmentId));
+                .orElseThrow(() -> new ApiException(CommentAttachmentErrorCode.COMMENT_ATTACHMENT_404_NOT_FOUND));
 
         deleteFileIfExists(attachment.getStoredName());
         commentAttachmentRepository.delete(attachment);
