@@ -42,14 +42,14 @@ export default function MyLikesPage() {
         setError("");
 
         const res = await apiFetch<SuccessResponse<LikedPostResponse[]>>(
-          "/users/me/likes",
+          "/api/mypage/likes",
           {
             method: "GET",
             auth: true,
           }
         );
 
-        setLikes(res.data ?? []);
+        setLikes(res?.data ?? []);
       } catch (err) {
         if (err instanceof Error && err.message === "UNAUTHORIZED") {
           router.replace("/login");
@@ -63,7 +63,7 @@ export default function MyLikesPage() {
       }
     };
 
-    fetchLikes();
+    void fetchLikes();
   }, [router]);
 
   return (

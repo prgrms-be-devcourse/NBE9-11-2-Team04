@@ -28,6 +28,13 @@ import {
 } from "@/lib/auth-storage"
 import { apiFetch } from "@/lib/api"
 
+type SuccessResponse<T> = {
+  code: string
+  message: string
+  timestamp: string
+  data: T
+}
+
 type MyProfileResponse = {
   userId: number
   email: string
@@ -307,36 +314,38 @@ export default function MyPage() {
 
   const refreshInteractionData = useCallback(async () => {
     const [bookmarksRes, likesRes, commentsRes] = await Promise.allSettled([
-      apiFetch<BookmarkedPostResponse[]>("/api/mypage/bookmarks", {
+      apiFetch<SuccessResponse<BookmarkedPostResponse[]>>("/api/mypage/bookmarks", {
         method: "GET",
         auth: true,
       }),
-      apiFetch<LikedPostResponse[]>("/api/mypage/likes", {
+      apiFetch<SuccessResponse<LikedPostResponse[]>>("/api/mypage/likes", {
         method: "GET",
         auth: true,
       }),
-      apiFetch<MyCommentsResponse>("/api/mypage/comments", {
+      apiFetch<SuccessResponse<MyCommentsResponse>>("/api/mypage/comments", {
         method: "GET",
         auth: true,
       }),
     ])
 
     if (bookmarksRes.status === "fulfilled") {
-      const bookmarks = bookmarksRes.value ?? []
+      const bookmarks = bookmarksRes.value?.data ?? []
       setBookmarkedPosts(bookmarks)
       setBookmarkCount(bookmarks.length)
       setMyBookmarkedPostIds(new Set(bookmarks.map((post) => post.postId)))
     }
 
     if (likesRes.status === "fulfilled") {
-      const likes = likesRes.value ?? []
+      const likes = likesRes.value?.data ?? []
       setLikedPosts(likes)
       setLikeCount(likes.length)
       setMyLikedPostIds(new Set(likes.map((post) => post.postId)))
     }
 
     if (commentsRes.status === "fulfilled") {
-      setCommentCount(commentsRes.value?.comments?.length ?? 0)
+      const comments = commentsRes.value?.data?.comments ?? []
+      setMyComments(comments)
+      setCommentCount(comments.length)
     }
   }, [])
 
@@ -360,18 +369,21 @@ export default function MyPage() {
         setError("")
 
         const [profileRes, postsRes] = await Promise.all([
-          apiFetch<MyProfileResponse>("/api/mypage", {
+          apiFetch<SuccessResponse<MyProfileResponse>>("/api/mypage", {
             method: "GET",
             auth: true,
           }),
-          apiFetch<MyPostResponse[]>("/api/mypage/posts", {
+          apiFetch<SuccessResponse<MyPostResponse[]>>("/api/mypage/posts", {
             method: "GET",
             auth: true,
           }),
         ])
 
-        const nextName = profileRes.nickname?.trim() || "김개발"
-        const nextEmail = profileRes.email?.trim() || ""
+        const profile = profileRes?.data
+        const posts = postsRes?.data ?? []
+
+        const nextName = profile?.nickname?.trim() || "김개발"
+        const nextEmail = profile?.email?.trim() || ""
         const nextUsername = nextEmail
           ? nextEmail.split("@")[0]
           : nextName.replace(/\s+/g, "")
@@ -379,7 +391,7 @@ export default function MyPage() {
         setDisplayName(nextName)
         setDisplayEmail(nextEmail)
         setDisplayUsername(nextUsername)
-        setMyPosts(postsRes ?? [])
+        setMyPosts(posts)
 
         persistLoginSession(undefined, nextName, nextEmail)
 
@@ -518,13 +530,14 @@ export default function MyPage() {
         setTabLoading(true)
         setError("")
 
-        const res = await apiFetch<MyCommentsResponse>("/api/mypage/comments", {
+        const res = await apiFetch<SuccessResponse<MyCommentsResponse>>("/api/mypage/comments", {
           method: "GET",
           auth: true,
         })
 
-        setMyComments(res?.comments ?? [])
-        setCommentCount(res?.comments?.length ?? 0)
+        const comments = res?.data?.comments ?? []
+        setMyComments(comments)
+        setCommentCount(comments.length)
       } catch (err) {
         console.error(err)
         setError("댓글 목록을 불러오지 못했습니다.")

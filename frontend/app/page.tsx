@@ -13,8 +13,14 @@ import {
 } from "@/lib/auth-storage"
 import { apiFetch } from "@/lib/api"
 
+type SuccessResponse<T> = {
+  code: string
+  message: string
+  timestamp: string
+  data: T
+}
+
 type PostPageResponse = {
-  data: {
   content: {
     postId: number
     title: string
@@ -28,7 +34,6 @@ type PostPageResponse = {
     liked?: boolean
     bookmarked?: boolean
   }[]
-}
 }
 
 type BookmarkedPostResponse = {
@@ -153,7 +158,7 @@ export default function HomePage() {
         }
 
         const res = await response.json()
-        const data: PostPageResponse["data"] = res.data
+        const data: PostPageResponse = res.data
 
         const mapped: Post[] = data.content.map((post) => ({
           id: String(post.postId),
@@ -188,18 +193,18 @@ export default function HomePage() {
         }
 
         const [bookmarksRes, likesRes] = await Promise.all([
-          apiFetch<BookmarkedPostResponse[]>("/api/mypage/bookmarks", {
+          apiFetch<SuccessResponse<BookmarkedPostResponse[]>>("/api/mypage/bookmarks", {
             method: "GET",
             auth: true,
           }),
-          apiFetch<LikedPostResponse[]>("/api/mypage/likes", {
+          apiFetch<SuccessResponse<LikedPostResponse[]>>("/api/mypage/likes", {
             method: "GET",
             auth: true,
           }),
         ])
 
-        const bookmarks = bookmarksRes ?? []
-        const likes = likesRes ?? []
+        const bookmarks = bookmarksRes?.data ?? []
+        const likes = likesRes?.data ?? []
 
         const bookmarkedPostIds = new Set(bookmarks.map((post) => post.postId))
         const likedPostIds = new Set(likes.map((post) => post.postId))

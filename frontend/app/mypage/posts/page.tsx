@@ -6,6 +6,13 @@ import { PostCard, type Post } from "@/components/post-card"
 import { apiFetch } from "@/lib/api"
 import { getAuthSnapshot } from "@/lib/auth-storage"
 
+type SuccessResponse<T> = {
+  code: string
+  message: string
+  timestamp: string
+  data: T
+}
+
 type MyPostResponse = {
   postId: number
   title: string
@@ -95,28 +102,30 @@ export default function MyPostsPage() {
         setError("")
 
         const [postsRes, profileRes, likesRes, bookmarksRes] = await Promise.all([
-          apiFetch<MyPostResponse[]>("/api/mypage/posts", {
+          apiFetch<SuccessResponse<MyPostResponse[]>>("/api/mypage/posts", {
             method: "GET",
             auth: true,
           }),
-          apiFetch<MyProfileResponse>("/api/mypage", {
+          apiFetch<SuccessResponse<MyProfileResponse>>("/api/mypage", {
             method: "GET",
             auth: true,
           }),
-          apiFetch<LikedPostResponse[]>("/api/mypage/likes", {
+          apiFetch<SuccessResponse<LikedPostResponse[]>>("/api/mypage/likes", {
             method: "GET",
             auth: true,
           }),
-          apiFetch<BookmarkedPostResponse[]>("/api/mypage/bookmarks", {
+          apiFetch<SuccessResponse<BookmarkedPostResponse[]>>("/api/mypage/bookmarks", {
             method: "GET",
             auth: true,
           }),
         ])
 
-        const nextPosts = postsRes ?? []
-        const nextNickname = profileRes?.nickname ?? ""
-        const nextLikedPostIds = new Set((likesRes ?? []).map((post) => post.postId))
-        const nextBookmarkedPostIds = new Set((bookmarksRes ?? []).map((post) => post.postId))
+        const nextPosts = postsRes?.data ?? []
+        const nextNickname = profileRes?.data?.nickname ?? ""
+        const nextLikedPostIds = new Set((likesRes?.data ?? []).map((post) => post.postId))
+        const nextBookmarkedPostIds = new Set(
+          (bookmarksRes?.data ?? []).map((post) => post.postId)
+        )
 
         setPosts(nextPosts)
         setNickname(nextNickname)
