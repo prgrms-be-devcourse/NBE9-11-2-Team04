@@ -101,7 +101,7 @@ public class PostLikeService {
     public List<LikedPostResponse> getLikedPosts(LikedPostsQuery query) {
         Member member = findMemberById(query.userId());
 
-        List<PostLike> postLikes = postLikeRepository.findAllByMember(member);
+        List<PostLike> postLikes = postLikeRepository.findAllByMemberAndPost_IsDeletedFalse(member);
 
         return postLikes.stream()
                 .map(postLike -> {
@@ -135,7 +135,7 @@ public class PostLikeService {
      * 서비스 내부 중복 제거용
      */
     private Post findPostById(Long postId) {
-        return postRepository.findById(postId)
+        return postRepository.findByPostIdAndIsDeletedFalse(postId)
                 .orElseThrow(() -> new EntityNotFoundException(
                         PostLikeErrorCode.POST_LIKE_404_POST_NOT_FOUND.getCode()
                 ));

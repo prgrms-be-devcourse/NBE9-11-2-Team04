@@ -26,6 +26,16 @@ public interface PostLikeRepository extends JpaRepository<PostLike, Long> {
     List<PostLike> findAllByMember(Member member);
 
     /**
+     * 삭제되지 않은 게시글에 대한 좋아요 목록만 조회
+     */
+    List<PostLike> findAllByMemberAndPost_IsDeletedFalse(Member member);
+
+    /**
+     * 특정 게시글에 연결된 좋아요 전체 삭제
+     */
+    void deleteByPost_PostId(Long postId);
+
+    /**
      * userId, postId 기반 존재 여부 확인
      * 필요 시 엔티티 조회 없이 빠르게 체크할 수 있다.
      */

@@ -50,7 +50,7 @@ public class MypageService {
     public List<MyPostResponse> getMyPosts(Long userId) {
         Member member = getMember(userId);
 
-        List<Post> posts = postRepository.findAllByMember(member);
+        List<Post> posts = postRepository.findAllByMemberAndIsDeletedFalse(member);
 
         return posts.stream()
                 .map(post -> new MyPostResponse(

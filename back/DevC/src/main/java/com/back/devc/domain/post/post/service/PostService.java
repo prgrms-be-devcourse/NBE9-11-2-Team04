@@ -40,7 +40,7 @@ public class PostService {
                 .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다."));
 
         Category category = categoryRepository.findById(request.categoryId())
-                .orElseThrow(() -> new ApiException(CategoryErrorCode.CATEGORY_404_NOT_FOUND));;
+                .orElseThrow(() -> new ApiException(CategoryErrorCode.CATEGORY_404_NOT_FOUND));
 
         Post post = Post.builder()
                 .member(member)
@@ -54,12 +54,13 @@ public class PostService {
         return PostCreateResponse.from(saved);
     }
 
-
     @Transactional
     public PostDetailResponse findDetailById(Long postId, Long loginUserId) {
         Post post = postRepository.findByPostIdAndIsDeletedFalse(postId)
                 .orElseThrow(() -> new ApiException(PostErrorCode.POST_404_NOT_FOUND));
+
         post.increaseViewCount();
+
         boolean liked = loginUserId != null
                 && postLikeRepository.existsByMember_UserIdAndPost_PostId(loginUserId, postId);
 
@@ -197,6 +198,9 @@ public class PostService {
         if (post.isDeleted()) {
             throw new ApiException(PostErrorCode.POST_401_1_ALREADY_DELETED);
         }
+
+        bookmarkRepository.deleteByPost_PostId(postId);
+        postLikeRepository.deleteByPost_PostId(postId);
 
         post.delete();
 
