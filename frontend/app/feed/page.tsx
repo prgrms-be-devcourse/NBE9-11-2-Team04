@@ -11,11 +11,18 @@ import { getAuthSnapshot } from "@/lib/auth-storage"
 import Link from "next/link"
 import { categoryLabelMap, categorySlugMap } from "@/constants/category"
 
+type SuccessResponse<T> = {
+  code: string
+  message: string
+  timestamp: string
+  data: T
+}
+
 type BookmarkedPostResponse = {
   postId: number
   title: string
   authorNickname: string
-  categoryId : number
+  categoryId: number
   likeCount: number
   commentCount: number
   createdAt: string
@@ -91,18 +98,18 @@ export default function FeedPage() {
         setError("")
 
         const [bookmarksRes, likesRes] = await Promise.all([
-          apiFetch<BookmarkedPostResponse[]>("/api/mypage/bookmarks", {
+          apiFetch<SuccessResponse<BookmarkedPostResponse[]>>("/api/mypage/bookmarks", {
             method: "GET",
             auth: true,
           }),
-          apiFetch<LikedPostResponse[]>("/api/mypage/likes", {
+          apiFetch<SuccessResponse<LikedPostResponse[]>>("/api/mypage/likes", {
             method: "GET",
             auth: true,
           }),
         ])
 
-        const bookmarks = bookmarksRes ?? []
-        const likes = likesRes ?? []
+        const bookmarks = bookmarksRes?.data ?? []
+        const likes = likesRes?.data ?? []
 
         setBookmarkedPosts(bookmarks)
         setBookmarkedPostIds(new Set(bookmarks.map((post) => post.postId)))

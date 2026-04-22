@@ -24,6 +24,13 @@ import {
   saveCurrentUserProfile,
 } from "@/lib/auth-storage"
 
+type SuccessResponse<T> = {
+  code: string
+  message: string
+  timestamp: string
+  data: T
+}
+
 type MyProfileResponse = {
   userId: number
   email: string
@@ -75,17 +82,23 @@ export default function MyPageEditPage() {
         setLoading(true)
         setError("")
 
-        const profile = await apiFetch<MyProfileResponse>("/api/mypage", {
+        const response = await apiFetch<SuccessResponse<MyProfileResponse>>("/api/mypage", {
           method: "GET",
           auth: true,
         })
 
+        const profile = response?.data
+
         setForm({
-          email: profile.email ?? "",
-          nickname: profile.nickname ?? "",
+          email: profile?.email ?? "",
+          nickname: profile?.nickname ?? "",
         })
 
-        persistLoginSession(undefined, profile.nickname ?? "", profile.email ?? "")
+        persistLoginSession(
+          undefined,
+          profile?.nickname ?? "",
+          profile?.email ?? ""
+        )
 
         const savedProfile = getCurrentUserProfile()
 
@@ -147,13 +160,23 @@ export default function MyPageEditPage() {
         nickname: form.nickname.trim(),
       }
 
-      const updatedProfile = await apiFetch<MyProfileResponse>("/api/mypage", {
+      const response = await apiFetch<SuccessResponse<MyProfileResponse>>("/api/mypage", {
         method: "PATCH",
         auth: true,
         body: JSON.stringify(requestBody),
       })
 
-      persistLoginSession(undefined, updatedProfile.nickname, updatedProfile.email)
+      const updatedProfile = response?.data
+
+      if (!updatedProfile) {
+        throw new Error("프로필 수정 응답이 올바르지 않습니다.")
+      }
+
+      persistLoginSession(
+        undefined,
+        updatedProfile.nickname,
+        updatedProfile.email
+      )
 
       saveCurrentUserProfile({
         email: updatedProfile.email,
@@ -164,6 +187,11 @@ export default function MyPageEditPage() {
         website: localProfile.website,
         github: localProfile.github,
         twitter: localProfile.twitter,
+      })
+
+      setForm({
+        email: updatedProfile.email,
+        nickname: updatedProfile.nickname,
       })
 
       alert("프로필 수정이 완료되었습니다.")

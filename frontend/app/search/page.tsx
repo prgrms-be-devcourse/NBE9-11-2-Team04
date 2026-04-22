@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Search, X, SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,6 +22,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Label } from "@/components/ui/label"
+import { getAccessToken } from "@/lib/auth-storage"
 
 const SEARCH_HISTORY_KEY = "searchHistory"
 const MAX_RECENT_SEARCHES = 5
@@ -31,10 +32,8 @@ const API_BASE_URL =
 
 const categories = [
   "전체",
-  ...Object.values(categoryLabelMap), // ✅ 여기만 변경
+  ...Object.values(categoryLabelMap),
 ]
-
-// ❌ categoryMap 삭제 (이거 안씀)
 
 const sortOptions = [
   { value: "latest", label: "최신순" },
@@ -44,6 +43,25 @@ const sortOptions = [
 const sortMap: Record<string, string> = {
   latest: "LATEST",
   popular: "LIKES",
+}
+
+type SearchPostItem = {
+  postId: number
+  title: string
+  content: string
+  nickName: string
+  userId?: number
+  categoryId: number
+  viewCount: number
+  likeCount: number
+  commentCount: number
+  createdAt: string
+  liked?: boolean
+  bookmarked?: boolean
+}
+
+type PostPageResponse = {
+  content: SearchPostItem[]
 }
 
 const formatTimeAgo = (dateString: string) => {
@@ -108,6 +126,19 @@ function clearSearchHistory() {
   localStorage.removeItem(SEARCH_HISTORY_KEY)
 }
 
+function getAuthHeaders(): HeadersInit {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  }
+
+  const token = getAccessToken()
+  if (token && token !== "oauth-cookie-session") {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  return headers
+}
+
 export default function SearchPage() {
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<Post[]>([])
@@ -133,7 +164,6 @@ export default function SearchPage() {
         setIsSearching(true)
         setError(null)
 
-        // ✅ 여기만 변경 (categoryMap → categoryLabelMap 기준)
         const categoryId =
           selectedCategory === "전체"
             ? null
@@ -156,6 +186,8 @@ export default function SearchPage() {
             method: "GET",
             signal,
             cache: "no-store",
+            credentials: "include",
+            headers: getAuthHeaders(),
           }
         )
 
@@ -164,10 +196,10 @@ export default function SearchPage() {
         }
 
         const res = await response.json()
-        const data = res.data
+        const data: PostPageResponse = res.data
 
         const mapped: Post[] = Array.isArray(data.content)
-          ? data.content.map((post: any) => ({
+          ? data.content.map((post) => ({
               id: String(post.postId),
               title: post.title,
               excerpt: post.content,
@@ -175,17 +207,16 @@ export default function SearchPage() {
                 name: post.nickName,
                 userId: post.userId,
               },
-              category:
-                categoryLabelMap[post.categoryId] ?? "", // ✅ 그대로 유지
-              categorySlug:
-                categorySlugMap[post.categoryId] ?? "",   // ✅ 그대로 유지
+              category: categoryLabelMap[post.categoryId] ?? "",
+              categorySlug: categorySlugMap[post.categoryId] ?? "",
+              categoryId: post.categoryId,
               createdAt: formatTimeAgo(post.createdAt),
               likes: post.likeCount,
               comments: post.commentCount,
               views: post.viewCount,
               tags: [],
-              liked: post.liked,
-              bookmarked: post.bookmarked,
+              liked: Boolean(post.liked),
+              bookmarked: Boolean(post.bookmarked),
             }))
           : []
 
@@ -432,7 +463,35 @@ export default function SearchPage() {
           ) : results.length > 0 ? (
             <div className="grid gap-6">
               {results.map((post) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onLikeToggle={(postId, nextLiked, nextLikeCount) => {
+                    setResults((prev) =>
+                      prev.map((p) =>
+                        Number(p.id) === postId
+                          ? {
+                              ...p,
+                              liked: nextLiked,
+                              likes: nextLikeCount,
+                            }
+                          : p
+                      )
+                    )
+                  }}
+                  onBookmarkToggle={(postId, nextBookmarked) => {
+                    setResults((prev) =>
+                      prev.map((p) =>
+                        Number(p.id) === postId
+                          ? {
+                              ...p,
+                              bookmarked: nextBookmarked,
+                            }
+                          : p
+                      )
+                    )
+                  }}
+                />
               ))}
             </div>
           ) : (

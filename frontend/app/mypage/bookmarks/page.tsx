@@ -6,6 +6,13 @@ import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { getAuthSnapshot } from "@/lib/auth-storage";
 
+type SuccessResponse<T> = {
+  code: string;
+  message: string;
+  timestamp: string;
+  data: T;
+};
+
 type BookmarkedPostResponse = {
   postId: number;
   title: string;
@@ -34,12 +41,15 @@ export default function MyBookmarksPage() {
         setLoading(true);
         setError("");
 
-        const res = await apiFetch<BookmarkedPostResponse[]>("/users/me/bookmarks", {
+        const res = await apiFetch<SuccessResponse<BookmarkedPostResponse[]>>(
+          "/api/mypage/bookmarks",
+          {
             method: "GET",
             auth: true,
-          });
+          }
+        );
 
-        setBookmarks(res ?? []);
+        setBookmarks(res?.data ?? []);
       } catch (err) {
         if (err instanceof Error && err.message === "UNAUTHORIZED") {
           router.replace("/login");
@@ -53,7 +63,7 @@ export default function MyBookmarksPage() {
       }
     };
 
-    fetchBookmarks();
+    void fetchBookmarks();
   }, [router]);
 
   return (

@@ -36,11 +36,7 @@ public class BookmarkController {
 
         return ResponseEntity
                 .status(successCode.getStatus())
-                .body(SuccessResponse.of(
-                        successCode.getCode(),
-                        successCode.getMessage(),
-                        response
-                ));
+                .body(SuccessResponse.of(successCode, response));
     }
 
     @DeleteMapping("/posts/{postId}/bookmarks")
@@ -58,10 +54,6 @@ public class BookmarkController {
 
         return ResponseEntity
                 .status(successCode.getStatus())
-                .body(SuccessResponse.of(
-                        successCode.getCode(),
-                        successCode.getMessage(),
-                        response
-                ));
+                .body(SuccessResponse.of(successCode, response));
     }
 }

@@ -31,6 +31,12 @@ type BookmarkResponse = {
   message?: string
 }
 
+type LikeWrappedResponse = {
+  code?: string
+  message?: string
+  data?: LikeResponse
+}
+
 type BookmarkWrappedResponse = {
   code?: string
   message?: string
@@ -145,10 +151,21 @@ export default function InteractionButtons({
 
     if (!requireAuth() || likeLoading) return
 
+    const prevLiked = liked
+    const prevLikeCount = likeCount
+    const optimisticLiked = !prevLiked
+    const optimisticLikeCount = optimisticLiked
+      ? prevLikeCount + 1
+      : Math.max(0, prevLikeCount - 1)
+
+    setLiked(optimisticLiked)
+    setLikeCount(optimisticLikeCount)
+    onLikeToggle?.(optimisticLiked, optimisticLikeCount)
+
     setLikeLoading(true)
 
     try {
-      const method = liked ? "DELETE" : "POST"
+      const method = prevLiked ? "DELETE" : "POST"
 
       const res = await fetch(`${API_BASE_URL}/api/posts/${postId}/likes`, {
         method,
@@ -159,22 +176,32 @@ export default function InteractionButtons({
       const parsed = await parseResponse(res)
 
       if (!res.ok) {
-        if (isUnauthorizedStatus(res.status) || isLoginRequiredMessage(parsed?.message)) {
-          openLoginRequiredPopup(parsed?.message || "로그인이 필요한 기능입니다.")
+        const errorMessage =
+          parsed?.message || parsed?.data?.message || "좋아요 실패"
+
+        if (isUnauthorizedStatus(res.status) || isLoginRequiredMessage(errorMessage)) {
+          openLoginRequiredPopup(errorMessage || "로그인이 필요한 기능입니다.")
+          setLiked(prevLiked)
+          setLikeCount(prevLikeCount)
+          onLikeToggle?.(prevLiked, prevLikeCount)
           return
         }
-        throw new Error(parsed?.message || "좋아요 실패")
+
+        throw new Error(errorMessage)
       }
 
-      const data = parsed as LikeResponse
-      const nextLiked = Boolean(data.liked)
-      const nextLikeCount = data.likeCount ?? likeCount
+      const wrapped = parsed as LikeWrappedResponse
+      const nextLiked = wrapped.data?.liked ?? optimisticLiked
+      const nextLikeCount = wrapped.data?.likeCount ?? optimisticLikeCount
 
       setLiked(nextLiked)
       setLikeCount(nextLikeCount)
       onLikeToggle?.(nextLiked, nextLikeCount)
     } catch (err) {
       console.error(err)
+      setLiked(prevLiked)
+      setLikeCount(prevLikeCount)
+      onLikeToggle?.(prevLiked, prevLikeCount)
     } finally {
       setLikeLoading(false)
     }
@@ -220,7 +247,7 @@ export default function InteractionButtons({
       }
 
       const wrapped = parsed as BookmarkWrappedResponse
-      const nextBookmarked = Boolean(wrapped.data?.bookmarked)
+      const nextBookmarked = wrapped.data?.bookmarked ?? optimistic
 
       setBookmarked(nextBookmarked)
       onBookmarkToggle?.(nextBookmarked)

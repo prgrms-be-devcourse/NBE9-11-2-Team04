@@ -1,5 +1,10 @@
 package com.back.devc.domain.post.comment.service;
 
+import com.back.devc.domain.interaction.notification.service.NotificationService;
+import com.back.devc.domain.member.member.entity.Member;
+import com.back.devc.domain.member.member.repository.MemberRepository;
+import com.back.devc.domain.member.member.util.MemberDisplayUtil;
+import com.back.devc.domain.post.comment.attachment.service.CommentAttachmentService;
 import com.back.devc.domain.post.comment.dto.CommentCreateRequest;
 import com.back.devc.domain.post.comment.dto.CommentDeleteResponse;
 import com.back.devc.domain.post.comment.dto.CommentListResponse;
@@ -7,14 +12,10 @@ import com.back.devc.domain.post.comment.dto.CommentResponse;
 import com.back.devc.domain.post.comment.dto.CommentUpdateRequest;
 import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
-import com.back.devc.domain.post.comment.attachment.service.CommentAttachmentService;
-import com.back.devc.domain.member.member.entity.Member;
-import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.errorCode.CommentErrorCode;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +24,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import com.back.devc.domain.interaction.notification.service.NotificationService;
 
 @Service
 @RequiredArgsConstructor
@@ -52,7 +52,8 @@ public class CommentService {
         );
         Comment savedComment = commentRepository.save(comment);
         notificationService.createCommentNotification(postId, loginUserId, savedComment.getId());
-        return toResponse(savedComment, post.getTitle(), member.getNickname());
+
+        return toResponse(savedComment, post.getTitle(), MemberDisplayUtil.getDisplayName(member));
     }
 
     @Transactional
@@ -78,7 +79,8 @@ public class CommentService {
         );
         Comment savedReply = commentRepository.save(reply);
         notificationService.createReplyNotification(parentCommentId, loginUserId, savedReply.getId());
-        return toResponse(savedReply, post.getTitle(), member.getNickname());
+
+        return toResponse(savedReply, post.getTitle(), MemberDisplayUtil.getDisplayName(member));
     }
 
     @Transactional
@@ -106,7 +108,7 @@ public class CommentService {
 
     public CommentListResponse getComments(Long postId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
+                .orElseThrow(() -> new ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND));
 
         List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
         List<CommentResponse> responses = comments.stream()
@@ -179,8 +181,9 @@ public class CommentService {
     }
 
     private String findMemberNickname(Long userId) {
-        return memberRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(CommentErrorCode.COMMENT_404_MEMBER_NOT_FOUND))
-                .getNickname();
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(CommentErrorCode.COMMENT_404_MEMBER_NOT_FOUND));
+
+        return MemberDisplayUtil.getDisplayName(member);
     }
 }

@@ -7,6 +7,13 @@ import { MessageCircle } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { getAuthSnapshot } from "@/lib/auth-storage";
 
+type SuccessResponse<T> = {
+  code: string;
+  message: string;
+  timestamp: string;
+  data: T;
+};
+
 type MyCommentItem = {
   commentId: number;
   postId: number;
@@ -35,8 +42,6 @@ function formatDate(value: string) {
 }
 
 export default function MyCommentsPage() {
-  console.log("=== MyCommentsPage 실제 파일 실행됨 ===");
-
   const router = useRouter();
   const [comments, setComments] = useState<MyCommentItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,15 +60,15 @@ export default function MyCommentsPage() {
         setLoading(true);
         setError("");
 
-        const res = await apiFetch<MyCommentsApiResponse>("/mypage/comments", {
-          method: "GET",
-          auth: true,
-        });
+        const res = await apiFetch<SuccessResponse<MyCommentsApiResponse>>(
+          "/api/mypage/comments",
+          {
+            method: "GET",
+            auth: true,
+          }
+        );
 
-        console.log("댓글 응답:", res);
-        console.log("댓글 목록:", res?.comments);
-
-        setComments(res?.comments ?? []);
+        setComments(res?.data?.comments ?? []);
       } catch (err) {
         console.error("댓글 조회 실패:", err);
 
@@ -78,20 +83,11 @@ export default function MyCommentsPage() {
       }
     };
 
-    fetchComments();
+    void fetchComments();
   }, [router]);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
-      <div className="mb-6 rounded-xl border border-red-500 bg-red-500/10 p-4">
-        <h1 className="text-2xl font-bold text-red-500">
-          MyCommentsPage 테스트중
-        </h1>
-        <p className="mt-1 text-sm text-red-400">
-          이 문구가 보이면 지금 수정한 파일이 실제로 렌더링되고 있는 거다.
-        </p>
-      </div>
-
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">내가 쓴 댓글</h2>
@@ -103,15 +99,6 @@ export default function MyCommentsPage() {
         <Link href="/mypage" className="rounded-lg border px-4 py-2 text-sm">
           마이페이지로
         </Link>
-      </div>
-
-      <div className="mb-6 rounded-2xl border p-4 text-sm">
-        <p>
-          <strong>디버그 정보</strong>
-        </p>
-        <p>loading: {String(loading)}</p>
-        <p>error: {error || "없음"}</p>
-        <p>comments.length: {comments.length}</p>
       </div>
 
       {loading && <div className="rounded-2xl border p-6">로딩 중...</div>}

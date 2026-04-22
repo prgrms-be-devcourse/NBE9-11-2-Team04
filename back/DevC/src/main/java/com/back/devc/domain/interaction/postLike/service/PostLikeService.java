@@ -12,6 +12,7 @@ import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.member.member.util.MemberDisplayUtil;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
+import com.back.devc.global.exception.errorcode.PostLikeErrorCode;
 import com.back.devc.global.response.successCode.PostLikeSuccessCode;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -124,7 +125,9 @@ public class PostLikeService {
      */
     private Member findMemberById(Long userId) {
         return memberRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        PostLikeErrorCode.POST_LIKE_404_MEMBER_NOT_FOUND.getCode()
+                ));
     }
 
     /**
@@ -133,7 +136,9 @@ public class PostLikeService {
      */
     private Post findPostById(Long postId) {
         return postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        PostLikeErrorCode.POST_LIKE_404_POST_NOT_FOUND.getCode()
+                ));
     }
 
     /**
@@ -141,11 +146,11 @@ public class PostLikeService {
      * 응답 구조 변경 시 한 곳만 수정하면 되게 분리
      */
     private PostLikeResponse buildPostLikeResponse(Post post, boolean liked, PostLikeSuccessCode successCode) {
-        return PostLikeResponse.builder()
-                .postId(post.getPostId())
-                .liked(liked)
-                .likeCount(post.getLikeCount())
-                .message(successCode.getMessage())
-                .build();
+        return new PostLikeResponse(
+                post.getPostId(),
+                liked,
+                post.getLikeCount(),
+                successCode.getMessage()
+        );
     }
 }
