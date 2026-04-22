@@ -9,6 +9,7 @@ import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
+import com.back.devc.global.exception.errorCode.MemberErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
