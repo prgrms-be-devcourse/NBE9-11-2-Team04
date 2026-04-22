@@ -19,6 +19,7 @@ type LikedPostResponse = {
   authorNickname: string;
   likeCount: number;
   commentCount: number;
+  viewCount: number;
   createdAt: string;
 };
 
@@ -112,6 +113,7 @@ export default function MyLikesPage() {
               <div className="flex gap-4 text-sm text-muted-foreground">
                 <span>좋아요 {post.likeCount}</span>
                 <span>댓글 {post.commentCount}</span>
+                <span>조회수 {post.viewCount}</span>
               </div>
             </div>
           ))}

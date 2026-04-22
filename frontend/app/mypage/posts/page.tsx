@@ -18,6 +18,7 @@ type MyPostResponse = {
   title: string
   likeCount: number
   commentCount: number
+  viewCount: number
   createdAt: string
 }
 
@@ -70,7 +71,7 @@ function mapMyPostsToPostCard(
     createdAt: formatRelativeDate(post.createdAt),
     likes: post.likeCount,
     comments: post.commentCount,
-    views: 0,
+    views: post.viewCount,
     tags: [],
     liked: likedPostIds.has(post.postId),
     bookmarked: bookmarkedPostIds.has(post.postId),
