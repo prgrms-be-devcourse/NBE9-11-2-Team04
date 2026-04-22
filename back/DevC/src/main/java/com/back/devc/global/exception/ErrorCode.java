@@ -2,7 +2,7 @@ package com.back.devc.global.exception;
 
 import org.springframework.http.HttpStatus;
 
-public enum ErrorCode {
+public enum ErrorCode implements ErrorCodeSpec {
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "COMMON_400", "잘못된 요청입니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "COMMON_401", "인증이 필요합니다."),
     ALREADY_DELETED(HttpStatus.GONE, "COMMON_410", "이미 삭제된 리소스입니다."),

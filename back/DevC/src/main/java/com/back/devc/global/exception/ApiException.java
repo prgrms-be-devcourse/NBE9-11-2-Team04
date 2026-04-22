@@ -1,24 +1,20 @@
 package com.back.devc.global.exception;
 
-import com.back.devc.global.exception.errorCode.AuthErrorCode;
-import lombok.Getter;
-
-@Getter
 public class ApiException extends RuntimeException {
 
-    private final ErrorCode errorCode;
-    private final AuthErrorCode authErrorCode;
+    private final ErrorCodeSpec errorCode;
 
     public ApiException(ErrorCode errorCode) {
         super(errorCode.getMessage());
         this.errorCode = errorCode;
-        this.authErrorCode = null;
     }
 
-    public ApiException(AuthErrorCode authErrorCode) {
-        super(authErrorCode.getMessage());
-        this.errorCode = null;
-        this.authErrorCode = authErrorCode;
+    public ApiException(ErrorCodeSpec errorCode) {
+        super(errorCode.getMessage());
+        this.errorCode = errorCode;
     }
 
+    public ErrorCodeSpec getErrorCode() {
+        return errorCode;
+    }
 }

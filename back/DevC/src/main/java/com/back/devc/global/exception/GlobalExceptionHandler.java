@@ -1,6 +1,5 @@
 package com.back.devc.global.exception;
 
-import com.back.devc.global.exception.errorCode.AuthErrorCode;
 import com.back.devc.global.response.ErrorResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
@@ -15,21 +14,16 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // 비즈니스 예외 처리 (예: 이메일/닉네임 중복)
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ErrorResponse> handleApiException(ApiException e) {
-        if (e.getAuthErrorCode() != null) {
-            AuthErrorCode authErrorCode = e.getAuthErrorCode();
-            return ResponseEntity
-                    .status(authErrorCode.getStatus())
-                    .body(ErrorResponse.of(authErrorCode));
-        }
-
-        ErrorCode errorCode = e.getErrorCode();
+        ErrorCodeSpec errorCode = e.getErrorCode();
         return ResponseEntity
                 .status(errorCode.getStatus())
                 .body(ErrorResponse.of(errorCode));
     }
 
+    // 요청값 검증 실패 예외 처리 (@Valid, @NotBlank, @Email 등)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         Map<String, String> validation = e.getBindingResult()
@@ -42,8 +36,8 @@ public class GlobalExceptionHandler {
                 ));
 
         return ResponseEntity
-                .status(AuthErrorCode.BAD_REQUEST.getStatus())
-                .body(ErrorResponse.of(AuthErrorCode.BAD_REQUEST, validation));
+                .status(ErrorCode.BAD_REQUEST.getStatus())
+                .body(ErrorResponse.of(ErrorCode.BAD_REQUEST, validation));
     }
 
     @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
@@ -51,16 +45,16 @@ public class GlobalExceptionHandler {
             AuthenticationCredentialsNotFoundException e
     ) {
         return ResponseEntity
-                .status(AuthErrorCode.UNAUTHORIZED.getStatus())
-                .body(ErrorResponse.of(AuthErrorCode.UNAUTHORIZED));
+                .status(ErrorCode.UNAUTHORIZED.getStatus())
+                .body(ErrorResponse.of(ErrorCode.UNAUTHORIZED));
     }
-
+    // 엔티티 조회 실패 시 404로 응답
     @ExceptionHandler(jakarta.persistence.EntityNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleEntityNotFound(jakarta.persistence.EntityNotFoundException e) {
         return ResponseEntity.status(404)
                 .body(Map.of("message", e.getMessage()));
     }
-
+    // 잘못된 요청 상태는 400으로 응답
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
     public ResponseEntity<Map<String, String>> handleBadRequest(RuntimeException e) {
         return ResponseEntity.badRequest()
