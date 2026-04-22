@@ -5,6 +5,7 @@ import { getAccessToken } from "@/lib/auth-storage"
 
 type CommentSectionProps = {
   postId: number
+  onCommentsChanged?: () => void | Promise<void>
 }
 
 type LoginRequiredPopupState = {
@@ -343,7 +344,7 @@ function sortCommentsByNewest(comments: CommentItem[]): CommentItem[] {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 }
 
-export default function CommentSection({ postId }: CommentSectionProps) {
+export default function CommentSection({ postId, onCommentsChanged }: CommentSectionProps) {
   const [comments, setComments] = useState<CommentItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -533,6 +534,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
       setNewComment("")
       setNewCommentFiles([])
       await loadComments()
+      await onCommentsChanged?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
     } finally {
@@ -591,6 +593,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
       }))
       setOpenedReplyId(null)
       await loadComments()
+      await onCommentsChanged?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
     } finally {
@@ -688,6 +691,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
       }
 
       await loadComments()
+      await onCommentsChanged?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
     } finally {

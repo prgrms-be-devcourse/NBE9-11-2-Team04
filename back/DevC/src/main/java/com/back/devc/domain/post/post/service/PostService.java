@@ -162,6 +162,14 @@ public class PostService {
         post.increaseCommentCount();
     }
 
+    @Transactional
+    public void decreaseCommentCount(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ApiException(PostErrorCode.POST_404_NOT_FOUND));
+
+        post.decreaseCommentCount();
+    }
+
     public PostUpdateResponse update(Long memberId, Long postId, PostUpdateRequest request) {
 
         Post post = postRepository.findById(postId)

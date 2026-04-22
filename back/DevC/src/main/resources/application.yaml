@@ -25,16 +25,18 @@ spring:
         use_sql_comments: true
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
 
 springdoc:
   default-produces-media-type: application/json; charset=UTF-8
 
 logging:
   level:
-    org.hibernate.orm.jdbc.bind: TRACE
-    org.hibernate.orm.jdbc.extract: TRACE
-    org.springframework.transaction.interceptor: TRACE
+    org.hibernate.orm.jdbc.bind: WARN
+    org.hibernate.orm.jdbc.extract: WARN
+    org.springframework.transaction.interceptor: WARN
+    org.hibernate.SQL: WARN
+    com.zaxxer.hikari: WARN
     com.back: INFO
 
 custom:
