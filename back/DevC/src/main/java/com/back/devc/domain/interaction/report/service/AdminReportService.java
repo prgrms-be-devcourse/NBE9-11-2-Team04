@@ -12,9 +12,8 @@ import com.back.devc.domain.interaction.report.util.ReportTargetHandler;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.global.exception.ApiException;
-import com.back.devc.global.exception.ErrorCode;
-import com.back.devc.global.exception.errorCode.ReportErrorCode;
 import com.back.devc.global.exception.errorCode.MemberErrorCode;
+import com.back.devc.global.exception.errorCode.ReportErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -76,7 +75,7 @@ public class AdminReportService {
                     info.content(),
                     reportCount,
                     reasonTypes,
-                    ReportStatus.PENDING,
+                    status,
                     latestCreatedAt
             );
         });
