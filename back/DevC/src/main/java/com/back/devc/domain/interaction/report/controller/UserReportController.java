@@ -30,7 +30,7 @@ public class UserReportController {
     ) {
         reportService.reportPost(getAuthenticatedUserId(principal), requestDto);
 
-        ReportSuccessCode successCode = ReportSuccessCode.REPORT_POST_SUCCESS;
+        ReportSuccessCode successCode = ReportSuccessCode.REPORT_201_POST;
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, null));
@@ -43,7 +43,7 @@ public class UserReportController {
     ) {
         reportService.reportComment(getAuthenticatedUserId(principal), requestDto);
 
-        ReportSuccessCode successCode = ReportSuccessCode.REPORT_COMMENT_SUCCESS;
+        ReportSuccessCode successCode = ReportSuccessCode.REPORT_201_COMMENT;
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, null));

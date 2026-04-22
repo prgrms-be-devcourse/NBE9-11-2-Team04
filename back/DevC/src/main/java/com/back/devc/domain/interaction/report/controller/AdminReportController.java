@@ -40,7 +40,7 @@ public class AdminReportController {
         Page<ReportResponseDTO> reports = adminReportService.getReports(status, pageable);
 
 
-        ReportSuccessCode successCode = ReportSuccessCode.REPORT_LIST_SUCCESS;
+        ReportSuccessCode successCode = ReportSuccessCode.REPORT_200_LIST;
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, reports));
@@ -63,7 +63,7 @@ public class AdminReportController {
 
         Page<ReportGroupResponseDTO> groups = adminReportService.getGroupedReports(status, pageable);
 
-        ReportSuccessCode successCode = ReportSuccessCode.REPORT_GROUP_LIST_SUCCESS;
+        ReportSuccessCode successCode = ReportSuccessCode.REPORT_200_GROUP_LIST;
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, groups));
@@ -83,7 +83,7 @@ public class AdminReportController {
 
         adminReportService.approveReportGroup(getAuthenticatedUserId(principal), requestDto);
 
-        ReportSuccessCode successCode = ReportSuccessCode.REPORT_GROUP_APPROVE_SUCCESS;
+        ReportSuccessCode successCode = ReportSuccessCode.REPORT_200_GROUP_APPROVE;
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, null));
@@ -103,7 +103,7 @@ public class AdminReportController {
 
         adminReportService.rejectReportGroup(getAuthenticatedUserId(principal), requestDto);
 
-        ReportSuccessCode successCode = ReportSuccessCode.REPORT_GROUP_REJECT_SUCCESS;
+        ReportSuccessCode successCode = ReportSuccessCode.REPORT_200_GROUP_REJECT;
         return ResponseEntity
                 .status(successCode.getStatus())
                 .body(SuccessResponse.of(successCode, null));
