@@ -75,6 +75,7 @@ export default function MyPageEditPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
+  const [nicknameError, setNicknameError] = useState("")
 
   useEffect(() => {
     const fetchMyProfile = async () => {
@@ -132,6 +133,10 @@ export default function MyPageEditPage() {
       ...prev,
       [name]: value,
     }))
+
+    if (name === "nickname") {
+      setNicknameError("")
+    }
   }
 
   const handleLocalProfileChange = (
@@ -147,9 +152,10 @@ export default function MyPageEditPage() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setNicknameError("")
 
     if (!form.nickname.trim()) {
-      alert("닉네임을 입력해주세요.")
+      setNicknameError("닉네임을 입력해주세요.")
       return
     }
 
@@ -200,6 +206,16 @@ export default function MyPageEditPage() {
     } catch (err) {
       if (isApiError(err) && err.isUnauthorized) {
         router.replace("/")
+        return
+      }
+
+      if (isApiError(err)) {
+        if (err.code === "MYPAGE_409_NICKNAME_ALREADY_EXISTS" || err.message === "중복된 이름입니다.") {
+          setNicknameError("중복된 이름입니다.")
+          return
+        }
+
+        setNicknameError(err.message)
         return
       }
 
@@ -336,8 +352,15 @@ export default function MyPageEditPage() {
                 value={form.nickname}
                 onChange={handleChange}
                 placeholder="닉네임을 입력하세요"
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary"
+                className={`w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none transition ${
+                  nicknameError
+                    ? "border-red-500 focus:border-red-500"
+                    : "border-border focus:border-primary"
+                }`}
               />
+              {nicknameError ? (
+                <p className="mt-2 text-sm text-red-500">{nicknameError}</p>
+              ) : null}
             </div>
           </div>
 
