@@ -11,6 +11,7 @@ import com.back.devc.domain.member.mypage.dto.*;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
+import com.back.devc.global.exception.errorcode.MypageErrorCode;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,10 +30,11 @@ public class MypageService {
     private final PostLikeService postLikeService;
     private final BookmarkService bookmarkService;
 
-    // ✅ 공통 메서드
     private Member getMember(Long userId) {
         return memberRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        MypageErrorCode.MYPAGE_404_MEMBER_NOT_FOUND.getCode()
+                ));
     }
 
     public MyProfileResponse getMyProfile(Long userId) {
@@ -61,7 +63,6 @@ public class MypageService {
                 .toList();
     }
 
-    // ✅ N+1 제거 (Repository에서 DTO 바로 조회)
     public List<MyCommentResponse> getMyComments(Long userId) {
         getMember(userId);
         return commentRepository.findMyComments(userId);
@@ -69,12 +70,7 @@ public class MypageService {
 
     public List<LikedPostResponse> getMyLikedPosts(Long userId) {
         getMember(userId);
-
-        LikedPostsQuery query = LikedPostsQuery.builder()
-                .userId(userId)
-                .build();
-
-        return postLikeService.getLikedPosts(query);
+        return postLikeService.getLikedPosts(new LikedPostsQuery(userId));
     }
 
     public List<BookmarkedPostResponse> getMyBookmarkedPosts(Long userId) {
@@ -90,7 +86,9 @@ public class MypageService {
 
         if (!member.getNickname().equals(newNickname)
                 && memberRepository.existsByNickname(newNickname)) {
-            throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+            throw new IllegalArgumentException(
+                    MypageErrorCode.MYPAGE_409_NICKNAME_ALREADY_EXISTS.getCode()
+            );
         }
 
         member.updateNickname(newNickname);

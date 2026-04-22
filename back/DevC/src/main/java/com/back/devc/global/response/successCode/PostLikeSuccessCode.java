@@ -1,15 +1,13 @@
 package com.back.devc.global.response.successCode;
 
+import com.back.devc.global.response.SuccessCodeSpec;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
-/**
- * 게시글 좋아요 관련 성공 응답 코드
- */
 @Getter
 @RequiredArgsConstructor
-public enum PostLikeSuccessCode {
+public enum PostLikeSuccessCode implements SuccessCodeSpec {
 
     POST_LIKE_CREATED(HttpStatus.OK, "POST_LIKE_CREATED", "좋아요가 추가되었습니다."),
     POST_LIKE_ALREADY_EXISTS(HttpStatus.OK, "POST_LIKE_ALREADY_EXISTS", "이미 좋아요한 게시글입니다."),

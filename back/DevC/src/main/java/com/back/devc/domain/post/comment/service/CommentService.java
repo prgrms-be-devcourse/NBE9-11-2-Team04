@@ -1,5 +1,10 @@
 package com.back.devc.domain.post.comment.service;
 
+import com.back.devc.domain.interaction.notification.service.NotificationService;
+import com.back.devc.domain.member.member.entity.Member;
+import com.back.devc.domain.member.member.repository.MemberRepository;
+import com.back.devc.domain.member.member.util.MemberDisplayUtil;
+import com.back.devc.domain.post.comment.attachment.service.CommentAttachmentService;
 import com.back.devc.domain.post.comment.dto.CommentCreateRequest;
 import com.back.devc.domain.post.comment.dto.CommentDeleteResponse;
 import com.back.devc.domain.post.comment.dto.CommentListResponse;
@@ -7,9 +12,6 @@ import com.back.devc.domain.post.comment.dto.CommentResponse;
 import com.back.devc.domain.post.comment.dto.CommentUpdateRequest;
 import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
-import com.back.devc.domain.post.comment.attachment.service.CommentAttachmentService;
-import com.back.devc.domain.member.member.entity.Member;
-import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -21,7 +23,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import com.back.devc.domain.interaction.notification.service.NotificationService;
 
 @Service
 @RequiredArgsConstructor
@@ -50,7 +51,8 @@ public class CommentService {
         );
         Comment savedComment = commentRepository.save(comment);
         notificationService.createCommentNotification(postId, loginUserId, savedComment.getId());
-        return toResponse(savedComment, post.getTitle(), member.getNickname());
+
+        return toResponse(savedComment, post.getTitle(), MemberDisplayUtil.getDisplayName(member));
     }
 
     @Transactional
@@ -76,7 +78,8 @@ public class CommentService {
         );
         Comment savedReply = commentRepository.save(reply);
         notificationService.createReplyNotification(parentCommentId, loginUserId, savedReply.getId());
-        return toResponse(savedReply, post.getTitle(), member.getNickname());
+
+        return toResponse(savedReply, post.getTitle(), MemberDisplayUtil.getDisplayName(member));
     }
 
     @Transactional
@@ -177,8 +180,9 @@ public class CommentService {
     }
 
     private String findMemberNickname(Long userId) {
-        return memberRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId))
-                .getNickname();
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
+
+        return MemberDisplayUtil.getDisplayName(member);
     }
 }
