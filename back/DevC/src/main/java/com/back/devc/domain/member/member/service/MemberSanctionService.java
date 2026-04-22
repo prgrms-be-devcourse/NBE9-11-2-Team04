@@ -21,9 +21,18 @@ public class MemberSanctionService {
         int validDays = (days != null && days > 0) ? days : 1;
 
         member.updateStatus(MemberStatus.SUSPENDED);
-        member.setSuspendedUntil(
-                LocalDateTime.now().plusDays(validDays)
-        );
+
+        // 현재 제재 종료일이 남아있는지 확인
+        LocalDateTime currentUntil = member.getSuspendedUntil();
+        LocalDateTime now = LocalDateTime.now();
+
+        if (currentUntil != null && currentUntil.isAfter(now)) {
+            // 이미 정지 중이라면: 기존 종료일에 추가 (누적)
+            member.setSuspendedUntil(currentUntil.plusDays(validDays));
+        } else {
+            // 정지 중이 아니라면: 현재 시점부터 추가
+            member.setSuspendedUntil(now.plusDays(validDays));
+        }
     }
 
     // BLACKLIST
@@ -32,8 +41,15 @@ public class MemberSanctionService {
         member.setSuspendedUntil(null);
     }
 
+    // 제재 해제 (활성화)
+    public void activate(Member member) {
+        member.updateStatus(MemberStatus.ACTIVE);
+        member.setSuspendedUntil(null); // 정지 기간 초기화
+    }
+
     public void apply(Member member, MemberStatus status, Integer days) {
         switch (status) {
+            case ACTIVE -> activate(member); // 추가
             case WARNED -> warn(member);
             case SUSPENDED -> suspend(member, days);
             case BLACKLISTED -> blacklist(member);
