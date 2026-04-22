@@ -14,8 +14,10 @@ import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.ApiException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
@@ -23,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class ReportTargetHandlerTest {
 
     @Mock
@@ -54,32 +57,36 @@ class ReportTargetHandlerTest {
     // 1. handleApproved - POST (sanction 없음)
     @Test
     void handleApproved_post_noSanction() {
-
+        // 1. Given: 필요한 객체들만 모킹
         Member admin = mock(Member.class);
         when(admin.getUserId()).thenReturn(1L);
 
         Post post = mock(Post.class);
-        Member writer = mock(Member.class);
-
-        when(post.getMember()).thenReturn(writer);
+        // post.getMember() 호출이 실제 로직에서 발생하지 않는다면 writer 모킹은 필요 없습니다.
         when(post.isDeleted()).thenReturn(false);
 
         when(postRepository.findById(10L))
                 .thenReturn(Optional.of(post));
 
+        // 2. When: 테스트 대상 메서드 실행
         handler.handleApproved(
                 TargetType.POST,
                 10L,
                 admin,
-                null,
+                null, // sanctionType이 null이므로 memberSanctionService는 호출되지 않아야 함
                 null
         );
 
+        // 3. Then: 행위 검증
+        // 알림 서비스가 호출되었는지 확인
         verify(notificationService)
                 .createPostReportNotification(10L, 1L);
 
+        // 리포지토리 조회 및 게시글 삭제(soft delete 등) 호출 확인
+        verify(postRepository).findById(10L);
         verify(post).delete();
 
+        // 제재 서비스는 호출되지 않았음을 확신
         verifyNoInteractions(memberSanctionService);
     }
     //2. handleApproved - COMMENT + sanction

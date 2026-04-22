@@ -9,6 +9,7 @@ import com.back.devc.domain.interaction.report.repository.ReportRepository;
 import com.back.devc.domain.interaction.report.util.ReportTargetHandler;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
+import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.ApiException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -41,6 +42,8 @@ class AdminReportServiceTest {
     private ReportRepository reportRepository;
     @Mock
     private MemberRepository memberRepository;
+    @Mock
+    private PostRepository postRepository;
     @Mock
     private ReportTargetHandler reportTargetHandler;
 
@@ -242,26 +245,32 @@ class AdminReportServiceTest {
 
         @Test
         void 성공() {
-
+            // 1. Given: 신고 데이터 준비
             Report r1 = report(ReportStatus.PENDING);
             Report r2 = report(ReportStatus.PENDING);
 
-            given(memberRepository.findById(1L)).willReturn(Optional.of(admin));
+            given(memberRepository.findById(1L))
+                    .willReturn(Optional.of(admin));
 
             given(reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
-                    TargetType.POST, 10L, ReportStatus.PENDING
+                    eq(TargetType.POST), anyLong(), eq(ReportStatus.PENDING)
             )).willReturn(List.of(r1, r2));
+
+            lenient().when(postRepository.existsById(anyLong())).thenReturn(true);
+            lenient().when(reportTargetHandler.exists(any(), anyLong())).thenReturn(true);
 
             AdminReportRequestDTO dto = new AdminReportRequestDTO(
                     1L,
                     TargetType.POST,
-                    null,
+                    "10",
                     SanctionType.WARNED,
                     null
             );
 
+            // 2. When: 실행
             adminReportService.approveReportGroup(1L, dto);
 
+            // 3. Then: 검증
             verify(r1).processReport(admin);
             verify(r2).processReport(admin);
         }
@@ -289,17 +298,29 @@ class AdminReportServiceTest {
 
         @Test
         void 성공() {
+            // 1. Given
+            Report r1 = mock(Report.class);
+            lenient().when(r1.getStatus()).thenReturn(ReportStatus.PENDING);
 
-            Report r1 = report(ReportStatus.PENDING);
-
-            given(memberRepository.findById(1L)).willReturn(Optional.of(admin));
+            given(memberRepository.findById(1L))
+                    .willReturn(Optional.of(admin));
 
             given(reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
-                    TargetType.POST, 10L, ReportStatus.PENDING
+                    eq(TargetType.POST), anyLong(), eq(ReportStatus.PENDING)
             )).willReturn(List.of(r1));
 
-            adminReportService.rejectReportGroup(1L, dto());
+            AdminReportRequestDTO dto = new AdminReportRequestDTO(
+                    1L,
+                    TargetType.POST,
+                    "10",
+                    null,
+                    null
+            );
 
+            // 2. When
+            adminReportService.rejectReportGroup(1L, dto);
+
+            // 3. Then
             verify(r1).rejectReport(admin);
         }
     }
