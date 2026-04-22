@@ -13,6 +13,9 @@ import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.domain.post.post.type.PostSearchType;
 import com.back.devc.domain.post.post.type.PostSortType;
+import com.back.devc.global.exception.ApiException;
+import com.back.devc.global.exception.errorCode.CategoryErrorCode;
+import com.back.devc.global.exception.errorCode.PostErrorCode;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -37,7 +40,7 @@ public class PostService {
                 .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다."));
 
         Category category = categoryRepository.findById(request.categoryId())
-                .orElseThrow(() -> new EntityNotFoundException("카테고리를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ApiException(CategoryErrorCode.CATEGORY_404_NOT_FOUND));;
 
         Post post = Post.builder()
                 .member(member)
@@ -55,7 +58,7 @@ public class PostService {
     @Transactional
     public PostDetailResponse findDetailById(Long postId, Long loginUserId) {
         Post post = postRepository.findByPostIdAndIsDeletedFalse(postId)
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
+                .orElseThrow(() -> new ApiException(PostErrorCode.POST_404_NOT_FOUND));
         post.increaseViewCount();
         boolean liked = loginUserId != null
                 && postLikeRepository.existsByMember_UserIdAndPost_PostId(loginUserId, postId);
@@ -122,7 +125,7 @@ public class PostService {
         } else {
             if (categoryId != null) {
                 if (!categoryRepository.existsById(categoryId)) {
-                    throw new EntityNotFoundException("존재하지 않는 카테고리입니다.");
+                    throw new ApiException(CategoryErrorCode.CATEGORY_404_NOT_FOUND);
                 }
                 result = postRepository.findByCategoryCategoryIdAndIsDeletedFalse(categoryId, pageable);
             } else {
@@ -144,7 +147,7 @@ public class PostService {
     @Transactional
     public void increaseViewCount(Long postId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("게시글이 존재하지 않습니다."));
+                .orElseThrow(() -> new ApiException(PostErrorCode.POST_404_NOT_FOUND));
 
         post.increaseViewCount();
     }
@@ -152,7 +155,7 @@ public class PostService {
     @Transactional
     public void increaseCommentCount(Long postId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("게시글이 존재하지 않습니다."));
+                .orElseThrow(() -> new ApiException(PostErrorCode.POST_404_NOT_FOUND));
 
         post.increaseCommentCount();
     }
@@ -160,18 +163,18 @@ public class PostService {
     public PostUpdateResponse update(Long memberId, Long postId, PostUpdateRequest request) {
 
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ApiException(PostErrorCode.POST_404_NOT_FOUND));
 
         if (!post.getMember().getUserId().equals(memberId)) {
-            throw new IllegalArgumentException("수정 권한이 없습니다.");
+            throw new ApiException(PostErrorCode.POST_403_FORBIDDEN);
         }
 
         if (post.isDeleted()) {
-            throw new EntityNotFoundException("삭제된 게시글입니다.");
+            throw new ApiException(PostErrorCode.POST_401_1_ALREADY_DELETED);
         }
 
         Category category = categoryRepository.findById(request.categoryId())
-                .orElseThrow(() -> new EntityNotFoundException("카테고리를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ApiException(CategoryErrorCode.CATEGORY_404_NOT_FOUND));
 
         post.update(
                 request.title(),
@@ -185,14 +188,14 @@ public class PostService {
     public PostDeleteResponse delete(Long memberId, Long postId) {
 
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ApiException(PostErrorCode.POST_404_NOT_FOUND));
 
         if (!post.getMember().getUserId().equals(memberId)) {
-            throw new IllegalArgumentException("삭제 권한이 없습니다.");
+            throw new ApiException(PostErrorCode.POST_403_FORBIDDEN);
         }
 
         if (post.isDeleted()) {
-            throw new EntityNotFoundException("이미 삭제된 게시글입니다.");
+            throw new ApiException(PostErrorCode.POST_401_1_ALREADY_DELETED);
         }
 
         post.delete();

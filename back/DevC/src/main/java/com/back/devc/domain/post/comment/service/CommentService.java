@@ -14,7 +14,8 @@ import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.back.devc.global.exception.ApiException;
+import com.back.devc.global.exception.errorCode.CommentErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,10 +39,10 @@ public class CommentService {
     @Transactional
     public CommentResponse createComment(Long postId, Long loginUserId, CommentCreateRequest request) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
+                .orElseThrow(() -> new ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND));
 
         Member member = memberRepository.findById(loginUserId)
-                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + loginUserId));
+                .orElseThrow(() -> new ApiException(CommentErrorCode.COMMENT_404_MEMBER_NOT_FOUND));
 
         Comment comment = Comment.create(
                 postId,
@@ -58,17 +59,17 @@ public class CommentService {
     @Transactional
     public CommentResponse createReply(Long parentCommentId, Long loginUserId, CommentCreateRequest request) {
         Comment parentComment = commentRepository.findById(parentCommentId)
-                .orElseThrow(() -> new EntityNotFoundException("부모 댓글을 찾을 수 없습니다. id=" + parentCommentId));
+                .orElseThrow(() -> new ApiException(CommentErrorCode.COMMENT_404_PARENT_NOT_FOUND));
 
         if (parentComment.isDeleted()) {
-            throw new IllegalArgumentException("삭제된 댓글에는 답글을 작성할 수 없습니다.");
+            throw new ApiException(CommentErrorCode.COMMENT_400_REPLY_TO_DELETED_COMMENT);
         }
 
         Post post = postRepository.findById(parentComment.getPostId())
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + parentComment.getPostId()));
+                .orElseThrow(() -> new ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND));
 
         Member member = memberRepository.findById(loginUserId)
-                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + loginUserId));
+                .orElseThrow(() -> new ApiException(CommentErrorCode.COMMENT_404_MEMBER_NOT_FOUND));
 
         Comment reply = Comment.create(
                 parentComment.getPostId(),
@@ -107,7 +108,7 @@ public class CommentService {
 
     public CommentListResponse getComments(Long postId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId));
+                .orElseThrow(() -> new ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND));
 
         List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
         List<CommentResponse> responses = comments.stream()
@@ -164,24 +165,24 @@ public class CommentService {
 
     private Comment findComment(Long commentId) {
         return commentRepository.findById(commentId)
-                .orElseThrow(() -> new EntityNotFoundException("댓글을 찾을 수 없습니다. id=" + commentId));
+                .orElseThrow(() -> new ApiException(CommentErrorCode.COMMENT_404_NOT_FOUND));
     }
 
     private void validateOwner(Comment comment, Long loginUserId) {
         if (!comment.getUserId().equals(loginUserId)) {
-            throw new IllegalArgumentException("본인이 작성한 댓글만 수정/삭제할 수 있습니다.");
+            throw new ApiException(CommentErrorCode.COMMENT_403_FORBIDDEN);
         }
     }
 
     private String findPostTitle(Long postId) {
         return postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId))
+                .orElseThrow(() -> new ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND))
                 .getTitle();
     }
 
     private String findMemberNickname(Long userId) {
         Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId));
+                .orElseThrow(() -> new ApiException(CommentErrorCode.COMMENT_404_MEMBER_NOT_FOUND));
 
         return MemberDisplayUtil.getDisplayName(member);
     }

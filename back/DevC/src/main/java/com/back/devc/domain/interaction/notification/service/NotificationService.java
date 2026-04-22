@@ -8,7 +8,8 @@ import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.repository.PostRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.back.devc.global.exception.ApiException;
+import com.back.devc.global.exception.errorCode.NotificationErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -301,10 +302,10 @@ public class NotificationService {
     @Transactional
     public NotificationResponse readNotification(Long notificationId, Long loginUserId) {
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new EntityNotFoundException("알림을 찾을 수 없습니다. id=" + notificationId));
+                .orElseThrow(() -> new ApiException(NotificationErrorCode.NOTIFICATION_404_NOT_FOUND));
 
         if (!notification.getUserId().equals(loginUserId)) {
-            throw new IllegalArgumentException("본인의 알림만 읽음 처리할 수 있습니다.");
+            throw new ApiException(NotificationErrorCode.NOTIFICATION_403_FORBIDDEN);
         }
 
         notification.markAsRead();
@@ -314,7 +315,7 @@ public class NotificationService {
     // 게시글 작성자를 조회해 알림 수신자(receiver)를 구하는 공통 메서드
     private Long findPostOwnerId(Long postId) {
         return postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다. id=" + postId))
+                .orElseThrow(() -> new ApiException(NotificationErrorCode.NOTIFICATION_404_POST_NOT_FOUND))
                 .getMember()
                 .getUserId();
     }
@@ -322,14 +323,14 @@ public class NotificationService {
     // 댓글 작성자를 조회해 신고 알림 수신자(receiver)를 구하는 공통 메서드
     private Long findCommentOwnerId(Long commentId) {
         return commentRepository.findById(commentId)
-                .orElseThrow(() -> new EntityNotFoundException("댓글을 찾을 수 없습니다. id=" + commentId))
+                .orElseThrow(() -> new ApiException(NotificationErrorCode.NOTIFICATION_404_COMMENT_NOT_FOUND))
                 .getUserId();
     }
 
     // 댓글 조회 공통 메서드. 답글 알림 생성 시 부모 댓글 검증에 사용
     private Comment findCommentOrThrow(Long commentId, String message) {
         return commentRepository.findById(commentId)
-                .orElseThrow(() -> new EntityNotFoundException(message));
+                .orElseThrow(() -> new ApiException(NotificationErrorCode.NOTIFICATION_404_PARENT_COMMENT_NOT_FOUND));
     }
 
     /**
@@ -361,7 +362,7 @@ public class NotificationService {
     // actorUserId로 회원 닉네임을 조회하는 공통 메서드
     private String findMemberNickname(Long userId) {
         return memberRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. id=" + userId))
+                .orElseThrow(() -> new ApiException(NotificationErrorCode.NOTIFICATION_404_MEMBER_NOT_FOUND))
                 .getNickname();
     }
 

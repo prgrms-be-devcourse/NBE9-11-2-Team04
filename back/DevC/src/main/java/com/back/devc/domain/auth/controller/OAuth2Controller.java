@@ -7,7 +7,7 @@ import com.back.devc.domain.auth.dto.oauth.OAuthPendingSignup;
 import com.back.devc.domain.auth.dto.oauth.OAuthSignupCompleteRequest;
 import com.back.devc.domain.auth.service.OAuth2MemberService;
 import com.back.devc.global.exception.ApiException;
-import com.back.devc.global.exception.ErrorCode;
+import com.back.devc.global.exception.errorCode.AuthErrorCode;
 import com.back.devc.global.response.SuccessResponse;
 import com.back.devc.global.response.successCode.AuthSuccessCode;
 import com.back.devc.global.security.jwt.AuthCookieService;
@@ -112,12 +112,12 @@ public class OAuth2Controller {
     ) {
         HttpSession session = httpServletRequest.getSession(false);
         if (session == null) {
-            throw new ApiException(ErrorCode.OAUTH2_PENDING_SIGNUP_EXPIRED);
+            throw new ApiException(AuthErrorCode.OAUTH2_PENDING_SIGNUP_EXPIRED);
         }
 
         Object raw = session.getAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY);
         if (!(raw instanceof OAuthPendingSignup pending)) {
-            throw new ApiException(ErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED);
+            throw new ApiException(AuthErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED);
         }
 
         LoginResponse body = oAuth2MemberService.completeSignupAndIssueToken(pending, request.nickname());

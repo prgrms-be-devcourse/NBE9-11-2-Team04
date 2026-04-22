@@ -9,6 +9,7 @@ import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
+import com.back.devc.global.exception.errorCode.MemberErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +27,7 @@ public class MemberService {
     @Transactional(readOnly = true)
     public MyInfoResponse getMyInfo(Long userId) {
         Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         return new MyInfoResponse(
                 member.getUserId(),
@@ -42,7 +43,7 @@ public class MemberService {
     @Transactional(readOnly = true)
     public PublicProfileResponse getPublicProfile(Long userId) {
         Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         List<PublicProfilePostResponse> posts = postRepository
                 .findTop20ByMemberAndIsDeletedFalseOrderByCreatedAtDesc(member)
@@ -67,7 +68,7 @@ public class MemberService {
     @Transactional
     public MemberWithdrawResponse withdraw(Long userId) {
         Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         member.withdraw();
         return new MemberWithdrawResponse(member.getUserId());

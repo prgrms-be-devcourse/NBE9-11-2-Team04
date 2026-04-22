@@ -8,6 +8,8 @@ import com.back.devc.domain.member.member.entity.MemberStatus;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
+import com.back.devc.global.exception.errorCode.AuthErrorCode;
+import com.back.devc.global.exception.errorCode.MemberErrorCode;
 import com.back.devc.global.security.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -37,17 +39,18 @@ public class OAuth2MemberService {
     @Transactional(readOnly = true)
     public LoginResponse exchangeLoginCode(String code) {
         Long userId = oAuthLoginCodeService.consume(code)
-                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED));
+                .orElseThrow(() -> new ApiException(AuthErrorCode.UNAUTHORIZED));
 
         Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         if (member.getStatus() == MemberStatus.BLACKLISTED) {
-            throw new ApiException(ErrorCode.MEMBER_BLACKLISTED);
+            throw new ApiException(AuthErrorCode.MEMBER_BLACKLISTED);
         }
 
         return toLoginResponse(member);
     }
+
     // OAuth2 회원가입 완료 후 JWT를 발급해 로그인 응답 DTO를 반환한다.
     @Transactional
     public LoginResponse completeSignupAndIssueToken(OAuthPendingSignup pending, String nickname) {
@@ -55,13 +58,13 @@ public class OAuth2MemberService {
         return toLoginResponse(member);
     }
 
-    // provider 값에 맞는 파서를 사용해 OAuth 사용자 정보를 pendingSignup DTO로 변환한다.
+    // OAuth2User의 속성에서 provider 정책에 맞춰 pendingSignup DTO를 생성한다.
     public OAuthPendingSignup buildPendingSignup(String provider, OAuth2User oauth2User) {
         return switch (toAuthProvider(provider)) {
             case GITHUB -> buildGithubPendingSignup(oauth2User);
             case KAKAO -> buildKakaoPendingSignup(oauth2User);
             case GOOGLE -> buildGooglePendingSignup(oauth2User);
-            default -> throw new ApiException(ErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
+            default -> throw new ApiException(AuthErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
         };
     }
 
@@ -75,7 +78,7 @@ public class OAuth2MemberService {
     public OAuthPendingSignup buildGithubPendingSignup(OAuth2User oauth2User) {
         String providerUserId = valueAsString(oauth2User.getAttribute("id")).trim();
         if (providerUserId.isBlank()) {
-            throw new ApiException(ErrorCode.OAUTH2_PROVIDER_USER_ID_MISSING);
+            throw new ApiException(AuthErrorCode.OAUTH2_PROVIDER_USER_ID_MISSING);
         }
 
         String login = valueAsString(oauth2User.getAttribute("login")).trim();
@@ -88,7 +91,7 @@ public class OAuth2MemberService {
     public OAuthPendingSignup buildKakaoPendingSignup(OAuth2User oauth2User) {
         String providerUserId = valueAsString(oauth2User.getAttribute("id")).trim();
         if (providerUserId.isBlank()) {
-            throw new ApiException(ErrorCode.OAUTH2_PROVIDER_USER_ID_MISSING);
+            throw new ApiException(AuthErrorCode.OAUTH2_PROVIDER_USER_ID_MISSING);
         }
 
         String email = "";
@@ -111,7 +114,7 @@ public class OAuth2MemberService {
     public OAuthPendingSignup buildGooglePendingSignup(OAuth2User oauth2User) {
         String providerUserId = valueAsString(oauth2User.getAttribute("sub")).trim();
         if (providerUserId.isBlank()) {
-            throw new ApiException(ErrorCode.OAUTH2_PROVIDER_USER_ID_MISSING);
+            throw new ApiException(AuthErrorCode.OAUTH2_PROVIDER_USER_ID_MISSING);
         }
 
         String email = valueAsString(oauth2User.getAttribute("email")).trim();
@@ -123,7 +126,7 @@ public class OAuth2MemberService {
     @Transactional
     public Member completeSignup(OAuthPendingSignup pending, String nickname) {
         if (pending == null || pending.providerUserId() == null || pending.providerUserId().isBlank()) {
-            throw new ApiException(ErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED);
+            throw new ApiException(AuthErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED);
         }
 
         AuthProvider provider = toAuthProvider(pending.provider());
@@ -161,7 +164,7 @@ public class OAuth2MemberService {
             String localPrefix
     ) {
         if (pending == null || pending.providerUserId() == null || pending.providerUserId().isBlank()) {
-            throw new ApiException(ErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED);
+            throw new ApiException(AuthErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED);
         }
 
         Optional<Member> existing = memberRepository.findByProviderAndProviderUserId(
@@ -171,7 +174,7 @@ public class OAuth2MemberService {
             Member member = existing.get();
 
             if (member.getStatus() == MemberStatus.BLACKLISTED) {
-                throw new ApiException(ErrorCode.MEMBER_BLACKLISTED);
+                throw new ApiException(AuthErrorCode.MEMBER_BLACKLISTED);
             }
 
             return member;
@@ -179,11 +182,11 @@ public class OAuth2MemberService {
 
         String normalizedNickname = nickname == null ? "" : nickname.trim();
         if (normalizedNickname.isBlank()) {
-            throw new ApiException(ErrorCode.BAD_REQUEST);
+            throw new ApiException(AuthErrorCode.BAD_REQUEST);
         }
 
         if (memberRepository.existsByNickname(normalizedNickname)) {
-            throw new ApiException(ErrorCode.NICKNAME_ALREADY_EXISTS);
+            throw new ApiException(AuthErrorCode.NICKNAME_ALREADY_EXISTS);
         }
 
         String resolvedEmail = resolveUniqueEmail(
@@ -223,10 +226,11 @@ public class OAuth2MemberService {
             case GITHUB -> new ProviderSpec(GITHUB_EMAIL_DOMAIN, "github_");
             case KAKAO -> new ProviderSpec(KAKAO_EMAIL_DOMAIN, "kakao_");
             case GOOGLE -> new ProviderSpec(GOOGLE_EMAIL_DOMAIN, "google_");
-            default -> throw new ApiException(ErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
+            default -> throw new ApiException(AuthErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
         };
     }
 
+    // provider 문자열을 AuthProvider enum으로 변환한다. 지원하지 않는 provider인 경우 예외를 던진다.
     private AuthProvider toAuthProvider(String provider) {
         String normalized = normalizeProvider(provider);
 
@@ -234,14 +238,16 @@ public class OAuth2MemberService {
             case "github" -> AuthProvider.GITHUB;
             case "kakao" -> AuthProvider.KAKAO;
             case "google" -> AuthProvider.GOOGLE;
-            default -> throw new ApiException(ErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
+            default -> throw new ApiException(AuthErrorCode.OAUTH2_UNSUPPORTED_PROVIDER);
         };
     }
 
+    // provider 문자열을 소문자로 정규화한다. null인 경우 빈 문자열로 처리한다.
     private String normalizeProvider(String provider) {
         return provider == null ? "" : provider.trim().toLowerCase(Locale.ROOT);
     }
 
+    // provider에서 제공한 이메일이 유효하고 고유한 경우 그대로 사용한다. 그렇지 않으면 providerUserId와 fallbackDomain을 조합해 고유한 이메일을 생성한다.
     private String resolveUniqueEmail(
             String emailFromProvider,
             String providerUserId,
@@ -266,10 +272,12 @@ public class OAuth2MemberService {
         return candidate;
     }
 
+    // value가 null인 경우 빈 문자열을 반환하고, 그렇지 않으면 value.toString() 결과를 반환한다.
     private String valueAsString(Object value) {
         return value == null ? "" : String.valueOf(value);
     }
 
+    // 각 OAuth2 공급자별 이메일 생성 정책과 로컬 회원 식별자 접두어를 담는 간단한 레코드 클래스
     private record ProviderSpec(String fallbackEmailDomain, String localPrefix) {
     }
 }
