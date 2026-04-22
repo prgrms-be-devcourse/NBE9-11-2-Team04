@@ -4,8 +4,8 @@ import com.back.devc.domain.interaction.report.dto.ReportRequestDTO;
 import com.back.devc.domain.interaction.report.service.UserReportService;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
-import com.back.devc.global.response.SuccessCode;
 import com.back.devc.global.response.SuccessResponse;
+import com.back.devc.global.response.successCode.ReportSuccessCode;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,9 +29,11 @@ public class UserReportController {
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
         reportService.reportPost(getAuthenticatedUserId(principal), requestDto);
+
+        ReportSuccessCode successCode = ReportSuccessCode.REPORT_POST_SUCCESS;
         return ResponseEntity
-                .status(SuccessCode.REPORT_POST_SUCCESS.getStatus())
-                .body(SuccessResponse.of(SuccessCode.REPORT_POST_SUCCESS, null));
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, null));
     }
 
     @PostMapping("/comment")
@@ -40,9 +42,11 @@ public class UserReportController {
             @AuthenticationPrincipal JwtPrincipal principal
     ) {
         reportService.reportComment(getAuthenticatedUserId(principal), requestDto);
+
+        ReportSuccessCode successCode = ReportSuccessCode.REPORT_COMMENT_SUCCESS;
         return ResponseEntity
-                .status(SuccessCode.REPORT_COMMENT_SUCCESS.getStatus())
-                .body(SuccessResponse.of(SuccessCode.REPORT_COMMENT_SUCCESS, null));
+                .status(successCode.getStatus())
+                .body(SuccessResponse.of(successCode, null));
     }
 
     private Long getAuthenticatedUserId(JwtPrincipal principal) {
