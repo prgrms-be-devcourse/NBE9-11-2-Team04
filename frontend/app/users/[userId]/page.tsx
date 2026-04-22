@@ -97,7 +97,7 @@ export default function UserProfilePage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <section className="mb-6 rounded-lg border border-border bg-card p-6">
-        <h1 className="text-2xl font-bold text-foreground">{profile?.nickname}</h1>
+      <h1 className="text-2xl font-bold text-foreground">{profile?.nickname?.startsWith("withdrawn_") ? "탈퇴한 계정" : profile?.nickname}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           공개 게시글 {profile?.posts.length ?? 0}개
         </p>
