@@ -35,6 +35,7 @@ logging:
     org.hibernate.orm.jdbc.bind: WARN
     org.hibernate.orm.jdbc.extract: WARN
     org.springframework.transaction.interceptor: WARN
+    org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver: ERROR
     org.hibernate.SQL: WARN
     com.zaxxer.hikari: WARN
     com.back: INFO

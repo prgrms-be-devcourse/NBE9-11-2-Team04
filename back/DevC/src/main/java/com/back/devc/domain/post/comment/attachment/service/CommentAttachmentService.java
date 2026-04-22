@@ -3,6 +3,7 @@ package com.back.devc.domain.post.comment.attachment.service;
 import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentDeleteResponse;
 import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentListResponse;
 import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentResponse;
+import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentUploadRequest;
 import com.back.devc.domain.post.comment.attachment.entity.CommentAttachment;
 import com.back.devc.domain.post.comment.attachment.repository.CommentAttachmentRepository;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
@@ -34,11 +35,13 @@ public class CommentAttachmentService {
     @Transactional
     public CommentAttachmentListResponse uploadAttachments(
             Long commentId,
-            List<MultipartFile> files,
-            List<Integer> fileOrders
+            CommentAttachmentUploadRequest request
     ) {
         commentRepository.findById(commentId)
                 .orElseThrow(() -> new ApiException(CommentAttachmentErrorCode.COMMENT_ATTACHMENT_404_COMMENT_NOT_FOUND));
+
+        List<MultipartFile> files = request.files();
+        List<Integer> fileOrders = request.fileOrders();
 
         if (files == null || files.isEmpty()) {
             return new CommentAttachmentListResponse(List.of());

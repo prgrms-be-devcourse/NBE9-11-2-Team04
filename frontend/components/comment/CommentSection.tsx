@@ -48,6 +48,14 @@ type CommentListResponse = {
   comments: CommentItem[]
 }
 
+const COMMENT_LIST_CACHE_TTL_MS = 1000
+
+const recentCommentListCache = new Map<number, {
+  timestamp: number
+  comments: CommentItem[]
+}>()
+const pendingCommentListRequests = new Map<number, Promise<CommentItem[]>>()
+
 function normalizeAttachment(attachment: CommentAttachmentItem): CommentAttachmentItem {
     return {
         ...attachment,
@@ -389,26 +397,60 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
     }
   }, [loginPath])
 
-  const loadComments = useCallback(async () => {
+  const loadComments = useCallback(async (options?: { force?: boolean }) => {
     try {
       setLoading(true)
       setError(null)
 
-      const response = await fetch(`http://localhost:8080/api/posts/${postId}/comments`)
+      if (!options?.force) {
+        const cached = recentCommentListCache.get(postId)
+        const now = Date.now()
 
-      if (!response.ok) {
-        throw new Error("댓글을 불러오지 못했습니다.")
+        if (cached && now - cached.timestamp < COMMENT_LIST_CACHE_TTL_MS) {
+          setComments(sortCommentsByNewest(cached.comments))
+          return
+        }
+
+        const pendingRequest = pendingCommentListRequests.get(postId)
+        if (pendingRequest) {
+          const pendingComments = await pendingRequest
+          setComments(sortCommentsByNewest(pendingComments))
+          return
+        }
       }
 
-            const responseBody = await response.json()
-            const data = extractCommentListResponse(responseBody)
-            setComments(sortCommentsByNewest(data.comments ?? []))
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
-        } finally {
-            setLoading(false)
+      const requestPromise = (async () => {
+        const response = await fetch(`http://localhost:8080/api/posts/${postId}/comments`)
+
+        if (!response.ok) {
+          throw new Error("댓글을 불러오지 못했습니다.")
         }
-    }, [postId])
+
+        const responseBody = await response.json()
+        const data = extractCommentListResponse(responseBody)
+        const normalizedComments = data.comments ?? []
+
+        recentCommentListCache.set(postId, {
+          timestamp: Date.now(),
+          comments: normalizedComments,
+        })
+
+        return normalizedComments
+      })()
+
+      if (!options?.force) {
+        pendingCommentListRequests.set(postId, requestPromise)
+      }
+
+      const loadedComments = await requestPromise
+      setComments(sortCommentsByNewest(loadedComments))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
+    } finally {
+      pendingCommentListRequests.delete(postId)
+      setLoading(false)
+    }
+  }, [postId])
 
   useEffect(() => {
     void loadComments()
@@ -533,7 +575,7 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
 
       setNewComment("")
       setNewCommentFiles([])
-      await loadComments()
+      await loadComments({ force: true })
       await onCommentsChanged?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
@@ -592,7 +634,7 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
         [commentId]: [],
       }))
       setOpenedReplyId(null)
-      await loadComments()
+      await loadComments({ force: true })
       await onCommentsChanged?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
@@ -690,7 +732,7 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
         setEditingCommentId(null)
       }
 
-      await loadComments()
+      await loadComments({ force: true })
       await onCommentsChanged?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
@@ -738,7 +780,7 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
       }
 
       setEditingCommentId(null)
-      await loadComments()
+      await loadComments({ force: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
     } finally {
