@@ -188,24 +188,13 @@ public class NotificationService {
      * 주의 사항
      * - 관리자 처리 후에만 신고 대상 게시글 작성자에게 REPORT 알림을 생성한다.
      * - 알림 메시지에는 신고한 사용자를 노출하지 않는다.
-     * - 같은 게시글에 대해 REPORT 알림이 여러 번 쌓이지 않도록 중복 생성 방지 검사를 수행한다.
+     * - 관리자 처리 완료 시점마다 대상 게시글 작성자에게 REPORT 알림을 생성한다.
      */
     @Transactional
     public void createPostReportNotification(Long postId, Long adminUserId) {
         Long postOwnerId = findPostOwnerId(postId);
 
         if (postOwnerId.equals(adminUserId)) {
-            return;
-        }
-
-        boolean alreadyNotified = notificationRepository.findByUserIdOrderByCreatedAtDesc(postOwnerId)
-                .stream()
-                .anyMatch(notification ->
-                        "REPORT".equals(notification.getType())
-                                && postId.equals(notification.getPostId())
-                );
-
-        if (alreadyNotified) {
             return;
         }
 
@@ -225,24 +214,13 @@ public class NotificationService {
      * 주의 사항
      * - 관리자 처리 후에만 신고 대상 댓글 작성자에게 REPORT 알림을 생성한다.
      * - 알림 메시지에는 신고한 사용자를 노출하지 않는다.
-     * - 같은 댓글에 대해 REPORT 알림이 여러 번 쌓이지 않도록 중복 생성 방지 검사를 수행한다.
+     * - 관리자 처리 완료 시점마다 대상 댓글 작성자에게 REPORT 알림을 생성한다.
      */
     @Transactional
     public void createCommentReportNotification(Long commentId, Long adminUserId) {
         Long commentOwnerId = findCommentOwnerId(commentId);
 
         if (commentOwnerId.equals(adminUserId)) {
-            return;
-        }
-
-        boolean alreadyNotified = notificationRepository.findByUserIdOrderByCreatedAtDesc(commentOwnerId)
-                .stream()
-                .anyMatch(notification ->
-                        "REPORT".equals(notification.getType())
-                                && commentId.equals(notification.getCommentId())
-                );
-
-        if (alreadyNotified) {
             return;
         }
 
