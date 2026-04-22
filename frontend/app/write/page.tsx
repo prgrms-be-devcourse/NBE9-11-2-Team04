@@ -324,15 +324,17 @@ export default function WritePage() {
 
     const fetchPost = async () => {
       try {
-        const data = await apiFetch<PostDetailResponse>(`/api/posts/${postId}`, {
+          const res = await apiFetch<SuccessResponse<PostDetailResponse>>(`/api/posts/${postId}`, {
           method: "GET",
           auth: true,
         })
 
+        const post = res.data!
+
         setFormData({
-          title: data.title,
-          content: sanitizeRichTextHtml(data.content),
-          category: String(data.categoryId),
+          title: post.title,
+          content: sanitizeRichTextHtml(post.content),
+          category: String(post.categoryId),
           tags: "",
         })
       } catch (err) {
