@@ -1,4 +1,5 @@
 package com.back.devc.domain.interaction.report.util;
+
 import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.domain.interaction.report.dto.ReportResponseDTO;
 import com.back.devc.domain.interaction.report.entity.Report;
@@ -12,6 +13,7 @@ import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
+import com.back.devc.global.exception.ApiException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -104,13 +106,12 @@ public class ReportTargetHandler {
         return switch (targetType) {
             case POST -> postRepository.findById(targetId)
                     .map(Post::getMember)
-                    .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+                    .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_TARGET_NOT_FOUND)); // [에러] 신고 대상 포스트가 없음
 
             case COMMENT -> commentRepository.findById(targetId)
                     .map(Comment::getUserId)
                     .flatMap(memberRepository::findById)
-                    .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
-        };
+                    .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_TARGET_NOT_FOUND)); // [에러] 신고 대상 댓글 혹은 작성자가 없음        };
     }
 
 
@@ -170,4 +171,13 @@ public class ReportTargetHandler {
             String title,
             String content
     ) {}
+
+    @Transactional(readOnly = true)
+    public boolean exists(TargetType targetType, Long targetId) {
+        return switch (targetType) {
+            case POST -> postRepository.existsById(targetId);
+            case COMMENT -> commentRepository.existsById(targetId);
+            default -> false;
+        };
+    }
 }

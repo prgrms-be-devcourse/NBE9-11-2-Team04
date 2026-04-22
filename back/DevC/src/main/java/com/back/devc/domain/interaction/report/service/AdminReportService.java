@@ -83,11 +83,17 @@ public class AdminReportService {
      * 3. 단건 승인
      * ========================================================= */
     public void approveReport(Long adminId, AdminReportRequestDTO dto) {
-
         Member admin = findMemberOrThrow(adminId);
-        Report report = findReportOrThrow(dto.reportId());
+        validateAdminRole(admin); // [추가] 관리자 권한 확인
 
+        Report report = findReportOrThrow(dto.reportId());
         validatePendingStatus(report);
+
+        // [추가] 신고 대상이 현재 존재하는지 확인 (이미 삭제된 게시글 등 방지)
+        validateTargetExists(report.getTargetType(), report.getTargetId());
+
+        // [추가] 제재 옵션 유효성 검사 (예: 정지인데 기간이 0인 경우)
+        validateSanctionDetails(dto);
 
         report.processReport(admin);
 
@@ -104,10 +110,10 @@ public class AdminReportService {
      * 4. 단건 반려
      * ========================================================= */
     public void rejectReport(Long adminId, AdminReportRequestDTO dto) {
-
         Member admin = findMemberOrThrow(adminId);
-        Report report = findReportOrThrow(dto.reportId());
+        validateAdminRole(admin); // [추가] 관리자 권한 확인
 
+        Report report = findReportOrThrow(dto.reportId());
         validatePendingStatus(report);
 
         report.rejectReport(admin);
@@ -123,27 +129,27 @@ public class AdminReportService {
      * 5. 그룹 승인
      * ========================================================= */
     public void approveReportGroup(Long adminId, AdminReportRequestDTO dto) {
-
         Member admin = findMemberOrThrow(adminId);
+        validateAdminRole(admin);
 
         TargetType targetType = dto.targetType();
-        Long targetId = dto.reportId();
+        Long targetId = dto.reportId(); // DTO 구조상 reportId를 targetId로 사용 중인 점 확인 필요
 
-        List<Report> reports =
-                reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
-                        targetType, targetId, ReportStatus.PENDING
-                );
+        validateTargetExists(targetType, targetId);
+        validateSanctionDetails(dto);
 
-        if (reports.isEmpty()) return;
+        List<Report> reports = reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
+                targetType, targetId, ReportStatus.PENDING);
+
+        if (reports.isEmpty()) {
+            // [추가] 처리할 대기 중인 신고가 없는 경우 에러 처리
+            throw new ApiException(ErrorCode.NO_PENDING_REPORTS_FOUND);
+        }
 
         reports.forEach(r -> r.processReport(admin));
 
         reportTargetHandler.handleApproved(
-                targetType,
-                targetId,
-                admin,
-                dto.sanctionType(),
-                dto.suspensionDays()
+                targetType, targetId, admin, dto.sanctionType(), dto.suspensionDays()
         );
     }
 
@@ -173,18 +179,42 @@ public class AdminReportService {
      * Util
      * ========================================================= */
 
+    private void validateAdminRole(Member member) {
+        // [에러] 사용자가 관리자 권한을 가지고 있지 않은 경우
+        if (!member.isAdmin()) { // Member 엔티티에 isAdmin() 또는 Role 확인 로직 필요
+            throw new ApiException(ErrorCode.UNAUTHORIZED_ADMIN_ACCESS);
+        }
+    }
+
+    private void validateTargetExists(TargetType type, Long targetId) {
+        // [에러] 신고 대상(게시글, 댓글 등)이 이미 삭제되어 존재하지 않는 경우
+        if (!reportTargetHandler.exists(type, targetId)) {
+            throw new ApiException(ErrorCode.REPORT_TARGET_NOT_FOUND);
+        }
+    }
+
+    private void validateSanctionDetails(AdminReportRequestDTO dto) {
+        // [에러] 제재 유형이 '정지'인데 정지 일수가 누락되었거나 부적절한 경우
+        if ("SUSPENSION".equals(dto.sanctionType()) && (dto.suspensionDays() == null || dto.suspensionDays() <= 0)) {
+            throw new ApiException(ErrorCode.INVALID_SANCTION_PARAMETER);
+        }
+    }
+
     private void validatePendingStatus(Report report) {
+        // [에러] 이미 승인 또는 반려 처리가 완료된 신고인 경우
         if (report.getStatus() != ReportStatus.PENDING) {
             throw new ApiException(ErrorCode.REPORT_ALREADY_PROCESSED);
         }
     }
 
     private Report findReportOrThrow(Long reportId) {
+        // [에러] 신고 ID 자체가 존재하지 않는 경우
         return reportRepository.findById(reportId)
                 .orElseThrow(() -> new ApiException(ErrorCode.REPORT_NOT_FOUND));
     }
 
     private Member findMemberOrThrow(Long userId) {
+        // [에러] 요청한 관리자 ID가 사용자 DB에 없는 경우
         return memberRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
     }
