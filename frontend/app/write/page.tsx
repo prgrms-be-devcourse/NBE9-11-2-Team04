@@ -29,20 +29,14 @@ import {
 import Link from "next/link"
 import { clearLoginSession, getAuthSnapshot } from "@/lib/auth-storage"
 import { apiFetch, isApiError } from "@/lib/api"
+import { categoryLabelMap, categorySlugMap } from "@/constants/category"
 
-const categories = [
-  { id: 1, name: "IT 기술 정보" },
-  { id: 2, name: "취업 시장 정보" },
-  { id: 3, name: "개발자 트렌드" },
-  { id: 4, name: "자유 주제" },
-]
+const categories = Object.entries(categoryLabelMap).map(([id, name]) => ({
+  id: Number(id),
+  name,
+}))
 
-const categoryMap: Record<string, number> = {
-  tech: 1,
-  "job-market": 2,
-  trend: 3,
-  free: 4,
-}
+
 
 type SuccessResponse<T> = {
   code?: string
@@ -59,7 +53,6 @@ type MyInfoResponse = {
 
 type PostCreateResponse = {
   postId: number
-  message: string
 }
 
 type PostDetailResponse = {
@@ -314,7 +307,13 @@ export default function WritePage() {
 
   useEffect(() => {
     if (!categorySlug) return
-    const categoryId = categoryMap[categorySlug]
+    const categoryId = categorySlug
+    ? Number(
+        Object.keys(categorySlugMap).find(
+          (key) => categorySlugMap[Number(key)] === categorySlug
+        )
+      )
+    : null
     if (categoryId) {
       setFormData((prev) => ({ ...prev, category: String(categoryId) }))
     }
@@ -547,7 +546,7 @@ export default function WritePage() {
         })
         router.push(`/posts/${postId}`)
       } else {
-        const data = await apiFetch<PostCreateResponse>("/api/posts", {
+        const res = await apiFetch<SuccessResponse<PostCreateResponse>>("/api/posts", {
           method: "POST",
           auth: true,
           body: JSON.stringify({
@@ -556,7 +555,8 @@ export default function WritePage() {
             categoryId: Number(formData.category),
           }),
         })
-        router.push(`/posts/${data.postId}`)
+        
+        router.push(`/posts/${res.data?.postId}`)
       }
     } catch (err) {
       console.error(err)

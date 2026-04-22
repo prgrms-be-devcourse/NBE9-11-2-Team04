@@ -10,6 +10,7 @@ import com.back.devc.domain.member.member.entity.MemberStatus;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.ErrorCode;
+import com.back.devc.global.exception.errorCode.AuthErrorCode;
 import com.back.devc.global.security.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,14 +35,14 @@ public class AuthService {
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
         Member member = memberRepository.findByEmail(request.email())
-                .orElseThrow(() -> new ApiException(ErrorCode.EMAIL_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(AuthErrorCode.EMAIL_NOT_FOUND));
 
         if (!passwordEncoder.matches(request.password(), member.getPasswordHash())) {
-            throw new ApiException(ErrorCode.PASSWORD_MISMATCH);
+            throw new ApiException(AuthErrorCode.PASSWORD_MISMATCH);
         }
 
         if (member.getStatus() == MemberStatus.BLACKLISTED) {
-            throw new ApiException(ErrorCode.MEMBER_BLACKLISTED);
+            throw new ApiException(AuthErrorCode.MEMBER_BLACKLISTED);
         }
 
         String accessToken = jwtProvider.createAccessToken(member);
@@ -60,11 +61,11 @@ public class AuthService {
     @Transactional
     public SignUpResponse signUp(SignUpRequest request) {
         if (memberRepository.existsByEmail(request.email())) {
-            throw new ApiException(ErrorCode.EMAIL_ALREADY_EXISTS);
+            throw new ApiException(AuthErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
         if (memberRepository.existsByNickname(request.nickname())) {
-            throw new ApiException(ErrorCode.NICKNAME_ALREADY_EXISTS);
+            throw new ApiException(AuthErrorCode.NICKNAME_ALREADY_EXISTS);
         }
 
         String encodedPassword = passwordEncoder.encode(request.password());
