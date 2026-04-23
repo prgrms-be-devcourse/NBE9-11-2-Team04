@@ -5,8 +5,4 @@ import java.util.List;
 public record NotificationListResponse(
         List<NotificationResponse> notifications
 ) {
-
-    public List<NotificationResponse> getNotifications() {
-        return notifications;
-    }
 }
