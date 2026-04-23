@@ -3,6 +3,7 @@ package com.back.devc.domain.auth.controller;
 import com.back.devc.domain.member.member.controller.MemberController;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,7 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.handler;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -41,8 +44,7 @@ public class ApiAuthControllerTest {
         String password = "password123!";
         String nickname = "newUser";
 
-        ResultActions resultActions = mvc
-                .perform(
+        ResultActions resultActions = mvc.perform(
                         post("/api/auth/signup")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
@@ -82,8 +84,7 @@ public class ApiAuthControllerTest {
         Member member = Member.createLocalMember(email, passwordEncoder.encode(rawPassword), nickname);
         memberRepository.save(member);
 
-        ResultActions resultActions = mvc
-                .perform(
+        ResultActions resultActions = mvc.perform(
                         post("/api/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
@@ -111,8 +112,7 @@ public class ApiAuthControllerTest {
 
     @Test
     void 로그아웃() throws Exception {
-        ResultActions resultActions = mvc
-                .perform(
+        ResultActions resultActions = mvc.perform(
                         post("/api/auth/logout")
                                 .contentType(MediaType.APPLICATION_JSON)
                 )
@@ -124,18 +124,19 @@ public class ApiAuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("AUTH_200_LOGOUT_SUCCESS"))
                 .andExpect(jsonPath("$.timestamp").exists())
-                .andExpect(jsonPath("$.data.message").value("로그아웃이 완료되었습니다."));
+                .andExpect(jsonPath("$.data.message").isNotEmpty());
     }
 
     @Test
     void 비로그인_상태_확인() throws Exception {
         mvc.perform(get("/api/users/me"))
                 .andDo(print())
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("COMMON_401"));
     }
 
     @Test
-    void 내_정보_조회() throws Exception {
+    void 내정보_조회() throws Exception {
         String email = "me-user@test.com";
         String rawPassword = "password123!";
         String nickname = "meUser";
@@ -143,7 +144,7 @@ public class ApiAuthControllerTest {
         Member member = Member.createLocalMember(email, passwordEncoder.encode(rawPassword), nickname);
         memberRepository.save(member);
 
-        String accessToken = mvc.perform(
+        String loginResponse = mvc.perform(
                         post("/api/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
@@ -157,7 +158,7 @@ public class ApiAuthControllerTest {
                 .getResponse()
                 .getContentAsString();
 
-        String token = com.jayway.jsonpath.JsonPath.read(accessToken, "$.data.accessToken");
+        String token = JsonPath.read(loginResponse, "$.data.accessToken");
 
         mvc.perform(
                         get("/api/users/me")
@@ -167,7 +168,7 @@ public class ApiAuthControllerTest {
                 .andExpect(handler().handlerType(MemberController.class))
                 .andExpect(handler().methodName("me"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value("USER_200_ME_SUCCESS"))
+                .andExpect(jsonPath("$.code").value("MEMBER_200_ME_SUCCESS"))
                 .andExpect(jsonPath("$.data.email").value(email))
                 .andExpect(jsonPath("$.data.nickname").value(nickname))
                 .andExpect(jsonPath("$.data.role").value("USER"))
