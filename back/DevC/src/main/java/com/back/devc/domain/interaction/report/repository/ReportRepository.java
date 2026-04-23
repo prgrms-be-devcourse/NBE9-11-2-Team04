@@ -18,9 +18,9 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
 
     @Query(
             value = """
-        SELECT r.targetType as targetType, 
-               r.targetId as targetId, 
-               COUNT(r) as reportCount, 
+        SELECT r.targetType as targetType,
+               r.targetId as targetId,
+               COUNT(r) as reportCount,
                MAX(r.createdAt) as latestCreatedAt
         FROM Report r
         WHERE (:status IS NULL OR r.status = :status)
@@ -28,7 +28,7 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
         ORDER BY latestCreatedAt DESC
     """,
             countQuery = """
-        SELECT COUNT(DISTINCT r.targetId)
+        SELECT COUNT(DISTINCT CONCAT(r.targetType, '-', r.targetId))
         FROM Report r
         WHERE (:status IS NULL OR r.status = :status)
     """
@@ -41,6 +41,19 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
 
     boolean existsByReporterAndTargetTypeAndTargetId(Member reporter, TargetType targetType, Long targetId);
 
-    @Query("select r.reasonType from Report r where r.targetType = :targetType and r.targetId = :targetId")
+    @Query("""
+        SELECT r.targetType, r.targetId, r.reasonType
+        FROM Report r
+        WHERE (r.targetType = :postType AND r.targetId IN :postIds)
+           OR (r.targetType = :commentType AND r.targetId IN :commentIds)
+    """)
+    List<Object[]> findReasonTypesBatch(
+            @Param("postType") TargetType postType,
+            @Param("postIds") List<Long> postIds,
+            @Param("commentType") TargetType commentType,
+            @Param("commentIds") List<Long> commentIds
+    );
+
+    // N+1 처리 전 사용한 조회 방법
     List<String> findReasonTypesByTarget(TargetType targetType, Long targetId);
 }

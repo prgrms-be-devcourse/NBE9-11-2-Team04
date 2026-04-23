@@ -33,4 +33,6 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
         ORDER BY c.createdAt DESC
     """)
     List<MyCommentResponse> findMyComments(Long userId);
+
+    List<Comment> findAllByIdIn(List<Long> ids);
 }

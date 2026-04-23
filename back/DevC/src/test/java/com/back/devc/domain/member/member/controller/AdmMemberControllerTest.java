@@ -69,6 +69,7 @@ class AdmMemberControllerTest {
                         10,
                         5,
                         MemberStatus.ACTIVE,
+                        LocalDateTime.now(),
                         LocalDateTime.now()
                 );
 
@@ -102,6 +103,7 @@ class AdmMemberControllerTest {
                         0L,
                         0L,
                         MemberStatus.ACTIVE,
+                        LocalDateTime.now(),
                         LocalDateTime.now()
                 );
 
@@ -134,6 +136,7 @@ class AdmMemberControllerTest {
                         0L,
                         0L,
                         MemberStatus.ACTIVE,
+                        LocalDateTime.now(),
                         LocalDateTime.now()
                 );
 
