@@ -4,6 +4,7 @@ import com.back.devc.domain.member.member.dto.AdmMemberDetailResponse;
 import com.back.devc.domain.member.member.dto.AdmMemberListResponse;
 import com.back.devc.domain.member.member.dto.AdmMemberStatusUpdateRequest;
 import com.back.devc.domain.member.member.entity.MemberStatus;
+import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.member.member.service.AdmMemberService;
 import com.back.devc.global.response.successCode.MemberSuccessCode;
 import com.back.devc.global.security.jwt.JwtProvider;
@@ -50,15 +51,13 @@ class AdmMemberControllerTest {
     private JwtProvider jwtProvider;
 
     @MockitoBean
-    private com.back.devc.domain.member.member.repository.MemberRepository memberRepository;
+    private MemberRepository memberRepository;
 
     @MockitoBean
     private org.springframework.data.jpa.mapping.JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
-    // =========================================================
-    // 1. 회원 목록
-    // =========================================================
     @Test
+    @DisplayName("회원 목록 조회 성공")
     void getMembers_success() throws Exception {
 
         AdmMemberListResponse dto =
@@ -89,10 +88,8 @@ class AdmMemberControllerTest {
                 .andExpect(jsonPath("$.data.content[0].nickname").value("nick"));
     }
 
-    // =========================================================
-    // 2. 상세 조회
-    // =========================================================
     @Test
+    @DisplayName("회원 상세 조회 성공")
     void getMemberDetail_success() throws Exception {
 
         AdmMemberDetailResponse dto =
@@ -117,10 +114,8 @@ class AdmMemberControllerTest {
                 .andExpect(jsonPath("$.data.userId").value(1L));
     }
 
-    // =========================================================
-    // 3. 상태 변경
-    // =========================================================
     @Test
+    @DisplayName("회원 상태 변경 성공")
     void updateMemberStatus_success() throws Exception {
 
         AdmMemberStatusUpdateRequest request =
