@@ -73,21 +73,38 @@ const typeLabels: Record<string, string> = {
 const statusLabels: Record<string, { label: string; className: string }> = {
   PENDING: {
     label: "대기",
-    className: "bg-gray-500/10 text-gray-500",
+    className: "bg-gray-500/10 text-gray-500 px-2 py-1 rounded-md text-xs",
   },
   RESOLVED: {
     label: "완료",
-    className: "bg-green-500/10 text-green-500",
+    className: "bg-green-500/10 text-green-500 px-2 py-1 rounded-md text-xs",
   },
   REJECTED: {
     label: "반려",
-    className: "bg-red-500/10 text-red-500",
+    className: "bg-red-500/10 text-red-500 px-2 py-1 rounded-md text-xs",
   },
 }
 
 /* =========================
    API
 ========================= */
+
+async function handleApiError(res: Response) {
+  let errorMessage = "서버 오류가 발생했습니다."
+
+  try {
+    const json = await res.json()
+
+    if (json?.message) errorMessage = json.message
+    else if (json?.error?.message) errorMessage = json.error.message
+    else if (json?.data?.message) errorMessage = json.data.message
+  } catch {
+    const text = await res.text()
+    if (text) errorMessage = text
+  }
+
+  throw new Error(errorMessage)
+}
 
 function getAuthHeaders(): HeadersInit {
   const headers: Record<string, string> = {
@@ -111,7 +128,9 @@ async function fetchGroupedReports(status: ReportStatus): Promise<ReportGroup[]>
     }
   )
 
-  if (!res.ok) throw new Error("그룹 신고 조회 실패")
+  if (!res.ok) {
+    await handleApiError(res)
+  }
 
   const json = await res.json()
   return json.data.content
@@ -142,7 +161,9 @@ async function processReportGroup(params: {
     }),
   })
 
-  if (!res.ok) throw new Error("처리 실패")
+  if (!res.ok) {
+    await handleApiError(res)
+  }
 
   const text = await res.text()
   return text ? JSON.parse(text) : null
@@ -169,6 +190,33 @@ export default function ReportsManagementPage() {
   const [adminNote, setAdminNote] = useState("")
   const [sanctionType, setSanctionType] = useState<SanctionType | "">("")
   const [suspensionDays, setSuspensionDays] = useState("")
+
+  // ✅ alert 대신 사용할 에러 팝업 상태
+  const [popup, setPopup] = useState<{
+    open: boolean
+    title: string
+    message: string
+  }>({
+    open: false,
+    title: "안내",
+    message: "",
+  })
+
+  const openPopup = (title: string, message: string) => {
+    setPopup({
+      open: true,
+      title,
+      message,
+    })
+  }
+
+  const closePopup = () => {
+    setPopup({
+      open: false,
+      title: "안내",
+      message: "",
+    })
+  }
 
   const loadGroups = async (s: ReportStatus) => {
     try {
@@ -214,8 +262,10 @@ export default function ReportsManagementPage() {
 
       closeDialog()
       await loadGroups(status)
-    } catch {
-      alert("처리 실패")
+
+      openPopup("처리 완료", "신고 처리가 완료되었습니다.")
+    } catch (e: any) {
+      openPopup("처리 실패", e.message ?? "처리 중 오류가 발생했습니다.")
     }
   }
 
@@ -261,7 +311,11 @@ export default function ReportsManagementPage() {
                 </TableCell>
 
                 <TableCell className="flex gap-1">
-                  <Button size="icon" variant="ghost" onClick={() => setSelectedGroup(g)}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setSelectedGroup(g)}
+                  >
                     <Eye />
                   </Button>
 
@@ -325,7 +379,10 @@ export default function ReportsManagementPage() {
               <>
                 <div>
                   <Label>제재 유형</Label>
-                  <Select value={sanctionType} onValueChange={(v) => setSanctionType(v as SanctionType)}>
+                  <Select
+                    value={sanctionType}
+                    onValueChange={(v) => setSanctionType(v as SanctionType)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="선택" />
                     </SelectTrigger>
@@ -340,7 +397,10 @@ export default function ReportsManagementPage() {
                 {sanctionType === "SUSPENDED" && (
                   <div>
                     <Label>기간</Label>
-                    <Select value={suspensionDays} onValueChange={setSuspensionDays}>
+                    <Select
+                      value={suspensionDays}
+                      onValueChange={setSuspensionDays}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="선택" />
                       </SelectTrigger>
@@ -374,18 +434,45 @@ export default function ReportsManagementPage() {
       {/* 상세 */}
       <Dialog open={!!selectedGroup} onOpenChange={() => setSelectedGroup(null)}>
         <DialogContent>
-          <DialogTitle>상세</DialogTitle>
+          <DialogHeader>
+            <DialogTitle>상세</DialogTitle>
+          </DialogHeader>
 
-          <div className="space-y-2">
-            <div>{selectedGroup?.targetNickname}</div>
-            <div>{selectedGroup?.reportCount}</div>
-            <div>{selectedGroup?.reasonTypes?.join(", ")}</div>
+          <div className="space-y-2 text-sm">
             <div>
+              <span className="font-semibold">피신고자:</span>{" "}
+              {selectedGroup?.targetNickname}
+            </div>
+            <div>
+              <span className="font-semibold">신고 수:</span>{" "}
+              {selectedGroup?.reportCount}
+            </div>
+            <div>
+              <span className="font-semibold">사유:</span>{" "}
+              {selectedGroup?.reasonTypes?.join(", ")}
+            </div>
+            <div>
+              <span className="font-semibold">상태:</span>{" "}
               {selectedGroup
                 ? statusLabels[selectedGroup.status]?.label ?? "UNKNOWN"
                 : ""}
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ✅ 경고/에러 알림 모달 */}
+      <Dialog open={popup.open} onOpenChange={closePopup}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{popup.title}</DialogTitle>
+          </DialogHeader>
+
+          <p className="text-sm text-muted-foreground">{popup.message}</p>
+
+          <DialogFooter>
+            <Button onClick={closePopup}>확인</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

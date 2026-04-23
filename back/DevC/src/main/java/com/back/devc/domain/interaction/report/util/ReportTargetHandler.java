@@ -41,6 +41,7 @@ public class ReportTargetHandler {
         notify(targetType, targetId, admin);
         deleteTarget(targetType, targetId);
 
+
         if (sanctionType != null) {
             applySanction(targetType, targetId, sanctionType, suspensionDays);
         }

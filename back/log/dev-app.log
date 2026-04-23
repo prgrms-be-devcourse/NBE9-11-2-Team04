@@ -20501,3 +20501,195 @@ Consider defining a bean of type 'com.back.devc.domain.member.member.service.Mem
 	For a stable JSON structure, please use Spring Data's PagedModel (globally via @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO))
 	or Spring HATEOAS and Spring Data's PagedResourcesAssembler as documented in https://docs.spring.io/spring-data/commons/reference/repositories/core-extensions.html#core.web.pageables.
 
+2026-04-23 01:27:21.867 INFO  1885 --- [ restartedMain ] com.back.devc.DevCApplication - Starting DevCApplication using Java 25 with PID 38044 (D:\NBE9-11-2-Team04\back\DevC\out\production\classes started by wall1 in D:\NBE9-11-2-Team04\back)
+2026-04-23 01:27:21.871 INFO  1889 --- [ restartedMain ] com.back.devc.DevCApplication - The following 1 profile is active: "dev"
+2026-04-23 01:27:25.342 INFO  5360 --- [ restartedMain ] o.apache.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2026-04-23 01:27:25.346 INFO  5364 --- [ restartedMain ] o.apache.catalina.core.StandardService - Starting service [Tomcat]
+2026-04-23 01:27:25.346 INFO  5364 --- [ restartedMain ] org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/11.0.20]
+2026-04-23 01:27:32.594 WARN  12612 --- [ restartedMain ] o.s.b.j.a.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-23 01:27:33.849 INFO  13867 --- [ restartedMain ] o.apache.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2026-04-23 01:27:33.874 INFO  13892 --- [ restartedMain ] com.back.devc.DevCApplication - Started DevCApplication in 13.56 seconds (process running for 15.186)
+2026-04-23 01:27:34.052 INFO  14070 --- [ http-nio-8080-exec-1 ] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-23 01:27:34.069 WARN  14087 --- [ http-nio-8080-exec-1 ] o.s.w.s.h.HandlerMappingIntrospector - Cache miss for REQUEST dispatch to '/api/auth/login' (previous null). Performing CorsConfiguration lookup. This is logged once only at WARN level, and every time at TRACE.
+2026-04-23 01:27:44.796 WARN  24814 --- [ http-nio-8080-exec-9 ] o.s.d.w.c.SpringDataJackson3Configuration$PageModule$WarningLoggingModifier - Serializing PageImpl instances as-is is not supported, meaning that there is no guarantee about the stability of the resulting JSON structure!
+	For a stable JSON structure, please use Spring Data's PagedModel (globally via @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO))
+	or Spring HATEOAS and Spring Data's PagedResourcesAssembler as documented in https://docs.spring.io/spring-data/commons/reference/repositories/core-extensions.html#core.web.pageables.
+
+2026-04-23 01:28:04.181 INFO  44199 --- [ http-nio-8080-exec-7 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 시작 - postId=1
+2026-04-23 01:28:04.197 INFO  44215 --- [ http-nio-8080-exec-7 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 완료 - postId=1, count=0
+2026-04-23 01:28:04.211 INFO  44229 --- [ http-nio-8080-exec-3 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 시작 - postId=1
+2026-04-23 01:28:04.213 INFO  44231 --- [ http-nio-8080-exec-3 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 완료 - postId=1, count=0
+2026-04-23 01:29:57.832 INFO  157850 --- [ http-nio-8080-exec-10 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 시작 - postId=1
+2026-04-23 01:29:57.836 INFO  157854 --- [ http-nio-8080-exec-10 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 완료 - postId=1, count=0
+2026-04-23 01:29:57.844 INFO  157862 --- [ http-nio-8080-exec-7 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 시작 - postId=1
+2026-04-23 01:29:57.847 INFO  157865 --- [ http-nio-8080-exec-7 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 완료 - postId=1, count=0
+2026-04-23 01:37:01.864 INFO  573  --- [ restartedMain ] com.back.devc.DevCApplication - Starting DevCApplication using Java 25 with PID 32296 (D:\NBE9-11-2-Team04\back\DevC\out\production\classes started by wall1 in D:\NBE9-11-2-Team04\back)
+2026-04-23 01:37:01.866 INFO  575  --- [ restartedMain ] com.back.devc.DevCApplication - The following 1 profile is active: "dev"
+2026-04-23 01:37:03.370 INFO  2079 --- [ restartedMain ] o.apache.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2026-04-23 01:37:03.371 INFO  2080 --- [ restartedMain ] o.apache.catalina.core.StandardService - Starting service [Tomcat]
+2026-04-23 01:37:03.372 INFO  2081 --- [ restartedMain ] org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/11.0.20]
+2026-04-23 01:37:06.806 WARN  5515 --- [ restartedMain ] o.s.b.j.a.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-23 01:37:08.149 INFO  6858 --- [ restartedMain ] o.apache.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2026-04-23 01:37:08.166 INFO  6875 --- [ restartedMain ] com.back.devc.DevCApplication - Started DevCApplication in 6.735 seconds (process running for 7.51)
+2026-04-23 01:37:09.960 INFO  8669 --- [ http-nio-8080-exec-4 ] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-23 01:37:09.978 WARN  8687 --- [ http-nio-8080-exec-4 ] o.s.w.s.h.HandlerMappingIntrospector - Cache miss for REQUEST dispatch to '/api/notifications' (previous null). Performing CorsConfiguration lookup. This is logged once only at WARN level, and every time at TRACE.
+2026-04-23 01:37:10.028 INFO  8737 --- [ http-nio-8080-exec-2 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 시작 - postId=1
+2026-04-23 01:37:10.069 INFO  8778 --- [ http-nio-8080-exec-2 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 완료 - postId=1, count=0
+2026-04-23 01:38:16.046 INFO  74755 --- [ http-nio-8080-exec-8 ] c.b.d.d.p.comment.service.CommentService - 댓글 작성 시작 - postId=1, loginUserId=3
+2026-04-23 01:38:16.051 INFO  74760 --- [ http-nio-8080-exec-8 ] c.b.d.d.p.comment.service.CommentService - 댓글 저장 완료 - commentId=1, postId=1, loginUserId=3
+2026-04-23 01:38:16.055 INFO  74764 --- [ http-nio-8080-exec-8 ] c.b.d.d.p.comment.service.CommentService - 댓글 알림 처리 요청 완료 - commentId=1, postId=1
+2026-04-23 01:38:16.070 INFO  74779 --- [ http-nio-8080-exec-10 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 시작 - postId=1
+2026-04-23 01:38:16.073 INFO  74782 --- [ http-nio-8080-exec-10 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 완료 - postId=1, count=1
+2026-04-23 01:38:27.939 WARN  86648 --- [ http-nio-8080-exec-10 ] o.s.d.w.c.SpringDataJackson3Configuration$PageModule$WarningLoggingModifier - Serializing PageImpl instances as-is is not supported, meaning that there is no guarantee about the stability of the resulting JSON structure!
+	For a stable JSON structure, please use Spring Data's PagedModel (globally via @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO))
+	or Spring HATEOAS and Spring Data's PagedResourcesAssembler as documented in https://docs.spring.io/spring-data/commons/reference/repositories/core-extensions.html#core.web.pageables.
+
+2026-04-23 01:38:43.415 INFO  102124 --- [ http-nio-8080-exec-1 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 시작 - postId=2
+2026-04-23 01:38:43.420 INFO  102129 --- [ http-nio-8080-exec-1 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 완료 - postId=2, count=0
+2026-04-23 01:38:43.425 INFO  102134 --- [ http-nio-8080-exec-9 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 시작 - postId=2
+2026-04-23 01:38:43.429 INFO  102138 --- [ http-nio-8080-exec-9 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 완료 - postId=2, count=0
+2026-04-23 01:38:46.542 WARN  105251 --- [ http-nio-8080-exec-3 ] o.s.w.s.m.m.a.ExceptionHandlerExceptionResolver - Resolved [com.back.devc.global.exception.ApiException: 본인의 게시글이나 댓글은 신고할 수 없습니다.]
+2026-04-23 01:39:01.504 INFO  120213 --- [ http-nio-8080-exec-6 ] c.b.d.d.p.comment.service.CommentService - 댓글 작성 시작 - postId=2, loginUserId=3
+2026-04-23 01:39:01.507 INFO  120216 --- [ http-nio-8080-exec-6 ] c.b.d.d.p.comment.service.CommentService - 댓글 저장 완료 - commentId=2, postId=2, loginUserId=3
+2026-04-23 01:39:01.508 INFO  120217 --- [ http-nio-8080-exec-6 ] c.b.d.d.p.comment.service.CommentService - 댓글 알림 처리 요청 완료 - commentId=2, postId=2
+2026-04-23 01:39:01.516 INFO  120225 --- [ http-nio-8080-exec-10 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 시작 - postId=2
+2026-04-23 01:39:01.518 INFO  120227 --- [ http-nio-8080-exec-10 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 완료 - postId=2, count=1
+2026-04-23 01:39:03.152 WARN  121861 --- [ http-nio-8080-exec-8 ] o.s.w.s.m.m.a.ExceptionHandlerExceptionResolver - Resolved [com.back.devc.global.exception.ApiException: 본인의 게시글이나 댓글은 신고할 수 없습니다.]
+2026-04-23 01:41:38.180 INFO  276889 --- [ http-nio-8080-exec-4 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 시작 - postId=1
+2026-04-23 01:41:38.187 INFO  276896 --- [ http-nio-8080-exec-4 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 완료 - postId=1, count=1
+2026-04-23 01:41:38.193 INFO  276902 --- [ http-nio-8080-exec-9 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 시작 - postId=1
+2026-04-23 01:41:38.194 INFO  276903 --- [ http-nio-8080-exec-9 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 완료 - postId=1, count=1
+2026-04-23 01:41:39.037 WARN  277746 --- [ http-nio-8080-exec-8 ] o.s.w.s.m.m.a.ExceptionHandlerExceptionResolver - Resolved [com.back.devc.global.exception.ApiException: 이미 신고한 대상입니다.]
+2026-04-23 01:41:54.385 WARN  293094 --- [ http-nio-8080-exec-2 ] o.s.w.s.m.m.a.ExceptionHandlerExceptionResolver - Resolved [com.back.devc.global.exception.ApiException: 본인의 게시글이나 댓글은 신고할 수 없습니다.]
+2026-04-23 01:49:57.850 WARN  776559 --- [ http-nio-8080-exec-7 ] o.s.w.s.m.m.a.ExceptionHandlerExceptionResolver - Resolved [com.back.devc.global.exception.ApiException: 정지 기간 등 제재 파라미터가 올바르지 않습니다.]
+2026-04-23 01:50:25.392 WARN  804101 --- [ http-nio-8080-exec-10 ] o.s.w.s.m.m.a.ExceptionHandlerExceptionResolver - Resolved [com.back.devc.global.exception.ApiException: 정지 기간 등 제재 파라미터가 올바르지 않습니다.]
+2026-04-23 02:00:31.031 INFO  1409740 --- [ tomcat-shutdown ] o.apache.coyote.http11.Http11NioProtocol - Pausing ProtocolHandler ["http-nio-8080"]
+2026-04-23 02:00:31.043 INFO  1409752 --- [ Thread-1 ] o.apache.coyote.http11.Http11NioProtocol - Stopping ProtocolHandler ["http-nio-8080"]
+2026-04-23 02:00:31.217 INFO  1409926 --- [ restartedMain ] com.back.devc.DevCApplication - Starting DevCApplication using Java 25 with PID 32296 (D:\NBE9-11-2-Team04\back\DevC\out\production\classes started by wall1 in D:\NBE9-11-2-Team04\back)
+2026-04-23 02:00:31.217 INFO  1409926 --- [ restartedMain ] com.back.devc.DevCApplication - The following 1 profile is active: "dev"
+2026-04-23 02:00:32.321 INFO  1411030 --- [ restartedMain ] o.apache.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2026-04-23 02:00:32.321 INFO  1411030 --- [ restartedMain ] o.apache.catalina.core.StandardService - Starting service [Tomcat]
+2026-04-23 02:00:32.321 INFO  1411030 --- [ restartedMain ] org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/11.0.20]
+2026-04-23 02:00:33.319 WARN  1412028 --- [ restartedMain ] o.s.b.w.s.s.c.AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'adminReportController' defined in file [D:\NBE9-11-2-Team04\back\DevC\out\production\classes\com\back\devc\domain\interaction\report\controller\AdminReportController.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'adminReportService' defined in file [D:\NBE9-11-2-Team04\back\DevC\out\production\classes\com\back\devc\domain\interaction\report\service\AdminReportService.class]: Unsatisfied dependency expressed through constructor parameter 2: No qualifying bean of type 'com.back.devc.domain.interaction.report.util.ReportTargetHandler' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}
+2026-04-23 02:00:33.356 INFO  1412065 --- [ restartedMain ] o.apache.catalina.core.StandardService - Stopping service [Tomcat]
+2026-04-23 02:00:33.386 ERROR 1412095 --- [ restartedMain ] o.s.b.d.LoggingFailureAnalysisReporter - 
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Parameter 2 of constructor in com.back.devc.domain.interaction.report.service.AdminReportService required a bean of type 'com.back.devc.domain.interaction.report.util.ReportTargetHandler' that could not be found.
+
+
+Action:
+
+Consider defining a bean of type 'com.back.devc.domain.interaction.report.util.ReportTargetHandler' in your configuration.
+
+2026-04-23 02:00:34.982 INFO  1413691 --- [ restartedMain ] com.back.devc.DevCApplication - Starting DevCApplication using Java 25 with PID 32296 (D:\NBE9-11-2-Team04\back\DevC\out\production\classes started by wall1 in D:\NBE9-11-2-Team04\back)
+2026-04-23 02:00:34.982 INFO  1413691 --- [ restartedMain ] com.back.devc.DevCApplication - The following 1 profile is active: "dev"
+2026-04-23 02:00:35.893 INFO  1414602 --- [ restartedMain ] o.apache.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2026-04-23 02:00:35.894 INFO  1414603 --- [ restartedMain ] o.apache.catalina.core.StandardService - Starting service [Tomcat]
+2026-04-23 02:00:35.894 INFO  1414603 --- [ restartedMain ] org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/11.0.20]
+2026-04-23 02:00:36.842 WARN  1415551 --- [ restartedMain ] o.s.b.j.a.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-23 02:00:37.461 INFO  1416170 --- [ restartedMain ] o.apache.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2026-04-23 02:00:37.468 INFO  1416177 --- [ restartedMain ] com.back.devc.DevCApplication - Started DevCApplication in 2.522 seconds (process running for 1416.812)
+2026-04-23 02:02:44.053 INFO  1542762 --- [ http-nio-8080-exec-1 ] o.a.c.c.C.[Tomcat-1].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-23 02:02:44.055 WARN  1542764 --- [ http-nio-8080-exec-1 ] o.s.w.s.h.HandlerMappingIntrospector - Cache miss for REQUEST dispatch to '/api/admin/reports/groups' (previous null). Performing CorsConfiguration lookup. This is logged once only at WARN level, and every time at TRACE.
+2026-04-23 02:02:44.075 WARN  1542784 --- [ http-nio-8080-exec-1 ] o.s.d.w.c.SpringDataJackson3Configuration$PageModule$WarningLoggingModifier - Serializing PageImpl instances as-is is not supported, meaning that there is no guarantee about the stability of the resulting JSON structure!
+	For a stable JSON structure, please use Spring Data's PagedModel (globally via @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO))
+	or Spring HATEOAS and Spring Data's PagedResourcesAssembler as documented in https://docs.spring.io/spring-data/commons/reference/repositories/core-extensions.html#core.web.pageables.
+
+2026-04-23 02:04:32.147 INFO  1650856 --- [ tomcat-shutdown ] o.apache.coyote.http11.Http11NioProtocol - Pausing ProtocolHandler ["http-nio-8080"]
+2026-04-23 02:04:32.156 INFO  1650865 --- [ Thread-6 ] o.apache.coyote.http11.Http11NioProtocol - Stopping ProtocolHandler ["http-nio-8080"]
+2026-04-23 02:04:32.299 INFO  1651008 --- [ restartedMain ] com.back.devc.DevCApplication - Starting DevCApplication using Java 25 with PID 32296 (D:\NBE9-11-2-Team04\back\DevC\out\production\classes started by wall1 in D:\NBE9-11-2-Team04\back)
+2026-04-23 02:04:32.299 INFO  1651008 --- [ restartedMain ] com.back.devc.DevCApplication - The following 1 profile is active: "dev"
+2026-04-23 02:04:33.361 INFO  1652070 --- [ restartedMain ] o.apache.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2026-04-23 02:04:33.362 INFO  1652071 --- [ restartedMain ] o.apache.catalina.core.StandardService - Starting service [Tomcat]
+2026-04-23 02:04:33.362 INFO  1652071 --- [ restartedMain ] org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/11.0.20]
+2026-04-23 02:04:34.238 WARN  1652947 --- [ restartedMain ] o.s.b.w.s.s.c.AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'adminReportController': Resolution of declared constructors on bean Class [com.back.devc.domain.interaction.report.controller.AdminReportController] from ClassLoader [org.springframework.boot.devtools.restart.classloader.RestartClassLoader@5c486863] failed
+2026-04-23 02:04:34.272 INFO  1652981 --- [ restartedMain ] o.apache.catalina.core.StandardService - Stopping service [Tomcat]
+2026-04-23 02:04:34.275 ERROR 1652984 --- [ restartedMain ] o.springframework.boot.SpringApplication - Application run failed
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'adminReportController': Resolution of declared constructors on bean Class [com.back.devc.domain.interaction.report.controller.AdminReportController] from ClassLoader [org.springframework.boot.devtools.restart.classloader.RestartClassLoader@5c486863] failed
+	at org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor.determineCandidateConstructors(AutowiredAnnotationBeanPostProcessor.java:368)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.determineConstructorsFromBeanPostProcessors(AbstractAutowireCapableBeanFactory.java:1321)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1218)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:565)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:525)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:333)
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:371)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:331)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:196)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.instantiateSingleton(DefaultListableBeanFactory.java:1218)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingleton(DefaultListableBeanFactory.java:1184)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingletons(DefaultListableBeanFactory.java:1121)
+	at org.springframework.context.support.AbstractApplicationContext.finishBeanFactoryInitialization(AbstractApplicationContext.java:994)
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:621)
+	at org.springframework.boot.web.server.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:143)
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:756)
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:445)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:321)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1365)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1354)
+	at com.back.devc.DevCApplication.main(DevCApplication.java:12)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.springframework.boot.devtools.restart.RestartLauncher.run(RestartLauncher.java:52)
+Caused by: java.lang.NoClassDefFoundError: com/back/devc/domain/interaction/report/service/AdminReportService
+	at java.base/java.lang.Class.getDeclaredConstructors0(Native Method)
+	at java.base/java.lang.Class.privateGetDeclaredConstructors(Class.java:2985)
+	at java.base/java.lang.Class.getDeclaredConstructors(Class.java:2354)
+	at org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor.determineCandidateConstructors(AutowiredAnnotationBeanPostProcessor.java:363)
+	... 23 common frames omitted
+Caused by: java.lang.ClassNotFoundException: com.back.devc.domain.interaction.report.service.AdminReportService
+	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:580)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:490)
+	at java.base/java.lang.Class.forName0(Native Method)
+	at java.base/java.lang.Class.forName(Class.java:547)
+	at org.springframework.boot.devtools.restart.classloader.RestartClassLoader.loadClass(RestartClassLoader.java:123)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:490)
+	... 27 common frames omitted
+2026-04-23 02:05:40.048 INFO  1718757 --- [ restartedMain ] com.back.devc.DevCApplication - Starting DevCApplication using Java 25 with PID 32296 (D:\NBE9-11-2-Team04\back\DevC\out\production\classes started by wall1 in D:\NBE9-11-2-Team04\back)
+2026-04-23 02:05:40.048 INFO  1718757 --- [ restartedMain ] com.back.devc.DevCApplication - The following 1 profile is active: "dev"
+2026-04-23 02:05:41.041 INFO  1719750 --- [ restartedMain ] o.apache.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2026-04-23 02:05:41.041 INFO  1719750 --- [ restartedMain ] o.apache.catalina.core.StandardService - Starting service [Tomcat]
+2026-04-23 02:05:41.041 INFO  1719750 --- [ restartedMain ] org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/11.0.20]
+2026-04-23 02:05:41.941 WARN  1720650 --- [ restartedMain ] o.s.b.j.a.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-23 02:05:42.540 INFO  1721249 --- [ restartedMain ] o.apache.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2026-04-23 02:05:42.546 INFO  1721255 --- [ restartedMain ] com.back.devc.DevCApplication - Started DevCApplication in 2.526 seconds (process running for 1721.89)
+2026-04-23 02:06:03.373 INFO  1742082 --- [ http-nio-8080-exec-1 ] o.a.c.c.C.[Tomcat-2].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-23 02:06:03.375 WARN  1742084 --- [ http-nio-8080-exec-1 ] o.s.w.s.h.HandlerMappingIntrospector - Cache miss for REQUEST dispatch to '/api/admin/reports/groups' (previous null). Performing CorsConfiguration lookup. This is logged once only at WARN level, and every time at TRACE.
+2026-04-23 02:06:03.396 WARN  1742105 --- [ http-nio-8080-exec-1 ] o.s.d.w.c.SpringDataJackson3Configuration$PageModule$WarningLoggingModifier - Serializing PageImpl instances as-is is not supported, meaning that there is no guarantee about the stability of the resulting JSON structure!
+	For a stable JSON structure, please use Spring Data's PagedModel (globally via @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO))
+	or Spring HATEOAS and Spring Data's PagedResourcesAssembler as documented in https://docs.spring.io/spring-data/commons/reference/repositories/core-extensions.html#core.web.pageables.
+
+2026-04-23 02:07:28.522 INFO  1827231 --- [ http-nio-8080-exec-2 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 시작 - postId=3
+2026-04-23 02:07:28.532 INFO  1827241 --- [ http-nio-8080-exec-2 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 완료 - postId=3, count=0
+2026-04-23 02:07:28.549 INFO  1827258 --- [ http-nio-8080-exec-10 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 시작 - postId=3
+2026-04-23 02:07:28.552 INFO  1827261 --- [ http-nio-8080-exec-10 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 완료 - postId=3, count=0
+2026-04-23 02:07:32.142 INFO  1830851 --- [ http-nio-8080-exec-9 ] c.b.d.d.p.comment.service.CommentService - 댓글 작성 시작 - postId=3, loginUserId=3
+2026-04-23 02:07:32.149 INFO  1830858 --- [ http-nio-8080-exec-9 ] c.b.d.d.p.comment.service.CommentService - 댓글 저장 완료 - commentId=3, postId=3, loginUserId=3
+2026-04-23 02:07:32.150 INFO  1830859 --- [ http-nio-8080-exec-9 ] c.b.d.d.p.comment.service.CommentService - 댓글 알림 처리 요청 완료 - commentId=3, postId=3
+2026-04-23 02:07:32.164 INFO  1830873 --- [ http-nio-8080-exec-7 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 시작 - postId=3
+2026-04-23 02:07:32.166 INFO  1830875 --- [ http-nio-8080-exec-7 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 완료 - postId=3, count=1
+2026-04-23 02:07:33.735 WARN  1832444 --- [ http-nio-8080-exec-5 ] o.s.w.s.m.m.a.ExceptionHandlerExceptionResolver - Resolved [com.back.devc.global.exception.ApiException: 인증이 필요합니다.]
+2026-04-23 02:07:41.311 INFO  1840020 --- [ http-nio-8080-exec-6 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 시작 - postId=3
+2026-04-23 02:07:41.314 INFO  1840023 --- [ http-nio-8080-exec-6 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 완료 - postId=3, count=1
+2026-04-23 02:07:41.318 INFO  1840027 --- [ http-nio-8080-exec-2 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 시작 - postId=3
+2026-04-23 02:07:41.320 INFO  1840029 --- [ http-nio-8080-exec-2 ] c.b.d.d.p.comment.service.CommentService - 댓글 목록 조회 완료 - postId=3, count=1
+2026-04-23 02:19:08.451 INFO  685  --- [ restartedMain ] com.back.devc.DevCApplication - Starting DevCApplication using Java 25 with PID 2664 (D:\NBE9-11-2-Team04\back\DevC\out\production\classes started by wall1 in D:\NBE9-11-2-Team04\back)
+2026-04-23 02:19:08.453 INFO  687  --- [ restartedMain ] com.back.devc.DevCApplication - The following 1 profile is active: "dev"
+2026-04-23 02:19:10.307 INFO  2541 --- [ restartedMain ] o.apache.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2026-04-23 02:19:10.310 INFO  2544 --- [ restartedMain ] o.apache.catalina.core.StandardService - Starting service [Tomcat]
+2026-04-23 02:19:10.310 INFO  2544 --- [ restartedMain ] org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/11.0.20]
+2026-04-23 02:19:16.681 WARN  8915 --- [ restartedMain ] o.s.b.j.a.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-23 02:19:17.796 INFO  10030 --- [ restartedMain ] o.apache.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2026-04-23 02:19:17.809 INFO  10043 --- [ restartedMain ] com.back.devc.DevCApplication - Started DevCApplication in 9.899 seconds (process running for 10.654)
+2026-04-23 02:19:18.398 INFO  10632 --- [ http-nio-8080-exec-1 ] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-23 02:19:18.414 WARN  10648 --- [ http-nio-8080-exec-1 ] o.s.w.s.h.HandlerMappingIntrospector - Cache miss for REQUEST dispatch to '/api/auth/login' (previous null). Performing CorsConfiguration lookup. This is logged once only at WARN level, and every time at TRACE.
+2026-04-23 02:19:20.328 WARN  12562 --- [ http-nio-8080-exec-1 ] o.s.d.w.c.SpringDataJackson3Configuration$PageModule$WarningLoggingModifier - Serializing PageImpl instances as-is is not supported, meaning that there is no guarantee about the stability of the resulting JSON structure!
+	For a stable JSON structure, please use Spring Data's PagedModel (globally via @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO))
+	or Spring HATEOAS and Spring Data's PagedResourcesAssembler as documented in https://docs.spring.io/spring-data/commons/reference/repositories/core-extensions.html#core.web.pageables.
+
+2026-04-23 02:19:48.428 WARN  40662 --- [ http-nio-8080-exec-5 ] o.s.w.s.m.m.a.ExceptionHandlerExceptionResolver - Resolved [com.back.devc.global.exception.ApiException: 정지 기간 등 제재 파라미터가 올바르지 않습니다.]
