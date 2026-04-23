@@ -172,7 +172,7 @@ class ReportPerformanceTest {
                 .willReturn(mockInfo);
 
         // reasonTypes도 row마다 호출됨
-        given(reportRepository.findReasonTypesByTarget(any(), any()))
+        given(reportRepository.findReasonTypesByTargetId(any(), any()))
                 .willReturn(List.of("SPAM", "ABUSE"));
 
         // 3. When
@@ -199,6 +199,6 @@ class ReportPerformanceTest {
                 .getTargetInfo(any(), any());
 
         org.mockito.Mockito.verify(reportRepository, org.mockito.Mockito.times(pageSize))
-                .findReasonTypesByTarget(any(), any());
+                .findReasonTypesByTargetId(any(), any());
     }
 }

@@ -55,5 +55,5 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     );
 
     // N+1 처리 전 사용한 조회 방법
-    List<String> findReasonTypesByTarget(TargetType targetType, Long targetId);
+    List<String> findReasonTypesByTargetId(TargetType targetType, Long targetId);
 }

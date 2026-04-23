@@ -78,7 +78,7 @@ public class AdminReportService {
 
             // reasonTypes 조회
             List<String> reasonTypes =
-                    reportRepository.findReasonTypesByTarget(targetType, targetId);
+                    reportRepository.findReasonTypesByTargetId(targetType, targetId);
 
             return new ReportGroupResponseDTO(
                     targetType,
