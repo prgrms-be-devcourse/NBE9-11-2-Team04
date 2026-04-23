@@ -59,17 +59,21 @@ class AdmMemberControllerTest {
     @Test
     @DisplayName("회원 목록 조회 성공")
     void getMembers_success() throws Exception {
-        AdmMemberListResponse dto = new AdmMemberListResponse(
-                1L,
-                "test@test.com",
-                "nick",
-                10,
-                5,
-                MemberStatus.ACTIVE,
-                LocalDateTime.now()
-        );
 
-        Page<AdmMemberListResponse> page = new PageImpl<>(List.of(dto));
+        AdmMemberListResponse dto =
+                new AdmMemberListResponse(
+                        1L,
+                        "test@test.com",
+                        "nick",
+                        10,
+                        5,
+                        MemberStatus.ACTIVE,
+                        LocalDateTime.now(),
+                        LocalDateTime.now()
+                );
+
+        Page<AdmMemberListResponse> page =
+                new PageImpl<>(List.of(dto));
 
         given(admMemberService.getMembers(any()))
                 .willReturn(page);
@@ -87,15 +91,18 @@ class AdmMemberControllerTest {
     @Test
     @DisplayName("회원 상세 조회 성공")
     void getMemberDetail_success() throws Exception {
-        AdmMemberDetailResponse dto = new AdmMemberDetailResponse(
-                1L,
-                "test@test.com",
-                "nick",
-                0L,
-                0L,
-                MemberStatus.ACTIVE,
-                LocalDateTime.now()
-        );
+
+        AdmMemberDetailResponse dto =
+                new AdmMemberDetailResponse(
+                        1L,
+                        "test@test.com",
+                        "nick",
+                        0L,
+                        0L,
+                        MemberStatus.ACTIVE,
+                        LocalDateTime.now(),
+                        LocalDateTime.now()
+                );
 
         given(admMemberService.getMemberDetail(1L))
                 .willReturn(dto);
@@ -110,19 +117,23 @@ class AdmMemberControllerTest {
     @Test
     @DisplayName("회원 상태 변경 성공")
     void updateMemberStatus_success() throws Exception {
-        AdmMemberStatusUpdateRequest request = AdmMemberStatusUpdateRequest.builder()
-                .status(MemberStatus.ACTIVE)
-                .build();
 
-        AdmMemberDetailResponse response = new AdmMemberDetailResponse(
-                1L,
-                "test@test.com",
-                "nick",
-                0L,
-                0L,
-                MemberStatus.ACTIVE,
-                LocalDateTime.now()
-        );
+        AdmMemberStatusUpdateRequest request =
+                AdmMemberStatusUpdateRequest.builder()
+                        .status(MemberStatus.ACTIVE)
+                        .build();
+
+        AdmMemberDetailResponse response =
+                new AdmMemberDetailResponse(
+                        1L,
+                        "test@test.com",
+                        "nick",
+                        0L,
+                        0L,
+                        MemberStatus.ACTIVE,
+                        LocalDateTime.now(),
+                        LocalDateTime.now()
+                );
 
         given(admMemberService.updateMemberStatus(eq(1L), any()))
                 .willReturn(response);

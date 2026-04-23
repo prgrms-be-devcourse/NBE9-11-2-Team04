@@ -1,5 +1,6 @@
 package com.back.devc.domain.post.post.repository;
 
+import com.back.devc.domain.member.member.dto.CountResultDto;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.post.post.entity.Post;
 import org.springframework.data.domain.Page;
@@ -72,4 +73,16 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> findByCategoryCategoryIdAndIsDeletedFalse(long categoryId);
 
     long countByMember(Member member);
+
+    // Batch IN 신고 조회용
+    List<Post> findAllByPostIdIn(List<Long> postIds);
+
+    // Batch IN 유저 목록 조회용
+    @Query("""
+        SELECT new com.back.devc.domain.member.member.dto.CountResultDto(p.member.userId, COUNT(p))
+        FROM Post p
+        WHERE p.member.userId IN :userIds
+        GROUP BY p.member.userId
+    """)
+    List<CountResultDto> countPostsByUserIds(@Param("userIds") List<Long> userIds);
 }
