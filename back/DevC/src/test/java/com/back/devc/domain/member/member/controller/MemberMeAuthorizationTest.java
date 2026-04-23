@@ -42,7 +42,7 @@ class MemberMeAuthorizationTest {
     private EntityManager entityManager;
 
     @Test
-    @DisplayName("내 정보 조회 - 정상 사용자면 200 응답")
+    @DisplayName("내정보 조회 - 정상 사용자면 200 응답")
     void me_AuthorizedUser_Success() throws Exception {
         String email = "me-ok@test.com";
         String rawPassword = "password123!";
@@ -61,14 +61,14 @@ class MemberMeAuthorizationTest {
                 .andExpect(handler().handlerType(MemberController.class))
                 .andExpect(handler().methodName("me"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value("USER_200_ME_SUCCESS"))
+                .andExpect(jsonPath("$.code").value("MEMBER_200_ME_SUCCESS"))
                 .andExpect(jsonPath("$.data.email").value(email))
                 .andExpect(jsonPath("$.data.nickname").value(nickname))
                 .andExpect(jsonPath("$.data.status").value("ACTIVE"));
     }
 
     @Test
-    @DisplayName("내 정보 조회 - 블랙리스트 사용자면 401 응답")
+    @DisplayName("내정보 조회 - 블랙리스트 사용자면 401 응답")
     void me_BlacklistedUser_Unauthorized() throws Exception {
         String email = "me-blacklisted@test.com";
         String rawPassword = "password123!";
@@ -95,7 +95,7 @@ class MemberMeAuthorizationTest {
     }
 
     @Test
-    @DisplayName("내 정보 조회 - 삭제된 사용자면 401 응답")
+    @DisplayName("내정보 조회 - 삭제된 사용자면 401 응답")
     void me_DeletedUser_Unauthorized() throws Exception {
         String email = "me-deleted@test.com";
         String rawPassword = "password123!";
