@@ -14,44 +14,4 @@ public record NotificationResponse(
         boolean isRead,
         LocalDateTime createdAt
 ) {
-
-    public Long getNotificationId() {
-        return notificationId;
-    }
-
-    public Long getUserId() {
-        return userId;
-    }
-
-    public Long getActorUserId() {
-        return actorUserId;
-    }
-
-    public String getActorNickname() {
-        return actorNickname;
-    }
-
-    public Long getPostId() {
-        return postId;
-    }
-
-    public Long getCommentId() {
-        return commentId;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public boolean isRead() {
-        return isRead;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
 }

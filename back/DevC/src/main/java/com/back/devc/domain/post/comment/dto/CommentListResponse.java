@@ -6,7 +6,4 @@ public record CommentListResponse(
         List<CommentResponse> comments
 ) {
 
-    public List<CommentResponse> getComments() {
-        return comments;
-    }
 }

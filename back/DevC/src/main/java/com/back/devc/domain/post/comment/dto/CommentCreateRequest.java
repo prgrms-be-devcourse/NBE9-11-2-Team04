@@ -7,7 +7,4 @@ public record CommentCreateRequest(
         String content
 ) {
 
-    public String getContent() {
-        return content;
-    }
 }

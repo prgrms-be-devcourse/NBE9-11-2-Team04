@@ -5,8 +5,4 @@ import java.util.List;
 public record CommentAttachmentListResponse(
         List<CommentAttachmentResponse> attachments
 ) {
-
-    public List<CommentAttachmentResponse> getAttachments() {
-        return attachments;
-    }
 }
