@@ -7,6 +7,7 @@ import com.back.devc.domain.member.member.entity.Member;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -56,4 +57,21 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
 
     // N+1 처리 전 사용한 조회 방법
     List<String> findReasonTypesByTargetId(TargetType targetType, Long targetId);
+
+    // 동시성 처리를 위한 상태 업데이트 메서드
+    @Modifying(clearAutomatically = true) // 벌크 연산 후 영속성 컨텍스트 초기화
+    @Query("""
+        UPDATE Report r 
+        SET r.status = :newStatus, r.processedByAdmin = :admin, r.processedAt = CURRENT_TIMESTAMP
+        WHERE r.targetType = :targetType 
+          AND r.targetId = :targetId 
+          AND r.status = :oldStatus
+    """)
+    int updateStatusGroup(
+            @Param("targetType") TargetType targetType,
+            @Param("targetId") Long targetId,
+            @Param("admin") Member admin,
+            @Param("newStatus") ReportStatus newStatus,
+            @Param("oldStatus") ReportStatus oldStatus
+    );
 }

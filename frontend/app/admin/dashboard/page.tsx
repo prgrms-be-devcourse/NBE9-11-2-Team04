@@ -140,7 +140,7 @@ export default function AdminDashboardPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">대시보드</h1>
         <p className="text-muted-foreground">
-          DevHub 관리자 대시보드에 오신 것을 환영합니다.
+          DevC 관리자 대시보드에 오신 것을 환영합니다.
         </p>
       </div>
 

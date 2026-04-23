@@ -10,7 +10,7 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'DevHub - 개발자 커뮤니티',
+  title: 'DevC - 개발자 커뮤니티',
   description: '개발자들을 위한 지식 공유 커뮤니티. 최신 기술 트렌드, 실무 경험, 개발 노하우를 함께 나눠보세요.',
   generator: 'v0.app',
   icons: {

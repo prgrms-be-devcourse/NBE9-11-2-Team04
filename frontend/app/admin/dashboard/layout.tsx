@@ -109,7 +109,7 @@ export default function AdminDashboardLayout({
           <div className="flex h-16 items-center justify-between border-b border-border px-4">
             <Link href="/admin/dashboard" className="flex items-center gap-2">
               <Shield className="h-6 w-6 text-primary" />
-              <span className="font-bold text-foreground">DevHub Admin</span>
+              <span className="font-bold text-foreground">DevC Admin</span>
             </Link>
 
             <Button

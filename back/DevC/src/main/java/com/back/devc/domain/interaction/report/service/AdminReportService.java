@@ -285,6 +285,7 @@ public class AdminReportService {
     /* =========================================================
      * 5. 그룹 승인
      * ========================================================= */
+    @Transactional // 반드시 트랜잭션 안에서 실행
     public void approveReportGroup(Long adminId, AdminReportRequestDTO dto) {
         Member admin = findMemberOrThrow(adminId);
         validateAdminRole(admin);
@@ -295,16 +296,18 @@ public class AdminReportService {
         validateTargetExists(targetType, targetId);
         validateSanctionDetails(dto);
 
-        List<Report> reports = reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
-                targetType, targetId, ReportStatus.PENDING
+        //  'PENDING'인 것만 한 번에 'RESOLVE'로 변경
+        int updatedCount = reportRepository.updateStatusGroup(
+                targetType, targetId, admin, ReportStatus.RESOLVED, ReportStatus.PENDING
         );
 
-        if (reports.isEmpty()) {
+        // 수정된 행이 0개라면? 이미 다른 관리자가 처리한 상태
+        if (updatedCount == 0) {
             throw new ApiException(ReportErrorCode.REPORT_404_PENDING_LIST);
+
         }
 
-        reports.forEach(r -> r.processReport(admin));
-
+        // 업데이트에 성공(updatedCount > 0)한 경우에만 제재 로직 실행
         reportTargetHandler.handleApproved(
                 targetType,
                 targetId,
@@ -317,6 +320,7 @@ public class AdminReportService {
     /* =========================================================
      * 6. 그룹 반려
      * ========================================================= */
+    @Transactional
     public void rejectReportGroup(Long adminId, AdminReportRequestDTO dto) {
         Member admin = findMemberOrThrow(adminId);
         validateAdminRole(admin);
@@ -324,15 +328,14 @@ public class AdminReportService {
         TargetType targetType = dto.targetType();
         Long targetId = dto.reportId();
 
-        List<Report> reports = reportRepository.findAllByTargetTypeAndTargetIdAndStatus(
-                targetType, targetId, ReportStatus.PENDING
+        // 반려 역시 'PENDING' 상태인 것만 'REJECT'로 일괄 변경
+        int updatedCount = reportRepository.updateStatusGroup(
+                targetType, targetId, admin, ReportStatus.REJECTED, ReportStatus.PENDING
         );
 
-        if (reports.isEmpty()) {
+        if (updatedCount == 0) {
             throw new ApiException(ReportErrorCode.REPORT_404_PENDING_LIST);
         }
-
-        reports.forEach(r -> r.rejectReport(admin));
 
         reportTargetHandler.handleRejected(targetType, targetId, admin);
     }
