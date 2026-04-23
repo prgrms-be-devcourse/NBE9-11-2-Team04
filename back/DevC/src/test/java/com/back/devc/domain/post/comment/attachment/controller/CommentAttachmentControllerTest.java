@@ -22,7 +22,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.test.context.ActiveProfiles;
 
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentUploadRequest;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -57,7 +59,7 @@ class CommentAttachmentControllerTest {
     void uploadCommentAttachments_success() throws Exception {
         CommentAttachmentListResponse response = org.mockito.Mockito.mock(CommentAttachmentListResponse.class);
 
-        given(commentAttachmentService.uploadAttachments(eq(1L), anyList(), anyList()))
+        given(commentAttachmentService.uploadAttachments(eq(1L), any(CommentAttachmentUploadRequest.class)))
                 .willReturn(response);
 
         MockMultipartFile file = new MockMultipartFile(
@@ -71,7 +73,7 @@ class CommentAttachmentControllerTest {
         try {
             mockMvc.perform(multipart("/api/comments/{commentId}/attachments", 1L)
                             .file(file)
-                            .param("fileOrder", "1"))
+                            .param("fileOrders", "1"))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.code").value("COMMENT_ATTACHMENT_201_UPLOAD"))
                     .andExpect(jsonPath("$.message").value("댓글 첨부파일 업로드 성공"));
@@ -79,7 +81,7 @@ class CommentAttachmentControllerTest {
             SecurityContextHolder.clearContext();
         }
 
-        verify(commentAttachmentService).uploadAttachments(eq(1L), anyList(), anyList());
+        verify(commentAttachmentService).uploadAttachments(eq(1L), any(CommentAttachmentUploadRequest.class));
     }
 
     @Test

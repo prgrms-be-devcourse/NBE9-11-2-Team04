@@ -122,9 +122,7 @@ class AdmMemberControllerTest {
     void updateMemberStatus_success() throws Exception {
 
         AdmMemberStatusUpdateRequest request =
-                AdmMemberStatusUpdateRequest.builder()
-                        .status(MemberStatus.ACTIVE)
-                        .build();
+                new AdmMemberStatusUpdateRequest(MemberStatus.ACTIVE);
 
         AdmMemberDetailResponse response =
                 new AdmMemberDetailResponse(
