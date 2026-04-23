@@ -302,7 +302,14 @@ function isImageAttachment(attachment: CommentAttachmentItem): boolean {
   return normalizedFileType === "IMAGE" || normalizedMimeType?.startsWith("image/") === true
 }
 
-function renderAttachments(attachments: CommentAttachmentItem[] | undefined) {
+function renderAttachments(
+  attachments: CommentAttachmentItem[] | undefined,
+  options?: {
+    canDelete?: boolean
+    deletingAttachmentId?: number | null
+    onDeleteAttachment?: (attachmentId: number) => void
+  },
+) {
   if (!attachments || attachments.length === 0) {
     return null
   }
@@ -312,35 +319,49 @@ function renderAttachments(attachments: CommentAttachmentItem[] | undefined) {
       <p className="text-xs font-medium text-muted-foreground">첨부파일</p>
       <div className="flex flex-col gap-3">
         {attachments.map((attachment) => {
+          const resolvedAttachmentId = attachment.attachmentId ?? attachment.id
           const fileUrl = `http://localhost:8080${attachment.fileUrl}`
           const isImage = isImageAttachment(attachment)
+          const isDeleting = resolvedAttachmentId !== undefined && options?.deletingAttachmentId === resolvedAttachmentId
 
-                    return (
-                        <div
-                            key={attachment.attachmentId ?? attachment.id ?? attachment.fileName}
-                            className="flex flex-col gap-2 rounded-md border border-border/70 p-3"
-                        >
-                            {isImage && (
-                                <img
-                                    src={fileUrl}
-                                    alt={attachment.fileName}
-                                    className="max-h-80 w-fit max-w-full rounded-md border border-border object-contain"
-                                />
-                            )}
-                            <a
-                                href={fileUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="w-fit text-sm text-primary underline-offset-2 hover:underline"
-                            >
-                                {attachment.fileName}
-                            </a>
-                        </div>
-                    )
-                })}
+          return (
+            <div
+              key={resolvedAttachmentId ?? attachment.fileName}
+              className="flex flex-col gap-2 rounded-md border border-border/70 p-3"
+            >
+              {isImage && (
+                <img
+                  src={fileUrl}
+                  alt={attachment.fileName}
+                  className="max-h-80 w-fit max-w-full rounded-md border border-border object-contain"
+                />
+              )}
+              <div className="flex items-center justify-between gap-3">
+                <a
+                  href={fileUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-fit text-sm text-primary underline-offset-2 hover:underline"
+                >
+                  {attachment.fileName}
+                </a>
+                {options?.canDelete && resolvedAttachmentId !== undefined && options.onDeleteAttachment && (
+                  <button
+                    type="button"
+                    onClick={() => options.onDeleteAttachment?.(resolvedAttachmentId)}
+                    disabled={isDeleting}
+                    className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isDeleting ? "삭제 중..." : "첨부 삭제"}
+                  </button>
+                )}
+              </div>
             </div>
-        </div>
-    )
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 function sortCommentsByNewest(comments: CommentItem[]): CommentItem[] {
@@ -369,6 +390,46 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
   const [newCommentFiles, setNewCommentFiles] = useState<File[]>([])
   const [replyFiles, setReplyFiles] = useState<ReplyFilesMap>({})
+  const [deletingAttachmentId, setDeletingAttachmentId] = useState<number | null>(null)
+
+  const handleRemoveNewCommentFile = (indexToRemove: number) => {
+    setNewCommentFiles((prev) => prev.filter((_, index) => index !== indexToRemove))
+  }
+
+  const handleRemoveReplyFile = (commentId: number, indexToRemove: number) => {
+    setReplyFiles((prev) => ({
+      ...prev,
+      [commentId]: (prev[commentId] ?? []).filter((_, index) => index !== indexToRemove),
+    }))
+  }
+  const handleDeleteAttachment = async (commentId: number, attachmentId: number) => {
+    try {
+      setDeletingAttachmentId(attachmentId)
+      setError(null)
+
+      const response = await fetch(`http://localhost:8080/api/comments/${commentId}/attachments/${attachmentId}`, {
+        ...getAuthFetchOptions(),
+        method: "DELETE",
+        headers: getJsonAuthHeaders(),
+      })
+
+      if (!response.ok) {
+        if (isUnauthorizedStatus(response.status)) {
+          openLoginRequiredPopup("로그인이 필요한 기능입니다.")
+          return
+        }
+
+        const message = await extractErrorMessage(response, "첨부파일 삭제에 실패했습니다.")
+        throw new Error(message)
+      }
+
+      await loadComments({ force: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
+    } finally {
+      setDeletingAttachmentId(null)
+    }
+  }
 
   const [loginRequiredPopup, setLoginRequiredPopup] = useState<LoginRequiredPopupState>({
     open: false,
@@ -816,9 +877,28 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
 
         <div className="flex items-center justify-between gap-3">
           {newCommentFiles.length > 0 ? (
-            <p className="text-xs text-muted-foreground">
-              첨부파일 {newCommentFiles.length}개 선택됨
-            </p>
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                첨부파일 {newCommentFiles.length}개 선택됨
+              </p>
+              <div className="space-y-2">
+                {newCommentFiles.map((file, index) => (
+                  <div
+                    key={`${file.name}-${file.size}-${index}`}
+                    className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2"
+                  >
+                    <p className="truncate text-xs text-foreground">{file.name}</p>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveNewCommentFile(index)}
+                      className="shrink-0 text-xs font-medium text-destructive hover:underline"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
             <p className="text-xs text-muted-foreground">선택된 첨부파일 없음</p>
           )}
@@ -911,7 +991,11 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
                                 <p className="text-sm text-foreground">
                                     {comment.deleted ? "삭제된 댓글입니다." : comment.content}
                                 </p>
-                                {renderAttachments(comment.attachments)}
+                                {renderAttachments(comment.attachments, {
+                                    canDelete: comment.userId === currentUserId,
+                                    deletingAttachmentId,
+                                    onDeleteAttachment: (attachmentId) => handleDeleteAttachment(comment.commentId, attachmentId),
+                                })}
                             </>
                         )}
 
@@ -996,9 +1080,28 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
                                     </label>
 
                   {(replyFiles[comment.commentId]?.length ?? 0) > 0 ? (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      첨부파일 {replyFiles[comment.commentId]?.length ?? 0}개 선택됨
-                    </p>
+                    <div className="mt-2 space-y-2">
+                      <p className="text-xs text-muted-foreground">
+                        첨부파일 {replyFiles[comment.commentId]?.length ?? 0}개 선택됨
+                      </p>
+                      <div className="space-y-2">
+                        {(replyFiles[comment.commentId] ?? []).map((file, index) => (
+                          <div
+                            key={`${file.name}-${file.size}-${index}`}
+                            className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2"
+                          >
+                            <p className="truncate text-xs text-foreground">{file.name}</p>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveReplyFile(comment.commentId, index)}
+                              className="shrink-0 text-xs font-medium text-destructive hover:underline"
+                            >
+                              삭제
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   ) : (
                     <p className="mt-2 text-xs text-muted-foreground">선택된 첨부파일 없음</p>
                   )}
@@ -1062,7 +1165,11 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
                                                 <p className="text-sm text-foreground">
                                                     {reply.deleted ? "삭제된 댓글입니다." : reply.content}
                                                 </p>
-                                                {renderAttachments(reply.attachments)}
+                                                {renderAttachments(reply.attachments, {
+                                                    canDelete: reply.userId === currentUserId,
+                                                    deletingAttachmentId,
+                                                    onDeleteAttachment: (attachmentId) => handleDeleteAttachment(reply.commentId, attachmentId),
+                                                })}
                                             </>
                                         )}
 
