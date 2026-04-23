@@ -1,38 +1,37 @@
 package com.back.devc.domain.post.comment.attachment.controller;
 
-import com.back.devc.global.security.jwt.JwtPrincipal;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import java.util.List;
-
+import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentDeleteResponse;
 import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentListResponse;
+import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentUploadRequest;
 import com.back.devc.domain.post.comment.attachment.service.CommentAttachmentService;
+import com.back.devc.global.security.jwt.JwtPrincipal;
 import com.back.devc.global.security.jwt.JwtProvider;
-import com.back.devc.domain.member.member.repository.MemberRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
-import org.springframework.test.context.ActiveProfiles;
+
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentUploadRequest;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ActiveProfiles("test")
 @WebMvcTest(CommentAttachmentController.class)
@@ -118,6 +117,7 @@ class CommentAttachmentControllerTest {
 
         verify(commentAttachmentService).deleteAttachment(1L, 1L);
     }
+
     private Authentication createAuthentication() {
         JwtPrincipal principal = new JwtPrincipal(2L, "test@test.com", "USER");
         return new UsernamePasswordAuthenticationToken(principal, null, List.of());
