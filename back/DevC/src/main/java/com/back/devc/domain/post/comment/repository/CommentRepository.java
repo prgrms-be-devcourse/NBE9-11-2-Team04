@@ -19,6 +19,8 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     long countByUserIdAndIsDeletedFalse(Long userId);
 
+    long countByPostIdAndIsDeletedFalse(Long postId);
+
     @Query("""
         SELECT new com.back.devc.domain.member.mypage.dto.MyCommentResponse(
             c.id,

@@ -72,7 +72,7 @@ class CommentAttachmentControllerTest {
         try {
             mockMvc.perform(multipart("/api/comments/{commentId}/attachments", 1L)
                             .file(file)
-                            .param("fileOrder", "1"))
+                            .param("fileOrders", "1"))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.code").value("COMMENT_ATTACHMENT_201_UPLOAD"))
                     .andExpect(jsonPath("$.message").value("댓글 첨부파일 업로드 성공"));

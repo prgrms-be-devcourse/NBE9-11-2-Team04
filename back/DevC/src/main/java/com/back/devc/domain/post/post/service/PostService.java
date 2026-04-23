@@ -8,6 +8,7 @@ import com.back.devc.domain.member.searchLog.dto.CreateSearchLogRequest;
 import com.back.devc.domain.member.searchLog.service.SearchLogService;
 import com.back.devc.domain.post.category.entity.Category;
 import com.back.devc.domain.post.category.repository.CategoryRepository;
+import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.dto.*;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
@@ -23,6 +24,8 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.reflect.Field;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -34,6 +37,7 @@ public class PostService {
     private final PostLikeRepository postLikeRepository;
     private final BookmarkRepository bookmarkRepository;
     private final SearchLogService searchLogService;
+    private final CommentRepository commentRepository;
 
     public PostCreateResponse write(Long userId, PostCreateRequest request) {
 
@@ -69,6 +73,7 @@ public class PostService {
                 && bookmarkRepository.existsByMember_UserIdAndPost_PostId(loginUserId, postId);
 
         int bookmarkCount = Math.toIntExact(bookmarkRepository.countByPost_PostId(postId));
+        applyActualCommentCount(post);
 
         return PostDetailResponse.from(post, liked, bookmarked, bookmarkCount);
     }
@@ -136,6 +141,7 @@ public class PostService {
         }
 
         return result.map(post -> {
+            applyActualCommentCount(post);
             boolean liked = loginUserId != null
                     && postLikeRepository.existsByMember_UserIdAndPost_PostId(loginUserId, post.getPostId());
 
@@ -144,6 +150,18 @@ public class PostService {
 
             return PostListResponse.from(post, liked, bookmarked);
         });
+    }
+
+    private void applyActualCommentCount(Post post) {
+        int actualCommentCount = Math.toIntExact(commentRepository.countByPostIdAndIsDeletedFalse(post.getPostId()));
+
+        try {
+            Field commentCountField = Post.class.getDeclaredField("commentCount");
+            commentCountField.setAccessible(true);
+            commentCountField.setInt(post, actualCommentCount);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new IllegalStateException("Post commentCount 동기화에 실패했습니다.", e);
+        }
     }
 
     @Transactional
